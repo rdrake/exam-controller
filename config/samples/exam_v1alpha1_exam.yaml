@@ -4,6 +4,34 @@ metadata:
   labels:
     app.kubernetes.io/name: exam-controller
     app.kubernetes.io/managed-by: kustomize
-  name: exam-sample
+  name: sofe4790u-midterm
 spec:
-  # TODO(user): Add fields here
+  template:
+    image: registry.example.com/vuln-app:v2.1
+    resources:
+      requests:
+        cpu: "250m"
+        memory: "256Mi"
+      limits:
+        cpu: "500m"
+        memory: "512Mi"
+    port: 8080
+  schedule:
+    unlock: "2026-04-10T14:00:00-04:00"
+    lock: "2026-04-10T16:00:00-04:00"
+    dryRun:
+      before: "15m"
+      duration: "5m"
+  students:
+    - id: john.smith
+      email: john.smith@ontariotechu.net
+    - id: jane.doe
+      email: jane.doe@ontariotechu.net
+      lockOverride: "2026-04-10T17:00:00-04:00"
+  ingressTLS:
+    secretName: exam-wildcard-tls
+  domain: exam.otu.ca
+  smtp:
+    secretRef: exam-smtp-credentials
+    from: "noreply@otu.ca"
+    subject: "SOFE4790U - Your Exam Instance"
