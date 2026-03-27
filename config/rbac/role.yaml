@@ -1,0 +1,32 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: manager-role
+rules:
+- apiGroups:
+  - exam.otu.ca
+  resources:
+  - exams
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - exam.otu.ca
+  resources:
+  - exams/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - exam.otu.ca
+  resources:
+  - exams/status
+  verbs:
+  - get
+  - patch
+  - update

@@ -1,0 +1,9 @@
+apiVersion: exam.otu.ca/v1alpha1
+kind: Exam
+metadata:
+  labels:
+    app.kubernetes.io/name: exam-controller
+    app.kubernetes.io/managed-by: kustomize
+  name: exam-sample
+spec:
+  # TODO(user): Add fields here
