@@ -21,7 +21,7 @@ spec:
     - jsonPath: .spec.schedule.unlock
       name: Unlock
       type: string
-    - jsonPath: .spec.schedule.lock
+    - jsonPath: .status.computedLockTime
       name: Lock
       type: string
     - jsonPath: .metadata.creationTimestamp
@@ -54,6 +54,29 @@ spec:
             properties:
               domain:
                 type: string
+              email:
+                description: ExamEmail configures email delivery.
+                properties:
+                  before:
+                    default: 30m
+                    type: string
+                  from:
+                    type: string
+                  instructorEmail:
+                    type: string
+                  rateLimit:
+                    default: 1
+                    type: integer
+                  secretRef:
+                    type: string
+                  subject:
+                    type: string
+                required:
+                - from
+                - instructorEmail
+                - secretRef
+                - subject
+                type: object
               ingressTLS:
                 description: ExamIngressTLS configures TLS for student Ingress resources.
                 properties:
@@ -63,8 +86,7 @@ spec:
                 - secretName
                 type: object
               schedule:
-                description: ExamSchedule defines the timing for unlock/lock and dry
-                  run.
+                description: ExamSchedule defines the timing for the exam lifecycle.
                 properties:
                   dryRun:
                     description: ExamDryRunSpec configures the pre-exam smoke test
@@ -78,30 +100,26 @@ spec:
                     - before
                     - duration
                     type: object
-                  lock:
-                    format: date-time
+                  duration:
                     type: string
+                  provisionBefore:
+                    default: 1h
+                    type: string
+                  retention:
+                    default: 24h
+                    type: string
+                  timeMultiplier:
+                    default: "1.5"
+                    type: number
                   unlock:
                     format: date-time
                     type: string
                 required:
-                - lock
+                - duration
                 - unlock
                 type: object
-              smtp:
-                description: ExamSMTP configures email delivery.
-                properties:
-                  from:
-                    type: string
-                  secretRef:
-                    type: string
-                  subject:
-                    type: string
-                required:
-                - from
-                - secretRef
-                - subject
-                type: object
+              spares:
+                type: integer
               students:
                 items:
                   description: ExamStudent defines a student participating in the
@@ -110,9 +128,6 @@ spec:
                     email:
                       type: string
                     id:
-                      type: string
-                    lockOverride:
-                      format: date-time
                       type: string
                   required:
                   - email
@@ -193,15 +208,18 @@ spec:
                 type: object
             required:
             - domain
+            - email
             - ingressTLS
             - schedule
-            - smtp
             - students
             - template
             type: object
           status:
             description: ExamStatus defines the observed state of Exam.
             properties:
+              computedLockTime:
+                format: date-time
+                type: string
               conditions:
                 items:
                   description: Condition contains details for one aspect of the current
@@ -286,22 +304,65 @@ spec:
                 - failed
                 - passed
                 type: object
+              emailTime:
+                format: date-time
+                type: string
               message:
                 type: string
+              metrics:
+                description: MetricsSummary provides quick counts for dashboard queries.
+                properties:
+                  emailsFailed:
+                    type: integer
+                  emailsSent:
+                    type: integer
+                  instancesFailed:
+                    type: integer
+                  instancesHealthy:
+                    type: integer
+                  totalSpares:
+                    type: integer
+                  totalStudents:
+                    type: integer
+                required:
+                - emailsFailed
+                - emailsSent
+                - instancesFailed
+                - instancesHealthy
+                - totalSpares
+                - totalStudents
+                type: object
               phase:
                 description: ExamPhase represents the current state of an Exam.
+                type: string
+              provisionTime:
+                format: date-time
                 type: string
               retentionDeadline:
                 format: date-time
                 type: string
+              spares:
+                items:
+                  description: SpareStatus records the state of a spare instance.
+                  properties:
+                    phase:
+                      description: StudentPhase represents the current state of a
+                        student's instance.
+                      type: string
+                    slug:
+                      type: string
+                    url:
+                      type: string
+                  required:
+                  - phase
+                  - slug
+                  type: object
+                type: array
               students:
                 items:
                   description: StudentStatus records the state of a single student's
                     resources.
                   properties:
-                    effectiveLockTime:
-                      format: date-time
-                      type: string
                     emailSentAt:
                       format: date-time
                       type: string
@@ -309,9 +370,6 @@ spec:
                       description: EmailStatus represents the email delivery state.
                       type: string
                     id:
-                      type: string
-                    lockedAt:
-                      format: date-time
                       type: string
                     phase:
                       description: StudentPhase represents the current state of a
@@ -322,7 +380,6 @@ spec:
                     url:
                       type: string
                   required:
-                  - effectiveLockTime
                   - emailStatus
                   - id
                   - phase
