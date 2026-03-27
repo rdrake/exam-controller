@@ -185,6 +185,10 @@ func main() {
 		setupLog.Error(err, "Failed to create controller", "controller", "Exam")
 		os.Exit(1)
 	}
+	if err := examv1alpha1.SetupExamWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "Failed to create webhook", "webhook", "Exam")
+		os.Exit(1)
+	}
 	// +kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
