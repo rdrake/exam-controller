@@ -14,7 +14,20 @@ spec:
     singular: exam
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .spec.schedule.unlock
+      name: Unlock
+      type: string
+    - jsonPath: .spec.schedule.lock
+      name: Lock
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: Exam is the Schema for the exams API
@@ -37,27 +50,159 @@ spec:
           metadata:
             type: object
           spec:
-            description: spec defines the desired state of Exam
+            description: ExamSpec defines the desired state of Exam.
             properties:
-              foo:
-                description: foo is an example field of Exam. Edit exam_types.go to
-                  remove/update
+              domain:
                 type: string
+              ingressTLS:
+                description: ExamIngressTLS configures TLS for student Ingress resources.
+                properties:
+                  secretName:
+                    type: string
+                required:
+                - secretName
+                type: object
+              schedule:
+                description: ExamSchedule defines the timing for unlock/lock and dry
+                  run.
+                properties:
+                  dryRun:
+                    description: ExamDryRunSpec configures the pre-exam smoke test
+                      window.
+                    properties:
+                      before:
+                        type: string
+                      duration:
+                        type: string
+                    required:
+                    - before
+                    - duration
+                    type: object
+                  lock:
+                    format: date-time
+                    type: string
+                  unlock:
+                    format: date-time
+                    type: string
+                required:
+                - lock
+                - unlock
+                type: object
+              smtp:
+                description: ExamSMTP configures email delivery.
+                properties:
+                  from:
+                    type: string
+                  secretRef:
+                    type: string
+                  subject:
+                    type: string
+                required:
+                - from
+                - secretRef
+                - subject
+                type: object
+              students:
+                items:
+                  description: ExamStudent defines a student participating in the
+                    exam.
+                  properties:
+                    email:
+                      type: string
+                    id:
+                      type: string
+                    lockOverride:
+                      format: date-time
+                      type: string
+                  required:
+                  - email
+                  - id
+                  type: object
+                type: array
+              template:
+                description: ExamTemplate defines the pod template for student instances.
+                properties:
+                  image:
+                    type: string
+                  port:
+                    format: int32
+                    type: integer
+                  resources:
+                    description: ResourceRequirements describes the compute resource
+                      requirements.
+                    properties:
+                      claims:
+                        description: |-
+                          Claims lists the names of resources, defined in spec.resourceClaims,
+                          that are used by this container.
+
+                          This field depends on the
+                          DynamicResourceAllocation feature gate.
+
+                          This field is immutable. It can only be set for containers.
+                        items:
+                          description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                          properties:
+                            name:
+                              description: |-
+                                Name must match the name of one entry in pod.spec.resourceClaims of
+                                the Pod where this field is used. It makes that resource available
+                                inside a container.
+                              type: string
+                            request:
+                              description: |-
+                                Request is the name chosen for a request in the referenced claim.
+                                If empty, everything from the claim is made available, otherwise
+                                only the result of this request.
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - name
+                        x-kubernetes-list-type: map
+                      limits:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          Limits describes the maximum amount of compute resources allowed.
+                          More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                        type: object
+                      requests:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          Requests describes the minimum amount of compute resources required.
+                          If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                          otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                          More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                        type: object
+                    type: object
+                required:
+                - image
+                - port
+                type: object
+            required:
+            - domain
+            - ingressTLS
+            - schedule
+            - smtp
+            - students
+            - template
             type: object
           status:
-            description: status defines the observed state of Exam
+            description: ExamStatus defines the observed state of Exam.
             properties:
               conditions:
-                description: |-
-                  conditions represent the current state of the Exam resource.
-                  Each condition has a unique type and reflects the status of a specific aspect of the resource.
-
-                  Standard condition types include:
-                  - "Available": the resource is fully functional
-                  - "Progressing": the resource is being created or updated
-                  - "Degraded": the resource failed to reach or maintain its desired state
-
-                  The status of each condition is one of True, False, or Unknown.
                 items:
                   description: Condition contains details for one aspect of the current
                     state of this API Resource.
@@ -113,12 +258,77 @@ spec:
                   - type
                   type: object
                 type: array
-                x-kubernetes-list-map-keys:
-                - type
-                x-kubernetes-list-type: map
+              dryRun:
+                description: DryRunStatus records the results of the dry run.
+                properties:
+                  completedAt:
+                    format: date-time
+                    type: string
+                  failed:
+                    type: integer
+                  failures:
+                    items:
+                      description: DryRunFailure records a smoke test failure for
+                        a student.
+                      properties:
+                        error:
+                          type: string
+                        student:
+                          type: string
+                      required:
+                      - error
+                      - student
+                      type: object
+                    type: array
+                  passed:
+                    type: integer
+                required:
+                - failed
+                - passed
+                type: object
+              message:
+                type: string
+              phase:
+                description: ExamPhase represents the current state of an Exam.
+                type: string
+              retentionDeadline:
+                format: date-time
+                type: string
+              students:
+                items:
+                  description: StudentStatus records the state of a single student's
+                    resources.
+                  properties:
+                    effectiveLockTime:
+                      format: date-time
+                      type: string
+                    emailSentAt:
+                      format: date-time
+                      type: string
+                    emailStatus:
+                      description: EmailStatus represents the email delivery state.
+                      type: string
+                    id:
+                      type: string
+                    lockedAt:
+                      format: date-time
+                      type: string
+                    phase:
+                      description: StudentPhase represents the current state of a
+                        student's instance.
+                      type: string
+                    slug:
+                      type: string
+                    url:
+                      type: string
+                  required:
+                  - effectiveLockTime
+                  - emailStatus
+                  - id
+                  - phase
+                  type: object
+                type: array
             type: object
-        required:
-        - spec
         type: object
     served: true
     storage: true

@@ -17,73 +17,152 @@ limitations under the License.
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+// ExamPhase represents the current state of an Exam.
+type ExamPhase string
 
-// ExamSpec defines the desired state of Exam
+const (
+	ExamPhasePending      ExamPhase = "Pending"
+	ExamPhaseProvisioning ExamPhase = "Provisioning"
+	ExamPhaseReady        ExamPhase = "Ready"
+	ExamPhaseDryRun       ExamPhase = "DryRun"
+	ExamPhaseVerified     ExamPhase = "Verified"
+	ExamPhaseUnlocked     ExamPhase = "Unlocked"
+	ExamPhaseLocking      ExamPhase = "Locking"
+	ExamPhaseLocked       ExamPhase = "Locked"
+	ExamPhaseTearingDown  ExamPhase = "TearingDown"
+)
+
+// StudentPhase represents the current state of a student's instance.
+type StudentPhase string
+
+const (
+	StudentPhaseProvisioned StudentPhase = "Provisioned"
+	StudentPhaseHealthy     StudentPhase = "Healthy"
+	StudentPhaseUnlocked    StudentPhase = "Unlocked"
+	StudentPhaseLocked      StudentPhase = "Locked"
+	StudentPhaseFailed      StudentPhase = "Failed"
+)
+
+// EmailStatus represents the email delivery state.
+type EmailStatus string
+
+const (
+	EmailStatusPending EmailStatus = "Pending"
+	EmailStatusSent    EmailStatus = "Sent"
+	EmailStatusFailed  EmailStatus = "Failed"
+)
+
+// ExamTemplate defines the pod template for student instances.
+type ExamTemplate struct {
+	Image     string                      `json:"image"`
+	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
+	Port      int32                       `json:"port"`
+}
+
+// ExamSchedule defines the timing for unlock/lock and dry run.
+type ExamSchedule struct {
+	Unlock metav1.Time     `json:"unlock"`
+	Lock   metav1.Time     `json:"lock"`
+	DryRun *ExamDryRunSpec `json:"dryRun,omitempty"`
+}
+
+// ExamDryRunSpec configures the pre-exam smoke test window.
+type ExamDryRunSpec struct {
+	Before   metav1.Duration `json:"before"`
+	Duration metav1.Duration `json:"duration"`
+}
+
+// ExamStudent defines a student participating in the exam.
+type ExamStudent struct {
+	ID           string       `json:"id"`
+	Email        string       `json:"email"`
+	LockOverride *metav1.Time `json:"lockOverride,omitempty"`
+}
+
+// ExamIngressTLS configures TLS for student Ingress resources.
+type ExamIngressTLS struct {
+	SecretName string `json:"secretName"`
+}
+
+// ExamSMTP configures email delivery.
+type ExamSMTP struct {
+	SecretRef string `json:"secretRef"`
+	From      string `json:"from"`
+	Subject   string `json:"subject"`
+}
+
+// ExamSpec defines the desired state of Exam.
 type ExamSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-	// The following markers will use OpenAPI v3 schema to validate the value
-	// More info: https://book.kubebuilder.io/reference/markers/crd-validation.html
+	Template   ExamTemplate   `json:"template"`
+	Schedule   ExamSchedule   `json:"schedule"`
+	Students   []ExamStudent  `json:"students"`
+	IngressTLS ExamIngressTLS `json:"ingressTLS"`
+	Domain     string         `json:"domain"`
+	SMTP       ExamSMTP       `json:"smtp"`
+}
 
-	// foo is an example field of Exam. Edit exam_types.go to remove/update
-	// +optional
-	Foo *string `json:"foo,omitempty"`
+// DryRunFailure records a smoke test failure for a student.
+type DryRunFailure struct {
+	Student string `json:"student"`
+	Error   string `json:"error"`
+}
+
+// DryRunStatus records the results of the dry run.
+type DryRunStatus struct {
+	CompletedAt *metav1.Time    `json:"completedAt,omitempty"`
+	Passed      int             `json:"passed"`
+	Failed      int             `json:"failed"`
+	Failures    []DryRunFailure `json:"failures,omitempty"`
+}
+
+// StudentStatus records the state of a single student's resources.
+type StudentStatus struct {
+	ID                string       `json:"id"`
+	Slug              string       `json:"slug,omitempty"`
+	URL               string       `json:"url,omitempty"`
+	Phase             StudentPhase `json:"phase"`
+	EmailStatus       EmailStatus  `json:"emailStatus"`
+	EmailSentAt       *metav1.Time `json:"emailSentAt,omitempty"`
+	LockedAt          *metav1.Time `json:"lockedAt,omitempty"`
+	EffectiveLockTime metav1.Time  `json:"effectiveLockTime"`
 }
 
 // ExamStatus defines the observed state of Exam.
 type ExamStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	// For Kubernetes API conventions, see:
-	// https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#typical-status-properties
-
-	// conditions represent the current state of the Exam resource.
-	// Each condition has a unique type and reflects the status of a specific aspect of the resource.
-	//
-	// Standard condition types include:
-	// - "Available": the resource is fully functional
-	// - "Progressing": the resource is being created or updated
-	// - "Degraded": the resource failed to reach or maintain its desired state
-	//
-	// The status of each condition is one of True, False, or Unknown.
-	// +listType=map
-	// +listMapKey=type
-	// +optional
-	Conditions []metav1.Condition `json:"conditions,omitempty"`
+	Phase             ExamPhase          `json:"phase,omitempty"`
+	Message           string             `json:"message,omitempty"`
+	Conditions        []metav1.Condition `json:"conditions,omitempty"`
+	DryRun            *DryRunStatus      `json:"dryRun,omitempty"`
+	Students          []StudentStatus    `json:"students,omitempty"`
+	RetentionDeadline *metav1.Time       `json:"retentionDeadline,omitempty"`
 }
 
-// +kubebuilder:object:root=true
-// +kubebuilder:subresource:status
+//+kubebuilder:object:root=true
+//+kubebuilder:subresource:status
+//+kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
+//+kubebuilder:printcolumn:name="Unlock",type=string,JSONPath=`.spec.schedule.unlock`
+//+kubebuilder:printcolumn:name="Lock",type=string,JSONPath=`.spec.schedule.lock`
+//+kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
 // Exam is the Schema for the exams API
 type Exam struct {
-	metav1.TypeMeta `json:",inline"`
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// metadata is a standard object metadata
-	// +optional
-	metav1.ObjectMeta `json:"metadata,omitzero"`
-
-	// spec defines the desired state of Exam
-	// +required
-	Spec ExamSpec `json:"spec"`
-
-	// status defines the observed state of Exam
-	// +optional
-	Status ExamStatus `json:"status,omitzero"`
+	Spec   ExamSpec   `json:"spec,omitempty"`
+	Status ExamStatus `json:"status,omitempty"`
 }
 
-// +kubebuilder:object:root=true
+//+kubebuilder:object:root=true
 
 // ExamList contains a list of Exam
 type ExamList struct {
 	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitzero"`
+	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Exam `json:"items"`
 }
 
