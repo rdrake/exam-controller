@@ -5,31 +5,35 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func studentSelector(examName, studentID string) metav1.LabelSelector {
-	return metav1.LabelSelector{
-		MatchLabels: map[string]string{
-			"exam.otu.ca/exam":    examName,
-			"exam.otu.ca/student": studentID,
-		},
-	}
+// PolicyProvider abstracts network policy creation for different backends.
+type PolicyProvider interface {
+	DenyAll(namespace string, labels map[string]string) client.Object
+	EgressAllowlist(namespace string, labels map[string]string) client.Object
+	IngressAllow(namespace string, labels map[string]string) client.Object
 }
 
-// DenyAllPolicy returns a NetworkPolicy that denies all ingress and egress for a student's pods.
-func DenyAllPolicy(namespace, examName, studentID string) *networkingv1.NetworkPolicy {
+// VanillaPolicyProvider creates standard Kubernetes NetworkPolicy resources.
+type VanillaPolicyProvider struct{}
+
+func slugFromLabels(labels map[string]string) string {
+	return labels["exam.otu.ca/slug"]
+}
+
+func (v *VanillaPolicyProvider) DenyAll(namespace string, labels map[string]string) client.Object {
+	slug := slugFromLabels(labels)
 	return &networkingv1.NetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      studentID + "-deny-all",
+			Name:      slug + "-deny-all",
 			Namespace: namespace,
-			Labels: map[string]string{
-				"exam.otu.ca/exam":    examName,
-				"exam.otu.ca/student": studentID,
-				"exam.otu.ca/policy":  "deny-all",
-			},
+			Labels:    labels,
 		},
 		Spec: networkingv1.NetworkPolicySpec{
-			PodSelector: studentSelector(examName, studentID),
+			PodSelector: metav1.LabelSelector{
+				MatchLabels: map[string]string{"exam.otu.ca/slug": slug},
+			},
 			PolicyTypes: []networkingv1.PolicyType{
 				networkingv1.PolicyTypeIngress,
 				networkingv1.PolicyTypeEgress,
@@ -38,40 +42,37 @@ func DenyAllPolicy(namespace, examName, studentID string) *networkingv1.NetworkP
 	}
 }
 
-// EgressAllowlistPolicy returns a NetworkPolicy that permits DNS egress to kube-dns.
-func EgressAllowlistPolicy(namespace, examName, studentID, dnsNamespace string) *networkingv1.NetworkPolicy {
-	dnsPort := intstr.FromInt32(53)
+func (v *VanillaPolicyProvider) EgressAllowlist(namespace string, labels map[string]string) client.Object {
+	slug := slugFromLabels(labels)
+	dns := intstr.FromInt32(53)
 	udp := corev1.ProtocolUDP
 	tcp := corev1.ProtocolTCP
 	return &networkingv1.NetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      studentID + "-egress-allow",
+			Name:      slug + "-egress-allow",
 			Namespace: namespace,
-			Labels: map[string]string{
-				"exam.otu.ca/exam":    examName,
-				"exam.otu.ca/student": studentID,
-				"exam.otu.ca/policy":  "egress-allow",
-			},
+			Labels:    labels,
 		},
 		Spec: networkingv1.NetworkPolicySpec{
-			PodSelector: studentSelector(examName, studentID),
-			PolicyTypes: []networkingv1.PolicyType{
-				networkingv1.PolicyTypeEgress,
+			PodSelector: metav1.LabelSelector{
+				MatchLabels: map[string]string{"exam.otu.ca/slug": slug},
 			},
+			PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeEgress},
 			Egress: []networkingv1.NetworkPolicyEgressRule{
 				{
 					To: []networkingv1.NetworkPolicyPeer{
 						{
 							NamespaceSelector: &metav1.LabelSelector{
-								MatchLabels: map[string]string{
-									"kubernetes.io/metadata.name": dnsNamespace,
-								},
+								MatchLabels: map[string]string{"kubernetes.io/metadata.name": "kube-system"},
+							},
+							PodSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{"k8s-app": "kube-dns"},
 							},
 						},
 					},
 					Ports: []networkingv1.NetworkPolicyPort{
-						{Protocol: &udp, Port: &dnsPort},
-						{Protocol: &tcp, Port: &dnsPort},
+						{Port: &dns, Protocol: &udp},
+						{Port: &dns, Protocol: &tcp},
 					},
 				},
 			},
@@ -79,34 +80,28 @@ func EgressAllowlistPolicy(namespace, examName, studentID, dnsNamespace string) 
 	}
 }
 
-// IngressAllowPolicy returns a NetworkPolicy that permits ingress from the ingress controller.
-func IngressAllowPolicy(namespace, examName, studentID, ingressNamespace string, ingressPodLabels map[string]string) *networkingv1.NetworkPolicy {
+func (v *VanillaPolicyProvider) IngressAllow(namespace string, labels map[string]string) client.Object {
+	slug := slugFromLabels(labels)
 	return &networkingv1.NetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      studentID + "-ingress-allow",
+			Name:      slug + "-ingress-allow",
 			Namespace: namespace,
-			Labels: map[string]string{
-				"exam.otu.ca/exam":    examName,
-				"exam.otu.ca/student": studentID,
-				"exam.otu.ca/policy":  "ingress-allow",
-			},
+			Labels:    labels,
 		},
 		Spec: networkingv1.NetworkPolicySpec{
-			PodSelector: studentSelector(examName, studentID),
-			PolicyTypes: []networkingv1.PolicyType{
-				networkingv1.PolicyTypeIngress,
+			PodSelector: metav1.LabelSelector{
+				MatchLabels: map[string]string{"exam.otu.ca/slug": slug},
 			},
+			PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeIngress},
 			Ingress: []networkingv1.NetworkPolicyIngressRule{
 				{
 					From: []networkingv1.NetworkPolicyPeer{
 						{
 							NamespaceSelector: &metav1.LabelSelector{
-								MatchLabels: map[string]string{
-									"kubernetes.io/metadata.name": ingressNamespace,
-								},
+								MatchLabels: map[string]string{"kubernetes.io/metadata.name": "ingress-nginx"},
 							},
 							PodSelector: &metav1.LabelSelector{
-								MatchLabels: ingressPodLabels,
+								MatchLabels: map[string]string{"app.kubernetes.io/name": "ingress-nginx"},
 							},
 						},
 					},

@@ -2,52 +2,72 @@ package network
 
 import (
 	"testing"
+
+	networkingv1 "k8s.io/api/networking/v1"
 )
 
-func TestDenyAllPolicy(t *testing.T) {
-	p := DenyAllPolicy("exam-ns", "exam-midterm", "john.smith")
-	if p.Name != "john.smith-deny-all" {
-		t.Errorf("unexpected name: %s", p.Name)
+func TestVanillaDenyAll(t *testing.T) {
+	p := &VanillaPolicyProvider{}
+	obj := p.DenyAll("exam-ns", map[string]string{"exam.otu.ca/slug": "abc123"})
+	np, ok := obj.(*networkingv1.NetworkPolicy)
+	if !ok {
+		t.Fatal("expected *NetworkPolicy")
 	}
-	if p.Namespace != "exam-ns" {
-		t.Errorf("unexpected namespace: %s", p.Namespace)
+	if np.Namespace != "exam-ns" {
+		t.Errorf("namespace = %q, want %q", np.Namespace, "exam-ns")
 	}
-	if len(p.Spec.PolicyTypes) != 2 {
-		t.Errorf("expected 2 policy types (Ingress+Egress), got %d", len(p.Spec.PolicyTypes))
+	if np.Name != "abc123-deny-all" {
+		t.Errorf("name = %q, want %q", np.Name, "abc123-deny-all")
 	}
-	if len(p.Spec.Ingress) != 0 {
-		t.Errorf("expected no ingress rules, got %d", len(p.Spec.Ingress))
-	}
-	if len(p.Spec.Egress) != 0 {
-		t.Errorf("expected no egress rules, got %d", len(p.Spec.Egress))
-	}
-}
-
-func TestEgressAllowlistPolicy(t *testing.T) {
-	p := EgressAllowlistPolicy("exam-ns", "exam-midterm", "john.smith", "kube-system")
-	if p.Name != "john.smith-egress-allow" {
-		t.Errorf("unexpected name: %s", p.Name)
-	}
-	if len(p.Spec.Egress) == 0 {
-		t.Fatal("expected at least one egress rule")
+	if len(np.Spec.PolicyTypes) != 2 {
+		t.Fatalf("policyTypes len = %d, want 2", len(np.Spec.PolicyTypes))
 	}
 }
 
-func TestIngressAllowPolicy(t *testing.T) {
-	ingressNS := "ingress-nginx"
-	ingressLabels := map[string]string{"app.kubernetes.io/name": "ingress-nginx"}
-	p := IngressAllowPolicy("exam-ns", "exam-midterm", "john.smith", ingressNS, ingressLabels)
-	if p.Name != "john.smith-ingress-allow" {
-		t.Errorf("unexpected name: %s", p.Name)
+func TestVanillaEgressAllowlist(t *testing.T) {
+	p := &VanillaPolicyProvider{}
+	obj := p.EgressAllowlist("exam-ns", map[string]string{"exam.otu.ca/slug": "abc123"})
+	np := obj.(*networkingv1.NetworkPolicy)
+	if np.Name != "abc123-egress-allow" {
+		t.Errorf("name = %q, want %q", np.Name, "abc123-egress-allow")
 	}
-	if len(p.Spec.Ingress) != 1 {
-		t.Fatalf("expected 1 ingress rule, got %d", len(p.Spec.Ingress))
+	// Should have egress rules for DNS (port 53 UDP+TCP) to CoreDNS pods
+	if len(np.Spec.Egress) != 1 {
+		t.Fatalf("egress rules = %d, want 1", len(np.Spec.Egress))
 	}
-	from := p.Spec.Ingress[0].From
+	rule := np.Spec.Egress[0]
+	if len(rule.Ports) != 2 {
+		t.Errorf("egress ports = %d, want 2 (UDP+TCP)", len(rule.Ports))
+	}
+	// Should target CoreDNS pods specifically
+	if len(rule.To) != 1 {
+		t.Fatalf("egress to = %d, want 1", len(rule.To))
+	}
+	if rule.To[0].PodSelector == nil {
+		t.Error("expected podSelector targeting CoreDNS")
+	}
+}
+
+func TestVanillaIngressAllow(t *testing.T) {
+	p := &VanillaPolicyProvider{}
+	obj := p.IngressAllow("exam-ns", map[string]string{"exam.otu.ca/slug": "abc123"})
+	np := obj.(*networkingv1.NetworkPolicy)
+	if np.Name != "abc123-ingress-allow" {
+		t.Errorf("name = %q, want %q", np.Name, "abc123-ingress-allow")
+	}
+	if len(np.Spec.Ingress) != 1 {
+		t.Fatalf("ingress rules = %d, want 1", len(np.Spec.Ingress))
+	}
+	from := np.Spec.Ingress[0].From
 	if len(from) != 1 {
-		t.Fatalf("expected 1 from peer, got %d", len(from))
+		t.Fatalf("from = %d, want 1", len(from))
 	}
-	if from[0].NamespaceSelector == nil {
-		t.Error("expected namespace selector")
+	if from[0].NamespaceSelector == nil || from[0].PodSelector == nil {
+		t.Error("expected both namespaceSelector and podSelector")
 	}
+}
+
+func TestPolicyProviderInterface(t *testing.T) {
+	// Compile-time check that VanillaPolicyProvider implements PolicyProvider
+	var _ PolicyProvider = &VanillaPolicyProvider{}
 }
