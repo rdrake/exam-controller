@@ -65,6 +65,7 @@ type ExamReconciler struct {
 	Sender         notifier.Sender
 	Now            func() time.Time
 	Metrics        *metrics.ExamMetrics
+	Checker        smoketest.HealthChecker // nil defaults to HTTPChecker
 }
 
 func (r *ExamReconciler) now() time.Time {
@@ -619,6 +620,11 @@ func (r *ExamReconciler) sendNextPendingEmail(ctx context.Context, exam *examv1a
 }
 
 func (r *ExamReconciler) runDryRun(ctx context.Context, exam *examv1alpha1.Exam) {
+	checker := r.Checker
+	if checker == nil {
+		checker = &smoketest.HTTPChecker{}
+	}
+
 	ns := examNamespace(exam.Name)
 	var targets []smoketest.Target
 	for _, s := range exam.Status.Students {
@@ -640,7 +646,7 @@ func (r *ExamReconciler) runDryRun(ctx context.Context, exam *examv1alpha1.Exam)
 		negativeURL = fmt.Sprintf("http://%s.%s:%d", s.Slug, ns, exam.Spec.Template.Port)
 	}
 
-	dr := smoketest.RunDryRun(ctx, targets, negativeURL)
+	dr := smoketest.RunDryRun(ctx, checker, targets, negativeURL)
 	now := metav1.Now()
 	exam.Status.DryRun = &examv1alpha1.DryRunStatus{
 		CompletedAt: &now,

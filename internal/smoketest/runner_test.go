@@ -59,7 +59,7 @@ func TestRunAll(t *testing.T) {
 		{StudentID: "alice", URL: good.URL},
 		{StudentID: "bob", URL: bad.URL},
 	}
-	result := RunAll(context.Background(), targets)
+	result := RunAll(context.Background(), &HTTPChecker{}, targets)
 	if result.Passed != 1 {
 		t.Errorf("passed = %d, want 1", result.Passed)
 	}
@@ -79,7 +79,7 @@ func TestRunDryRun_PolicyEnforced(t *testing.T) {
 
 	targets := []Target{{StudentID: "alice", URL: srv.URL}}
 	// negativeURL is unreachable = policy enforced
-	dr := RunDryRun(context.Background(), targets, "http://127.0.0.1:1")
+	dr := RunDryRun(context.Background(), &HTTPChecker{}, targets, "http://127.0.0.1:1")
 	if !dr.PolicyEnforced {
 		t.Error("expected PolicyEnforced=true when negative URL is unreachable")
 	}
@@ -96,7 +96,7 @@ func TestRunDryRun_PolicyNotEnforced(t *testing.T) {
 
 	targets := []Target{{StudentID: "alice", URL: srv.URL}}
 	// negativeURL IS reachable = policy NOT enforced
-	dr := RunDryRun(context.Background(), targets, srv.URL)
+	dr := RunDryRun(context.Background(), &HTTPChecker{}, targets, srv.URL)
 	if dr.PolicyEnforced {
 		t.Error("expected PolicyEnforced=false when negative URL is reachable")
 	}
