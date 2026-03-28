@@ -1,4 +1,0 @@
-## Append samples of your project ##
-resources:
-- exam_v1alpha1_exam.yaml
-# +kubebuilder:scaffold:manifestskustomizesamples

@@ -1,9 +1,0 @@
-exam-controller has been installed.
-
-Verify the deployment:
-
-  kubectl get deployments -n {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "exam-controller.name" . }},app.kubernetes.io/instance={{ .Release.Name }}"
-
-Note: The CRD must be installed separately before creating Exam resources:
-
-  make install
