@@ -27,16 +27,21 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/discovery"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	crmmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	examv1alpha1 "github.com/rdrake/exam-controller/api/v1alpha1"
 	"github.com/rdrake/exam-controller/internal/controller"
+	"github.com/rdrake/exam-controller/internal/metrics"
+	"github.com/rdrake/exam-controller/internal/network"
+	"github.com/rdrake/exam-controller/internal/notifier"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -178,9 +183,15 @@ func main() {
 		os.Exit(1)
 	}
 
+	policyProvider := selectPolicyProvider(mgr)
+	examMetrics := metrics.NewExamMetrics(crmmetrics.Registry)
+
 	if err := (&controller.ExamReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:         mgr.GetClient(),
+		Scheme:         mgr.GetScheme(),
+		PolicyProvider: policyProvider,
+		Sender:         notifier.NewRetrySender(&notifier.SMTPSender{}, 3),
+		Metrics:        examMetrics,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "Failed to create controller", "controller", "Exam")
 		os.Exit(1)
@@ -205,4 +216,23 @@ func main() {
 		setupLog.Error(err, "Failed to run manager")
 		os.Exit(1)
 	}
+}
+
+func selectPolicyProvider(mgr ctrl.Manager) network.PolicyProvider {
+	disc, err := discovery.NewDiscoveryClientForConfig(mgr.GetConfig())
+	if err != nil {
+		setupLog.Info("Cannot create discovery client, using vanilla NetworkPolicy")
+		return &network.VanillaPolicyProvider{}
+	}
+	resources, err := disc.ServerResourcesForGroupVersion("cilium.io/v2")
+	if err == nil {
+		for _, r := range resources.APIResources {
+			if r.Kind == "CiliumNetworkPolicy" {
+				setupLog.Info("CiliumNetworkPolicy CRD detected, using Cilium policy provider")
+				return &network.CiliumPolicyProvider{}
+			}
+		}
+	}
+	setupLog.Info("CiliumNetworkPolicy CRD not found, using vanilla NetworkPolicy")
+	return &network.VanillaPolicyProvider{}
 }
