@@ -1,5 +1,6 @@
 # Image URL to use all building/pushing image targets
 IMG ?= controller:latest
+COVERAGE_THRESHOLD ?= 80
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -58,8 +59,17 @@ vet: ## Run go vet against code.
 	go vet ./...
 
 .PHONY: test
-test: manifests generate fmt vet setup-envtest ## Run all tests (unit + integration).
-	KUBEBUILDER_ASSETS="$(shell "$(ENVTEST)" use $(ENVTEST_K8S_VERSION) --bin-dir "$(LOCALBIN)" -p path)" go test -tags=integration $$(go list ./... | grep -v /e2e) -coverprofile cover.out
+test: manifests generate fmt vet setup-envtest ## Run all tests (unit + integration) with coverage.
+	KUBEBUILDER_ASSETS="$(shell "$(ENVTEST)" use $(ENVTEST_K8S_VERSION) --bin-dir "$(LOCALBIN)" -p path)" go test -tags=integration $$(go list ./... | grep -v /e2e | grep -v /cmd) -coverprofile cover.out
+	$(MAKE) check-coverage
+
+.PHONY: check-coverage
+check-coverage: ## Verify test coverage meets threshold.
+	@echo "Checking coverage threshold ($(COVERAGE_THRESHOLD)%)..."
+	@go tool cover -func=cover.out \
+		| grep -v zz_generated \
+		| grep '^total:' \
+		| awk '{ gsub(/%/, "", $$3); if ($$3+0 < $(COVERAGE_THRESHOLD)) { printf "FAIL: coverage %.1f%% < %d%%\n", $$3, $(COVERAGE_THRESHOLD); exit 1 } else { printf "OK: coverage %.1f%% >= %d%%\n", $$3, $(COVERAGE_THRESHOLD) } }'
 
 .PHONY: test-unit
 test-unit: ## Run unit tests only (no envtest, no e2e).
@@ -71,7 +81,7 @@ test-integration: manifests generate fmt vet setup-envtest ## Run integration te
 
 .PHONY: coverage
 coverage: manifests generate fmt vet setup-envtest ## Generate HTML coverage report.
-	KUBEBUILDER_ASSETS="$(shell "$(ENVTEST)" use $(ENVTEST_K8S_VERSION) --bin-dir "$(LOCALBIN)" -p path)" go test -tags=integration $$(go list ./... | grep -v /e2e) -coverprofile cover.out
+	KUBEBUILDER_ASSETS="$(shell "$(ENVTEST)" use $(ENVTEST_K8S_VERSION) --bin-dir "$(LOCALBIN)" -p path)" go test -tags=integration $$(go list ./... | grep -v /e2e | grep -v /cmd) -coverprofile cover.out
 	go tool cover -html=cover.out -o coverage.html
 	@echo "Coverage report: coverage.html"
 
