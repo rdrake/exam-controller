@@ -20,6 +20,7 @@ limitations under the License.
 package e2e
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -76,10 +77,76 @@ var _ = Describe("Manager", Ordered, func() {
 		cmd = exec.Command("kubectl", "create", "ns", examCRNamespace)
 		_, _ = utils.Run(cmd) // ignore if already exists
 
+		By("generating self-signed webhook TLS certificates")
+		certDir, err := os.MkdirTemp("", "exam-e2e-webhook-certs-")
+		Expect(err).NotTo(HaveOccurred())
+
+		caKey := filepath.Join(certDir, "ca.key")
+		caCrt := filepath.Join(certDir, "ca.crt")
+		tlsKey := filepath.Join(certDir, "tls.key")
+		tlsCsr := filepath.Join(certDir, "tls.csr")
+		tlsCrt := filepath.Join(certDir, "tls.crt")
+		extFile := filepath.Join(certDir, "san.cnf")
+
+		svcDNS := "exam-controller-webhook-service.exam-controller-system.svc"
+		sanConf := fmt.Sprintf("[v3_req]\nsubjectAltName=DNS:%s,DNS:%s.cluster.local\n", svcDNS, svcDNS)
+		Expect(os.WriteFile(extFile, []byte(sanConf), 0644)).To(Succeed())
+
+		// Generate CA
+		cmd = exec.Command("openssl", "genrsa", "-out", caKey, "2048")
+		_, err = utils.Run(cmd)
+		Expect(err).NotTo(HaveOccurred(), "Failed to generate CA key")
+
+		cmd = exec.Command("openssl", "req", "-new", "-x509", "-key", caKey,
+			"-out", caCrt, "-days", "1", "-subj", "/CN=exam-webhook-ca")
+		_, err = utils.Run(cmd)
+		Expect(err).NotTo(HaveOccurred(), "Failed to generate CA cert")
+
+		// Generate server cert
+		cmd = exec.Command("openssl", "genrsa", "-out", tlsKey, "2048")
+		_, err = utils.Run(cmd)
+		Expect(err).NotTo(HaveOccurred(), "Failed to generate TLS key")
+
+		cmd = exec.Command("openssl", "req", "-new", "-key", tlsKey,
+			"-out", tlsCsr, "-subj", fmt.Sprintf("/CN=%s", svcDNS))
+		_, err = utils.Run(cmd)
+		Expect(err).NotTo(HaveOccurred(), "Failed to generate TLS CSR")
+
+		cmd = exec.Command("openssl", "x509", "-req", "-in", tlsCsr,
+			"-CA", caCrt, "-CAkey", caKey, "-CAcreateserial",
+			"-out", tlsCrt, "-days", "1",
+			"-extensions", "v3_req", "-extfile", extFile)
+		_, err = utils.Run(cmd)
+		Expect(err).NotTo(HaveOccurred(), "Failed to sign TLS cert")
+
+		// Create the TLS secret for the webhook server
+		By("creating the webhook TLS secret")
+		cmd = exec.Command("kubectl", "create", "secret", "tls", "webhook-server-cert",
+			"--cert", tlsCrt, "--key", tlsKey, "-n", namespace)
+		_, err = utils.Run(cmd)
+		Expect(err).NotTo(HaveOccurred(), "Failed to create webhook TLS secret")
+
 		By("deploying the controller-manager")
 		cmd = exec.Command("make", "deploy", fmt.Sprintf("IMG=%s", managerImage))
 		_, err = utils.Run(cmd)
 		Expect(err).NotTo(HaveOccurred(), "Failed to deploy the controller-manager")
+
+		// Patch the ValidatingWebhookConfiguration with the CA bundle so the
+		// API server can verify the webhook's self-signed certificate.
+		By("patching the ValidatingWebhookConfiguration with CA bundle")
+		caBytes, err := os.ReadFile(caCrt)
+		Expect(err).NotTo(HaveOccurred())
+		caB64 := base64.StdEncoding.EncodeToString(caBytes)
+		patch := fmt.Sprintf(
+			`[{"op":"add","path":"/webhooks/0/clientConfig/caBundle","value":"%s"}]`, caB64)
+		cmd = exec.Command("kubectl", "patch", "validatingwebhookconfiguration",
+			"exam-controller-validating-webhook-configuration",
+			"--type=json", fmt.Sprintf("-p=%s", patch))
+		_, err = utils.Run(cmd)
+		Expect(err).NotTo(HaveOccurred(), "Failed to patch VWC with CA bundle")
+
+		// Clean up temp cert files
+		_ = os.RemoveAll(certDir)
 	})
 
 	// After all tests have been executed, clean up by undeploying the controller, uninstalling CRDs,
@@ -344,8 +411,8 @@ spec:
 			}, 3*time.Minute, 5*time.Second).Should(Succeed())
 		})
 
-		// Scenario 3: Webhook validation (requires --enable-webhooks + cert-manager)
-		PIt("webhook rejects invalid exam", func() {
+		// Scenario 3: Webhook validation
+		It("webhook rejects invalid exam", func() {
 			unlock := time.Now().UTC().Add(10 * time.Minute).Format(time.RFC3339)
 
 			By("rejecting an Exam with empty students")
