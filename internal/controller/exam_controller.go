@@ -223,6 +223,22 @@ func (r *ExamReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		err = r.reconcileTeardown(ctx, &exam)
 	}
 
+	// Update countdown gauges
+	if r.Metrics != nil {
+		unlock := exam.Spec.Schedule.Unlock.Time
+		secondsUntilUnlock := time.Until(unlock).Seconds()
+		if secondsUntilUnlock < 0 {
+			secondsUntilUnlock = 0
+		}
+		r.Metrics.SecondsUntilUnlock.WithLabelValues(exam.Name).Set(secondsUntilUnlock)
+
+		secondsUntilLock := time.Until(lockTime).Seconds()
+		if secondsUntilLock < 0 {
+			secondsUntilLock = 0
+		}
+		r.Metrics.SecondsUntilLock.WithLabelValues(exam.Name).Set(secondsUntilLock)
+	}
+
 	// Update status
 	r.updateMetricsSummary(&exam)
 	if statusErr := r.Status().Update(ctx, &exam); statusErr != nil {
@@ -561,9 +577,15 @@ func (r *ExamReconciler) sendNextPendingEmail(ctx context.Context, exam *examv1a
 			now := metav1.Now()
 			if err := r.Sender.Send(exam.Spec.Email.From, []string{student.Email}, []byte(msg)); err != nil {
 				exam.Status.Students[i].EmailStatus = examv1alpha1.EmailStatusFailed
+				if r.Metrics != nil {
+					r.Metrics.EmailsFailed.WithLabelValues(exam.Name).Inc()
+				}
 			} else {
 				exam.Status.Students[i].EmailStatus = examv1alpha1.EmailStatusSent
 				exam.Status.Students[i].EmailSentAt = &now
+				if r.Metrics != nil {
+					r.Metrics.EmailsSent.WithLabelValues(exam.Name).Inc()
+				}
 			}
 			return true
 		}
@@ -627,6 +649,11 @@ func (r *ExamReconciler) runDryRun(ctx context.Context, exam *examv1alpha1.Exam)
 			Reason:  "SomeFailed",
 			Message: fmt.Sprintf("%d of %d checks failed", dr.Result.Failed, dr.Result.Passed+dr.Result.Failed),
 		})
+	}
+
+	if r.Metrics != nil {
+		r.Metrics.DryRunPassed.WithLabelValues(exam.Name).Set(float64(dr.Result.Passed))
+		r.Metrics.DryRunFailed.WithLabelValues(exam.Name).Set(float64(dr.Result.Failed))
 	}
 }
 
