@@ -539,10 +539,8 @@ func (r *ExamReconciler) provisionInstance(ctx context.Context, exam *examv1alph
 	if err := r.Create(ctx, svc); err != nil && !errors.IsAlreadyExists(err) {
 		return err
 	}
-	ing := provisioner.Ingress(exam, ns, studentID, s)
-	if err := r.Create(ctx, ing); err != nil && !errors.IsAlreadyExists(err) {
-		return err
-	}
+	// Ingress is created at unlock time, not during provisioning — the route
+	// should not exist while deny-all policies are active.
 	labels := provisioner.Labels(exam.Name, studentID, s)
 	labels["exam.otu.ca/port"] = fmt.Sprintf("%d", exam.Spec.Template.Port)
 	denyAll := r.PolicyProvider.DenyAll(ns, labels)
@@ -717,6 +715,11 @@ func (r *ExamReconciler) enforcePolicies(ctx context.Context, exam *examv1alpha1
 
 		ingressAllow := r.PolicyProvider.IngressAllow(ns, labels)
 		if unlocked {
+			// Create Ingress resource alongside ingress-allow policy
+			ing := provisioner.Ingress(exam, ns, entry.studentID, entry.slug)
+			if err := r.Create(ctx, ing); err != nil && !errors.IsAlreadyExists(err) {
+				log.FromContext(ctx).Error(err, "drift: failed to create ingress", "slug", entry.slug)
+			}
 			if err := r.Create(ctx, ingressAllow); err != nil && !errors.IsAlreadyExists(err) {
 				log.FromContext(ctx).Error(err, "drift: failed to create ingress-allow", "slug", entry.slug)
 			}
