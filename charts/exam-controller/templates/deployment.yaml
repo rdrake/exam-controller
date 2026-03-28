@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "exam-controller.fullname" . }}-controller-manager
+  name: {{ include "exam-controller.fullname" . }}
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "exam-controller.labels" . | nindent 4 }}
@@ -36,9 +36,7 @@ spec:
         - --health-probe-bind-address=:{{ .Values.healthProbe.port }}
         {{- if .Values.metrics.enabled }}
         - --metrics-bind-address=:{{ .Values.metrics.port }}
-        {{- end }}
-        {{- if and .Values.metrics.enabled .Values.metrics.secure }}
-        - --metrics-secure
+        - --metrics-secure={{ .Values.metrics.secure }}
         {{- end }}
         {{- if .Values.webhook.enabled }}
         {{- if .Values.webhook.certDir }}
@@ -51,7 +49,7 @@ spec:
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         {{- if .Values.metrics.enabled }}
         ports:
-        - name: metrics
+        - name: https
           containerPort: {{ .Values.metrics.port }}
           protocol: TCP
         {{- end }}

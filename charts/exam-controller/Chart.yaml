@@ -4,3 +4,13 @@ description: A Kubernetes operator for managing pen-testing exam instances
 type: application
 version: 0.1.0
 appVersion: "0.1.0"
+keywords:
+  - kubernetes
+  - operator
+  - exam
+  - education
+home: https://github.com/rdrake/exam-controller
+sources:
+  - https://github.com/rdrake/exam-controller
+maintainers:
+  - name: rdrake
