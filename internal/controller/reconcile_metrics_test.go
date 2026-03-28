@@ -1,0 +1,191 @@
+//go:build integration
+
+/*
+Copyright 2026.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package controller
+
+import (
+	"context"
+	"time"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/testutil"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+
+	examv1alpha1 "github.com/rdrake/exam-controller/api/v1alpha1"
+	"github.com/rdrake/exam-controller/internal/metrics"
+	"github.com/rdrake/exam-controller/internal/notifier"
+)
+
+var _ = Describe("Metrics", func() {
+	var (
+		ctx        context.Context
+		examName   string
+		nn         types.NamespacedName
+		unlock     time.Time
+		fakeSender *notifier.FakeSender
+	)
+
+	BeforeEach(func() {
+		ctx = context.Background()
+		examName = uniqueExamName("metrics")
+		nn = types.NamespacedName{Name: examName, Namespace: examCRNamespace}
+		unlock = time.Date(2026, 6, 15, 14, 0, 0, 0, time.UTC)
+		fakeSender = &notifier.FakeSender{}
+	})
+
+	AfterEach(func() {
+		cleanupExam(ctx, examName, examCRNamespace)
+		ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: examNamespace(examName)}}
+		_ = k8sClient.Delete(ctx, ns)
+	})
+
+	It("updates phase transition counter on phase change", func() {
+		students := []examv1alpha1.ExamStudent{
+			{ID: "alice", Email: "alice@test.com"},
+		}
+		createExamCR(ctx, examName, unlock, students, 0)
+		preseedSlugs(ctx, nn)
+
+		reg := prometheus.NewRegistry()
+		m := metrics.NewExamMetrics(reg)
+
+		// Clock is after provision time but before unlock -> should transition "" -> Provisioning
+		clockTime := unlock.Add(-30 * time.Minute)
+		reconciler := newReconciler(func() time.Time { return clockTime }, fakeSender, m)
+
+		_, err := reconciler.Reconcile(ctx, reconcileRequest(nn))
+		Expect(err).NotTo(HaveOccurred())
+
+		val := testutil.ToFloat64(m.PhaseTransitions.WithLabelValues(examName, "", "Provisioning"))
+		Expect(val).To(Equal(float64(1)))
+	})
+
+	It("sets countdown gauges", func() {
+		students := []examv1alpha1.ExamStudent{
+			{ID: "alice", Email: "alice@test.com"},
+		}
+		createExamCR(ctx, examName, unlock, students, 0)
+		preseedSlugs(ctx, nn)
+
+		reg := prometheus.NewRegistry()
+		m := metrics.NewExamMetrics(reg)
+
+		// Drive to Ready phase so countdown gauges are set with exam not yet unlocked.
+		reconciler := driveToPhase(ctx, nn, examv1alpha1.ExamPhaseReady, unlock, fakeSender, m)
+		_ = reconciler
+
+		unlockGauge := testutil.ToFloat64(m.SecondsUntilUnlock.WithLabelValues(examName))
+		Expect(unlockGauge).To(BeNumerically(">", 0), "SecondsUntilUnlock should be > 0 before unlock time")
+	})
+
+	It("updates instance counts", func() {
+		students := []examv1alpha1.ExamStudent{
+			{ID: "alice", Email: "alice@test.com"},
+			{ID: "bob", Email: "bob@test.com"},
+		}
+		createExamCR(ctx, examName, unlock, students, 1)
+		preseedSlugs(ctx, nn)
+
+		reg := prometheus.NewRegistry()
+		m := metrics.NewExamMetrics(reg)
+
+		// Drive to Ready phase — all deployments patched healthy.
+		driveToPhase(ctx, nn, examv1alpha1.ExamPhaseReady, unlock, fakeSender, m)
+
+		total := testutil.ToFloat64(m.InstancesTotal.WithLabelValues(examName))
+		Expect(total).To(Equal(float64(3)), "InstancesTotal should be 3 (2 students + 1 spare)")
+
+		healthy := testutil.ToFloat64(m.InstancesHealthy.WithLabelValues(examName))
+		Expect(healthy).To(Equal(float64(3)), "InstancesHealthy should be 3")
+
+		failed := testutil.ToFloat64(m.InstancesFailed.WithLabelValues(examName))
+		Expect(failed).To(Equal(float64(0)), "InstancesFailed should be 0")
+	})
+
+	It("cleans up metrics on teardown", func() {
+		students := []examv1alpha1.ExamStudent{
+			{ID: "alice", Email: "alice@test.com"},
+		}
+		createExamCR(ctx, examName, unlock, students, 0)
+		preseedSlugs(ctx, nn)
+
+		reg := prometheus.NewRegistry()
+		m := metrics.NewExamMetrics(reg)
+
+		// Drive to Provisioning so resources exist and metrics are populated.
+		reconciler := driveToPhase(ctx, nn, examv1alpha1.ExamPhaseProvisioning, unlock, fakeSender, m)
+
+		// Verify metrics exist before deletion.
+		Expect(testutil.CollectAndCount(m.InstancesTotal)).To(BeNumerically(">", 0))
+
+		// Delete the Exam object to trigger finalizer-based teardown.
+		exam := &examv1alpha1.Exam{}
+		Expect(k8sClient.Get(ctx, nn, exam)).To(Succeed())
+		Expect(k8sClient.Delete(ctx, exam)).To(Succeed())
+
+		// Reconcile triggers finalizer cleanup which calls CleanupExam.
+		_, err := reconciler.Reconcile(ctx, reconcileRequest(nn))
+		Expect(err).NotTo(HaveOccurred())
+
+		// After cleanup, label series for this exam should be removed.
+		Expect(testutil.CollectAndCount(m.InstancesTotal)).To(Equal(0))
+		Expect(testutil.CollectAndCount(m.InstancesHealthy)).To(Equal(0))
+		Expect(testutil.CollectAndCount(m.InstancesFailed)).To(Equal(0))
+		Expect(testutil.CollectAndCount(m.SecondsUntilUnlock)).To(Equal(0))
+		Expect(testutil.CollectAndCount(m.SecondsUntilLock)).To(Equal(0))
+		Expect(testutil.CollectAndCount(m.PhaseTransitions)).To(Equal(0))
+	})
+
+	It("records reconcile duration", func() {
+		students := []examv1alpha1.ExamStudent{
+			{ID: "alice", Email: "alice@test.com"},
+		}
+		createExamCR(ctx, examName, unlock, students, 0)
+		preseedSlugs(ctx, nn)
+
+		reg := prometheus.NewRegistry()
+		m := metrics.NewExamMetrics(reg)
+
+		clockTime := unlock.Add(-30 * time.Minute)
+		reconciler := newReconciler(func() time.Time { return clockTime }, fakeSender, m)
+
+		_, err := reconciler.Reconcile(ctx, reconcileRequest(nn))
+		Expect(err).NotTo(HaveOccurred())
+
+		// Gather metrics from the registry and verify the histogram has at least one observation.
+		mfs, err := reg.Gather()
+		Expect(err).NotTo(HaveOccurred())
+
+		var found bool
+		for _, mf := range mfs {
+			if mf.GetName() == "exam_reconcile_duration_seconds" {
+				found = true
+				for _, metric := range mf.GetMetric() {
+					h := metric.GetHistogram()
+					Expect(h).NotTo(BeNil())
+					Expect(h.GetSampleCount()).To(BeNumerically(">=", uint64(1)))
+				}
+			}
+		}
+		Expect(found).To(BeTrue(), "exam_reconcile_duration_seconds metric family not found")
+	})
+})
