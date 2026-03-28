@@ -47,6 +47,7 @@ func (f *FakeSender) Send(from string, to []string, msg []byte) error {
 type RetrySender struct {
 	inner      Sender
 	maxRetries int
+	SleepFunc  func(time.Duration) // injectable; nil defaults to time.Sleep
 }
 
 func NewRetrySender(inner Sender, maxRetries int) *RetrySender {
@@ -54,6 +55,10 @@ func NewRetrySender(inner Sender, maxRetries int) *RetrySender {
 }
 
 func (r *RetrySender) Send(from string, to []string, msg []byte) error {
+	sleep := r.SleepFunc
+	if sleep == nil {
+		sleep = time.Sleep
+	}
 	var err error
 	for attempt := 0; attempt <= r.maxRetries; attempt++ {
 		err = r.inner.Send(from, to, msg)
@@ -61,7 +66,7 @@ func (r *RetrySender) Send(from string, to []string, msg []byte) error {
 			return nil
 		}
 		if attempt < r.maxRetries {
-			time.Sleep(time.Duration(1<<uint(attempt)) * 100 * time.Millisecond)
+			sleep(time.Duration(1<<uint(attempt)) * 100 * time.Millisecond)
 		}
 	}
 	return fmt.Errorf("after %d retries: %w", r.maxRetries, err)

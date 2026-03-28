@@ -3,6 +3,7 @@ package notifier
 import (
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestBuildStudentMessage(t *testing.T) {
@@ -88,6 +89,26 @@ func TestRetrySender_ExhaustsRetries(t *testing.T) {
 	err := rs.Send("from@test.com", []string{"to@test.com"}, []byte("msg"))
 	if err == nil {
 		t.Fatal("expected error after exhausting retries")
+	}
+}
+
+func TestRetrySender_BackoffTiming(t *testing.T) {
+	var sleeps []time.Duration
+	rs := NewRetrySender(&FailNSender{FailCount: 2}, 3)
+	rs.SleepFunc = func(d time.Duration) { sleeps = append(sleeps, d) }
+	err := rs.Send("from@test.com", []string{"to@test.com"}, []byte("test"))
+	if err != nil {
+		t.Fatalf("expected success, got %v", err)
+	}
+	if len(sleeps) != 2 {
+		t.Fatalf("expected 2 sleeps, got %d", len(sleeps))
+	}
+	// 100ms * 2^0 = 100ms, 100ms * 2^1 = 200ms
+	if sleeps[0] != 100*time.Millisecond {
+		t.Errorf("first backoff = %v, want 100ms", sleeps[0])
+	}
+	if sleeps[1] != 200*time.Millisecond {
+		t.Errorf("second backoff = %v, want 200ms", sleeps[1])
 	}
 }
 
