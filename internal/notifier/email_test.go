@@ -14,7 +14,7 @@ func TestBuildStudentMessage(t *testing.T) {
 	msg := BuildStudentMessage("noreply@test.com", "alice@test.com", "Test Exam", "https://abc123.exam.test.com")
 
 	checks := map[string]string{
-		"From header":              "From: noreply@test.com",
+		"From header":             "From: noreply@test.com",
 		"To header":               "To: alice@test.com",
 		"Subject header":          "Subject: Test Exam",
 		"MIME-Version header":     "MIME-Version: 1.0",
@@ -237,15 +237,15 @@ func TestRetrySender_NoSleepAfterLastAttempt(t *testing.T) {
 
 func TestFailNSender_TracksAttempts(t *testing.T) {
 	s := &FailNSender{FailCount: 2}
-	var errors []error
-	for i := 0; i < 5; i++ {
+	errors := make([]error, 0, 5)
+	for range 5 {
 		errors = append(errors, s.Send("f@t.com", []string{"t@t.com"}, []byte("msg")))
 	}
 	if s.Attempts != 5 {
 		t.Fatalf("Attempts = %d, want 5", s.Attempts)
 	}
 	// First 2 calls should fail.
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		if errors[i] == nil {
 			t.Errorf("call %d: expected error, got nil", i+1)
 		}

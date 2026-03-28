@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "exam-controller.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "exam-controller.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "exam-controller.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: manager
+      labels:
+        {{- include "exam-controller.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: manager
+        command:
+        - /manager
+        args:
+        {{- if .Values.leaderElection.enabled }}
+        - --leader-elect
+        {{- end }}
+        - --health-probe-bind-address=:{{ .Values.healthProbe.port }}
+        {{- if .Values.metrics.enabled }}
+        - --metrics-bind-address=:{{ .Values.metrics.port }}
+        - --metrics-secure={{ .Values.metrics.secure }}
+        {{- end }}
+        {{- if .Values.webhook.enabled }}
+        {{- if .Values.webhook.certDir }}
+        - --webhook-cert-dir={{ .Values.webhook.certDir }}
+        {{- end }}
+        - --webhook-cert-name={{ .Values.webhook.certName }}
+        - --webhook-key-name={{ .Values.webhook.keyName }}
+        {{- end }}
+        image: {{ include "exam-controller.image" . }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        {{- if .Values.metrics.enabled }}
+        ports:
+        - name: https
+          containerPort: {{ .Values.metrics.port }}
+          protocol: TCP
+        {{- end }}
+        securityContext:
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - "ALL"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: {{ .Values.healthProbe.port }}
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: {{ .Values.healthProbe.port }}
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+      serviceAccountName: {{ include "exam-controller.serviceAccountName" . }}
+      terminationGracePeriodSeconds: 10
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

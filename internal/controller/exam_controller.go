@@ -365,6 +365,7 @@ func (r *ExamReconciler) reconcileProvisioning(ctx context.Context, exam *examv1
 	return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 }
 
+//nolint:unparam // error return kept for consistency with other reconcile methods
 func (r *ExamReconciler) reconcileReady(ctx context.Context, exam *examv1alpha1.Exam, now time.Time) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 	_, emailTime, _, _ := computeSchedule(exam)
@@ -416,6 +417,7 @@ func (r *ExamReconciler) reconcileReady(ctx context.Context, exam *examv1alpha1.
 	return ctrl.Result{RequeueAfter: requeue}, nil
 }
 
+//nolint:unparam // error return kept for consistency with other reconcile methods
 func (r *ExamReconciler) reconcileUnlock(ctx context.Context, exam *examv1alpha1.Exam, now time.Time) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
@@ -626,7 +628,7 @@ func (r *ExamReconciler) runDryRun(ctx context.Context, exam *examv1alpha1.Exam)
 	}
 
 	ns := examNamespace(exam.Name)
-	var targets []smoketest.Target
+	targets := make([]smoketest.Target, 0, len(exam.Status.Students)+len(exam.Status.Spares))
 	for _, s := range exam.Status.Students {
 		targets = append(targets, smoketest.Target{
 			StudentID: s.ID,
@@ -728,7 +730,7 @@ type slugEntry struct {
 }
 
 func (r *ExamReconciler) collectSlugs(exam *examv1alpha1.Exam) []slugEntry {
-	var entries []slugEntry
+	entries := make([]slugEntry, 0, len(exam.Status.Students)+len(exam.Status.Spares))
 	for _, s := range exam.Status.Students {
 		entries = append(entries, slugEntry{studentID: s.ID, slug: s.Slug})
 	}

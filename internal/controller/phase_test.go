@@ -8,14 +8,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func examWithSchedule(unlock time.Time, duration time.Duration, multiplier float64) *examv1alpha1.Exam {
+func examWithSchedule(unlock time.Time) *examv1alpha1.Exam {
 	return &examv1alpha1.Exam{
 		ObjectMeta: metav1.ObjectMeta{Name: "test-exam"},
 		Spec: examv1alpha1.ExamSpec{
 			Schedule: examv1alpha1.ExamSchedule{
 				Unlock:          metav1.NewTime(unlock),
-				Duration:        metav1.Duration{Duration: duration},
-				TimeMultiplier:  multiplier,
+				Duration:        metav1.Duration{Duration: 2 * time.Hour},
+				TimeMultiplier:  1.5,
 				ProvisionBefore: metav1.Duration{Duration: 1 * time.Hour},
 				Retention:       metav1.Duration{Duration: 24 * time.Hour},
 			},
@@ -70,7 +70,7 @@ func TestEffectiveMultiplier(t *testing.T) {
 
 func TestDetermineDesiredPhase_PendingBeforeProvisionTime(t *testing.T) {
 	now := time.Date(2026, 4, 10, 12, 0, 0, 0, time.UTC)
-	exam := examWithSchedule(now.Add(2*time.Hour), 2*time.Hour, 1.5)
+	exam := examWithSchedule(now.Add(2 * time.Hour))
 	exam.Status.Phase = examv1alpha1.ExamPhasePending
 	phase := determineDesiredPhase(exam, now)
 	if phase != examv1alpha1.ExamPhasePending {
@@ -80,7 +80,7 @@ func TestDetermineDesiredPhase_PendingBeforeProvisionTime(t *testing.T) {
 
 func TestDetermineDesiredPhase_PendingToProvisioning(t *testing.T) {
 	now := time.Date(2026, 4, 10, 13, 0, 0, 0, time.UTC)
-	exam := examWithSchedule(now.Add(1*time.Hour), 2*time.Hour, 1.5)
+	exam := examWithSchedule(now.Add(1 * time.Hour))
 	exam.Status.Phase = examv1alpha1.ExamPhasePending
 	phase := determineDesiredPhase(exam, now)
 	if phase != examv1alpha1.ExamPhaseProvisioning {
@@ -91,7 +91,7 @@ func TestDetermineDesiredPhase_PendingToProvisioning(t *testing.T) {
 func TestDetermineDesiredPhase_ReadyToUnlocked(t *testing.T) {
 	unlock := time.Date(2026, 4, 10, 14, 0, 0, 0, time.UTC)
 	now := unlock.Add(1 * time.Minute)
-	exam := examWithSchedule(unlock, 2*time.Hour, 1.5)
+	exam := examWithSchedule(unlock)
 	exam.Status.Phase = examv1alpha1.ExamPhaseReady
 	phase := determineDesiredPhase(exam, now)
 	if phase != examv1alpha1.ExamPhaseUnlocked {
@@ -102,7 +102,7 @@ func TestDetermineDesiredPhase_ReadyToUnlocked(t *testing.T) {
 func TestDetermineDesiredPhase_ReadyWaiting(t *testing.T) {
 	unlock := time.Date(2026, 4, 10, 14, 0, 0, 0, time.UTC)
 	now := unlock.Add(-10 * time.Minute)
-	exam := examWithSchedule(unlock, 2*time.Hour, 1.5)
+	exam := examWithSchedule(unlock)
 	exam.Status.Phase = examv1alpha1.ExamPhaseReady
 	phase := determineDesiredPhase(exam, now)
 	if phase != examv1alpha1.ExamPhaseReady {
@@ -114,7 +114,7 @@ func TestDetermineDesiredPhase_UnlockedToLocked(t *testing.T) {
 	unlock := time.Date(2026, 4, 10, 14, 0, 0, 0, time.UTC)
 	lockTime := unlock.Add(3 * time.Hour)
 	now := lockTime.Add(1 * time.Minute)
-	exam := examWithSchedule(unlock, 2*time.Hour, 1.5)
+	exam := examWithSchedule(unlock)
 	exam.Status.Phase = examv1alpha1.ExamPhaseUnlocked
 	phase := determineDesiredPhase(exam, now)
 	if phase != examv1alpha1.ExamPhaseLocked {
@@ -127,7 +127,7 @@ func TestDetermineDesiredPhase_LockedToTearingDown(t *testing.T) {
 	lockTime := unlock.Add(3 * time.Hour)
 	retentionDeadline := lockTime.Add(24 * time.Hour)
 	now := retentionDeadline.Add(1 * time.Minute)
-	exam := examWithSchedule(unlock, 2*time.Hour, 1.5)
+	exam := examWithSchedule(unlock)
 	exam.Status.Phase = examv1alpha1.ExamPhaseLocked
 	exam.Status.RetentionDeadline = &metav1.Time{Time: retentionDeadline}
 	phase := determineDesiredPhase(exam, now)
@@ -141,7 +141,7 @@ func TestDetermineDesiredPhase_LockedWaiting(t *testing.T) {
 	lockTime := unlock.Add(3 * time.Hour)
 	retentionDeadline := lockTime.Add(24 * time.Hour)
 	now := lockTime.Add(1 * time.Hour)
-	exam := examWithSchedule(unlock, 2*time.Hour, 1.5)
+	exam := examWithSchedule(unlock)
 	exam.Status.Phase = examv1alpha1.ExamPhaseLocked
 	exam.Status.RetentionDeadline = &metav1.Time{Time: retentionDeadline}
 	phase := determineDesiredPhase(exam, now)

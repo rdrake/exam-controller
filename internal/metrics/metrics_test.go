@@ -11,7 +11,7 @@ func TestNewExamMetrics_AllFieldsInitialized(t *testing.T) {
 	reg := prometheus.NewRegistry()
 	m := NewExamMetrics(reg)
 
-	fields := map[string]interface{}{
+	fields := map[string]any{
 		"ReconcileDuration":  m.ReconcileDuration,
 		"ReconcileErrors":    m.ReconcileErrors,
 		"PhaseTransitions":   m.PhaseTransitions,

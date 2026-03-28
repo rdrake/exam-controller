@@ -20,15 +20,27 @@ func TestGenerate_DNSSafe(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	matched, _ := regexp.MatchString(`^[a-z0-9]{8}$`, s)
+	matched, _ := regexp.MatchString(`^[a-z][a-z0-9]{7}$`, s)
 	if !matched {
-		t.Errorf("slug %q is not DNS-safe lowercase alphanumeric", s)
+		t.Errorf("slug %q does not match DNS-1035 label pattern (must start with letter)", s)
+	}
+}
+
+func TestGenerate_FirstCharAlwaysLetter(t *testing.T) {
+	for i := range 200 {
+		s, err := Generate()
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if s[0] < 'a' || s[0] > 'z' {
+			t.Fatalf("slug %q starts with non-letter on iteration %d", s, i)
+		}
 	}
 }
 
 func TestGenerate_Unique(t *testing.T) {
 	seen := make(map[string]bool)
-	for i := 0; i < 100; i++ {
+	for i := range 100 {
 		s, err := Generate()
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)

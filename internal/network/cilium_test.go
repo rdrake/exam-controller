@@ -8,7 +8,7 @@ import (
 
 func TestCiliumDenyAll(t *testing.T) {
 	p := &CiliumPolicyProvider{}
-	obj := p.DenyAll("exam-ns", map[string]string{"exam.otu.ca/slug": "abc123"})
+	obj := p.DenyAll(testNamespace, map[string]string{"exam.otu.ca/slug": testSlug})
 	u, ok := obj.(*unstructured.Unstructured)
 	if !ok {
 		t.Fatal("expected *Unstructured")
@@ -19,26 +19,26 @@ func TestCiliumDenyAll(t *testing.T) {
 	if u.GetAPIVersion() != "cilium.io/v2" {
 		t.Errorf("apiVersion = %q, want cilium.io/v2", u.GetAPIVersion())
 	}
-	if u.GetName() != "abc123-deny-all" {
-		t.Errorf("name = %q, want abc123-deny-all", u.GetName())
+	if u.GetName() != testDenyAll {
+		t.Errorf("name = %q, want %s", u.GetName(), testDenyAll)
 	}
 }
 
 func TestCiliumDenyAll_Fields(t *testing.T) {
 	p := &CiliumPolicyProvider{}
-	obj := p.DenyAll("exam-ns", map[string]string{"exam.otu.ca/slug": "abc123"})
+	obj := p.DenyAll(testNamespace, map[string]string{"exam.otu.ca/slug": testSlug})
 	u := obj.(*unstructured.Unstructured)
-	spec := u.Object["spec"].(map[string]interface{})
+	spec := u.Object["spec"].(map[string]any)
 
 	// endpointSelector.matchLabels
-	es := spec["endpointSelector"].(map[string]interface{})
-	ml := es["matchLabels"].(map[string]interface{})
-	if ml["exam.otu.ca/slug"] != "abc123" {
-		t.Errorf("endpointSelector.matchLabels[exam.otu.ca/slug] = %v, want %q", ml["exam.otu.ca/slug"], "abc123")
+	es := spec["endpointSelector"].(map[string]any)
+	ml := es["matchLabels"].(map[string]any)
+	if ml["exam.otu.ca/slug"] != testSlug {
+		t.Errorf("endpointSelector.matchLabels[exam.otu.ca/slug] = %v, want %q", ml["exam.otu.ca/slug"], testSlug)
 	}
 
 	// ingressDeny array present
-	ingressDeny, ok := spec["ingressDeny"].([]interface{})
+	ingressDeny, ok := spec["ingressDeny"].([]any)
 	if !ok {
 		t.Fatal("ingressDeny is not a []interface{}")
 	}
@@ -47,7 +47,7 @@ func TestCiliumDenyAll_Fields(t *testing.T) {
 	}
 
 	// egressDeny array present
-	egressDeny, ok := spec["egressDeny"].([]interface{})
+	egressDeny, ok := spec["egressDeny"].([]any)
 	if !ok {
 		t.Fatal("egressDeny is not a []interface{}")
 	}
@@ -58,10 +58,10 @@ func TestCiliumDenyAll_Fields(t *testing.T) {
 
 func TestCiliumEgressAllowlist(t *testing.T) {
 	p := &CiliumPolicyProvider{}
-	obj := p.EgressAllowlist("exam-ns", map[string]string{"exam.otu.ca/slug": "abc123"})
+	obj := p.EgressAllowlist(testNamespace, map[string]string{"exam.otu.ca/slug": testSlug})
 	u := obj.(*unstructured.Unstructured)
-	if u.GetName() != "abc123-egress-allow" {
-		t.Errorf("name = %q, want abc123-egress-allow", u.GetName())
+	if u.GetName() != testSlug+"-egress-allow" {
+		t.Errorf("name = %q, want %s", u.GetName(), testSlug+"-egress-allow")
 	}
 	spec, _, _ := unstructured.NestedMap(u.Object, "spec")
 	if spec == nil {
@@ -75,38 +75,38 @@ func TestCiliumEgressAllowlist(t *testing.T) {
 
 func TestCiliumEgressAllowlist_Fields(t *testing.T) {
 	p := &CiliumPolicyProvider{}
-	obj := p.EgressAllowlist("exam-ns", map[string]string{"exam.otu.ca/slug": "abc123"})
+	obj := p.EgressAllowlist(testNamespace, map[string]string{"exam.otu.ca/slug": testSlug})
 	u := obj.(*unstructured.Unstructured)
-	spec := u.Object["spec"].(map[string]interface{})
+	spec := u.Object["spec"].(map[string]any)
 
-	egress := spec["egress"].([]interface{})
+	egress := spec["egress"].([]any)
 	if len(egress) != 1 {
 		t.Fatalf("egress rules = %d, want 1", len(egress))
 	}
-	rule := egress[0].(map[string]interface{})
+	rule := egress[0].(map[string]any)
 
 	// toFQDNs contains matchPattern: *.cluster.local
-	toFQDNs := rule["toFQDNs"].([]interface{})
+	toFQDNs := rule["toFQDNs"].([]any)
 	if len(toFQDNs) == 0 {
 		t.Fatal("toFQDNs is empty")
 	}
-	fqdn := toFQDNs[0].(map[string]interface{})
+	fqdn := toFQDNs[0].(map[string]any)
 	if fqdn["matchPattern"] != "*.cluster.local" {
 		t.Errorf("toFQDNs[0].matchPattern = %v, want %q", fqdn["matchPattern"], "*.cluster.local")
 	}
 
 	// toPorts contains port 53 UDP/TCP
-	toPorts := rule["toPorts"].([]interface{})
+	toPorts := rule["toPorts"].([]any)
 	if len(toPorts) == 0 {
 		t.Fatal("toPorts is empty")
 	}
-	portRule := toPorts[0].(map[string]interface{})
-	ports := portRule["ports"].([]interface{})
+	portRule := toPorts[0].(map[string]any)
+	ports := portRule["ports"].([]any)
 	if len(ports) != 2 {
 		t.Fatalf("ports len = %d, want 2", len(ports))
 	}
 
-	p0 := ports[0].(map[string]interface{})
+	p0 := ports[0].(map[string]any)
 	if p0["port"] != "53" {
 		t.Errorf("port[0] = %v, want %q", p0["port"], "53")
 	}
@@ -114,7 +114,7 @@ func TestCiliumEgressAllowlist_Fields(t *testing.T) {
 		t.Errorf("port[0] protocol = %v, want %q", p0["protocol"], "UDP")
 	}
 
-	p1 := ports[1].(map[string]interface{})
+	p1 := ports[1].(map[string]any)
 	if p1["port"] != "53" {
 		t.Errorf("port[1] = %v, want %q", p1["port"], "53")
 	}
@@ -125,10 +125,10 @@ func TestCiliumEgressAllowlist_Fields(t *testing.T) {
 
 func TestCiliumIngressAllow(t *testing.T) {
 	p := &CiliumPolicyProvider{}
-	obj := p.IngressAllow("exam-ns", map[string]string{"exam.otu.ca/slug": "abc123"})
+	obj := p.IngressAllow(testNamespace, map[string]string{"exam.otu.ca/slug": testSlug})
 	u := obj.(*unstructured.Unstructured)
-	if u.GetName() != "abc123-ingress-allow" {
-		t.Errorf("name = %q, want abc123-ingress-allow", u.GetName())
+	if u.GetName() != testSlug+"-ingress-allow" {
+		t.Errorf("name = %q, want %s", u.GetName(), testSlug+"-ingress-allow")
 	}
 	ingress, _, _ := unstructured.NestedSlice(u.Object, "spec", "ingress")
 	if len(ingress) == 0 {
@@ -138,43 +138,43 @@ func TestCiliumIngressAllow(t *testing.T) {
 
 func TestCiliumIngressAllow_Fields(t *testing.T) {
 	p := &CiliumPolicyProvider{}
-	obj := p.IngressAllow("exam-ns", map[string]string{"exam.otu.ca/slug": "abc123", "exam.otu.ca/port": "9090"})
+	obj := p.IngressAllow(testNamespace, map[string]string{"exam.otu.ca/slug": testSlug, "exam.otu.ca/port": "9090"})
 	u := obj.(*unstructured.Unstructured)
-	spec := u.Object["spec"].(map[string]interface{})
+	spec := u.Object["spec"].(map[string]any)
 
-	ingress := spec["ingress"].([]interface{})
+	ingress := spec["ingress"].([]any)
 	if len(ingress) != 1 {
 		t.Fatalf("ingress rules = %d, want 1", len(ingress))
 	}
-	rule := ingress[0].(map[string]interface{})
+	rule := ingress[0].(map[string]any)
 
 	// fromEndpoints matchLabels include ingress-nginx labels
-	fromEndpoints := rule["fromEndpoints"].([]interface{})
+	fromEndpoints := rule["fromEndpoints"].([]any)
 	if len(fromEndpoints) == 0 {
 		t.Fatal("fromEndpoints is empty")
 	}
-	ep := fromEndpoints[0].(map[string]interface{})
-	ml := ep["matchLabels"].(map[string]interface{})
-	if ml["k8s:io.kubernetes.pod.namespace"] != "ingress-nginx" {
-		t.Errorf("fromEndpoints namespace = %v, want %q", ml["k8s:io.kubernetes.pod.namespace"], "ingress-nginx")
+	ep := fromEndpoints[0].(map[string]any)
+	ml := ep["matchLabels"].(map[string]any)
+	if ml["k8s:io.kubernetes.pod.namespace"] != ingressNginx {
+		t.Errorf("fromEndpoints namespace = %v, want %q", ml["k8s:io.kubernetes.pod.namespace"], ingressNginx)
 	}
-	if ml["app.kubernetes.io/name"] != "ingress-nginx" {
-		t.Errorf("fromEndpoints app label = %v, want %q", ml["app.kubernetes.io/name"], "ingress-nginx")
+	if ml["app.kubernetes.io/name"] != ingressNginx {
+		t.Errorf("fromEndpoints app label = %v, want %q", ml["app.kubernetes.io/name"], ingressNginx)
 	}
 
 	// toPorts rules contain HTTP method matching (rules.http)
-	toPorts := rule["toPorts"].([]interface{})
+	toPorts := rule["toPorts"].([]any)
 	if len(toPorts) == 0 {
 		t.Fatal("toPorts is empty")
 	}
-	portRule := toPorts[0].(map[string]interface{})
+	portRule := toPorts[0].(map[string]any)
 
 	// Port matches label value
-	ports := portRule["ports"].([]interface{})
+	ports := portRule["ports"].([]any)
 	if len(ports) != 1 {
 		t.Fatalf("ports len = %d, want 1", len(ports))
 	}
-	p0 := ports[0].(map[string]interface{})
+	p0 := ports[0].(map[string]any)
 	if p0["port"] != "9090" {
 		t.Errorf("port = %v, want %q", p0["port"], "9090")
 	}
@@ -183,12 +183,12 @@ func TestCiliumIngressAllow_Fields(t *testing.T) {
 	}
 
 	// rules.http present
-	rules := portRule["rules"].(map[string]interface{})
-	httpRules := rules["http"].([]interface{})
+	rules := portRule["rules"].(map[string]any)
+	httpRules := rules["http"].([]any)
 	if len(httpRules) == 0 {
 		t.Error("expected http rules for L7 visibility")
 	}
-	httpRule := httpRules[0].(map[string]interface{})
+	httpRule := httpRules[0].(map[string]any)
 	if _, exists := httpRule["method"]; !exists {
 		t.Error("expected method key in http rule")
 	}
@@ -197,19 +197,19 @@ func TestCiliumIngressAllow_Fields(t *testing.T) {
 func TestCiliumIngressAllow_DefaultPort(t *testing.T) {
 	p := &CiliumPolicyProvider{}
 	// Labels WITHOUT exam.otu.ca/port key
-	obj := p.IngressAllow("exam-ns", map[string]string{"exam.otu.ca/slug": "abc123"})
+	obj := p.IngressAllow(testNamespace, map[string]string{"exam.otu.ca/slug": testSlug})
 	u := obj.(*unstructured.Unstructured)
-	spec := u.Object["spec"].(map[string]interface{})
+	spec := u.Object["spec"].(map[string]any)
 
-	ingress := spec["ingress"].([]interface{})
+	ingress := spec["ingress"].([]any)
 	if len(ingress) != 1 {
 		t.Fatalf("ingress rules = %d, want 1", len(ingress))
 	}
-	rule := ingress[0].(map[string]interface{})
-	toPorts := rule["toPorts"].([]interface{})
-	portRule := toPorts[0].(map[string]interface{})
-	ports := portRule["ports"].([]interface{})
-	p0 := ports[0].(map[string]interface{})
+	rule := ingress[0].(map[string]any)
+	toPorts := rule["toPorts"].([]any)
+	portRule := toPorts[0].(map[string]any)
+	ports := portRule["ports"].([]any)
+	p0 := ports[0].(map[string]any)
 	if p0["port"] != "8080" {
 		t.Errorf("default port = %v, want %q", p0["port"], "8080")
 	}

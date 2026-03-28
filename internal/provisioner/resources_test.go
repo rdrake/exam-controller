@@ -10,6 +10,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	testSlug = "a1b2c3d4"
+	testHost = testSlug + ".exam.test.com"
+)
+
 func testExam() *examv1alpha1.Exam {
 	return &examv1alpha1.Exam{
 		ObjectMeta: metav1.ObjectMeta{Name: "test-exam"},
@@ -31,14 +36,14 @@ func testExam() *examv1alpha1.Exam {
 }
 
 func TestDeploymentStudent(t *testing.T) {
-	dep := Deployment(testExam(), "exam-ns", "alice", "a1b2c3d4")
-	if dep.Name != "a1b2c3d4" {
+	dep := Deployment(testExam(), "exam-ns", "alice", testSlug)
+	if dep.Name != testSlug {
 		t.Errorf("name = %q, want slug-only name", dep.Name)
 	}
 	if dep.Labels["exam.otu.ca/student"] != "alice" {
 		t.Error("expected student label")
 	}
-	if dep.Labels["exam.otu.ca/slug"] != "a1b2c3d4" {
+	if dep.Labels["exam.otu.ca/slug"] != testSlug {
 		t.Error("expected slug label")
 	}
 	// Security checks
@@ -69,7 +74,7 @@ func TestDeploymentSpare(t *testing.T) {
 }
 
 func TestDeployment_SecurityContext(t *testing.T) {
-	dep := Deployment(testExam(), "exam-ns", "alice", "a1b2c3d4")
+	dep := Deployment(testExam(), "exam-ns", "alice", testSlug)
 	ps := dep.Spec.Template.Spec
 	sc := ps.Containers[0].SecurityContext
 
@@ -107,7 +112,7 @@ func TestDeployment_SecurityContext(t *testing.T) {
 
 func TestDeployment_Resources(t *testing.T) {
 	exam := testExam()
-	dep := Deployment(exam, "exam-ns", "alice", "a1b2c3d4")
+	dep := Deployment(exam, "exam-ns", "alice", testSlug)
 	container := dep.Spec.Template.Spec.Containers[0]
 
 	cpuReq := container.Resources.Requests[corev1.ResourceCPU]
@@ -123,7 +128,7 @@ func TestDeployment_Resources(t *testing.T) {
 
 func TestDeployment_ImageAndPort(t *testing.T) {
 	exam := testExam()
-	dep := Deployment(exam, "exam-ns", "alice", "a1b2c3d4")
+	dep := Deployment(exam, "exam-ns", "alice", testSlug)
 	container := dep.Spec.Template.Spec.Containers[0]
 
 	if container.Image != "vuln-app:v1" {
@@ -139,7 +144,7 @@ func TestDeployment_ImageAndPort(t *testing.T) {
 }
 
 func TestDeployment_Replicas(t *testing.T) {
-	dep := Deployment(testExam(), "exam-ns", "alice", "a1b2c3d4")
+	dep := Deployment(testExam(), "exam-ns", "alice", testSlug)
 
 	if dep.Spec.Replicas == nil {
 		t.Fatal("expected Replicas to be set")
@@ -150,7 +155,7 @@ func TestDeployment_Replicas(t *testing.T) {
 }
 
 func TestDeployment_Selector(t *testing.T) {
-	dep := Deployment(testExam(), "exam-ns", "alice", "a1b2c3d4")
+	dep := Deployment(testExam(), "exam-ns", "alice", testSlug)
 
 	sel := dep.Spec.Selector
 	if sel == nil {
@@ -160,20 +165,20 @@ func TestDeployment_Selector(t *testing.T) {
 	if !ok {
 		t.Fatal("expected exam.otu.ca/slug in selector matchLabels")
 	}
-	if slug != "a1b2c3d4" {
-		t.Errorf("selector exam.otu.ca/slug = %q, want %q", slug, "a1b2c3d4")
+	if slug != testSlug {
+		t.Errorf("selector exam.otu.ca/slug = %q, want %q", slug, testSlug)
 	}
 }
 
 func TestServiceNaming(t *testing.T) {
-	svc := Service(testExam(), "exam-ns", "alice", "a1b2c3d4")
-	if svc.Name != "a1b2c3d4" {
+	svc := Service(testExam(), "exam-ns", "alice", testSlug)
+	if svc.Name != testSlug {
 		t.Errorf("name = %q, want slug", svc.Name)
 	}
 }
 
 func TestService_Ports(t *testing.T) {
-	svc := Service(testExam(), "exam-ns", "alice", "a1b2c3d4")
+	svc := Service(testExam(), "exam-ns", "alice", testSlug)
 
 	if len(svc.Spec.Ports) != 1 {
 		t.Fatalf("expected 1 service port, got %d", len(svc.Spec.Ports))
@@ -184,7 +189,7 @@ func TestService_Ports(t *testing.T) {
 }
 
 func TestService_Selector(t *testing.T) {
-	svc := Service(testExam(), "exam-ns", "alice", "a1b2c3d4")
+	svc := Service(testExam(), "exam-ns", "alice", testSlug)
 
 	sel := svc.Spec.Selector
 	if len(sel) != 1 {
@@ -194,18 +199,18 @@ func TestService_Selector(t *testing.T) {
 	if !ok {
 		t.Fatal("expected exam.otu.ca/slug in service selector")
 	}
-	if slug != "a1b2c3d4" {
-		t.Errorf("selector exam.otu.ca/slug = %q, want %q", slug, "a1b2c3d4")
+	if slug != testSlug {
+		t.Errorf("selector exam.otu.ca/slug = %q, want %q", slug, testSlug)
 	}
 }
 
 func TestIngressHost(t *testing.T) {
-	ing := Ingress(testExam(), "exam-ns", "alice", "a1b2c3d4")
-	if ing.Name != "a1b2c3d4" {
+	ing := Ingress(testExam(), "exam-ns", "alice", testSlug)
+	if ing.Name != testSlug {
 		t.Errorf("name = %q, want slug", ing.Name)
 	}
 	host := ing.Spec.Rules[0].Host
-	if host != "a1b2c3d4.exam.test.com" {
+	if host != testHost {
 		t.Errorf("host = %q, want a1b2c3d4.exam.test.com", host)
 	}
 	if ing.Spec.TLS[0].SecretName != "tls-secret" {
@@ -214,7 +219,7 @@ func TestIngressHost(t *testing.T) {
 }
 
 func TestIngress_TLS(t *testing.T) {
-	ing := Ingress(testExam(), "exam-ns", "alice", "a1b2c3d4")
+	ing := Ingress(testExam(), "exam-ns", "alice", testSlug)
 
 	if len(ing.Spec.TLS) != 1 {
 		t.Fatalf("expected 1 TLS entry, got %d", len(ing.Spec.TLS))
@@ -225,7 +230,7 @@ func TestIngress_TLS(t *testing.T) {
 	if len(tls.Hosts) != 1 {
 		t.Fatalf("expected 1 TLS host, got %d", len(tls.Hosts))
 	}
-	wantHost := "a1b2c3d4.exam.test.com"
+	wantHost := testHost
 	if tls.Hosts[0] != wantHost {
 		t.Errorf("TLS host = %q, want %q", tls.Hosts[0], wantHost)
 	}
@@ -237,7 +242,7 @@ func TestIngress_TLS(t *testing.T) {
 }
 
 func TestIngress_Rules(t *testing.T) {
-	ing := Ingress(testExam(), "exam-ns", "alice", "a1b2c3d4")
+	ing := Ingress(testExam(), "exam-ns", "alice", testSlug)
 
 	if len(ing.Spec.Rules) != 1 {
 		t.Fatalf("expected 1 ingress rule, got %d", len(ing.Spec.Rules))
@@ -245,7 +250,7 @@ func TestIngress_Rules(t *testing.T) {
 	rule := ing.Spec.Rules[0]
 
 	// Verify host
-	wantHost := "a1b2c3d4.exam.test.com"
+	wantHost := testHost
 	if rule.Host != wantHost {
 		t.Errorf("rule host = %q, want %q", rule.Host, wantHost)
 	}
@@ -276,8 +281,8 @@ func TestIngress_Rules(t *testing.T) {
 	if path.Backend.Service == nil {
 		t.Fatal("expected backend service to be set")
 	}
-	if path.Backend.Service.Name != "a1b2c3d4" {
-		t.Errorf("backend service name = %q, want %q", path.Backend.Service.Name, "a1b2c3d4")
+	if path.Backend.Service.Name != testSlug {
+		t.Errorf("backend service name = %q, want %q", path.Backend.Service.Name, testSlug)
 	}
 
 	// backend port = exam port
@@ -287,14 +292,14 @@ func TestIngress_Rules(t *testing.T) {
 }
 
 func TestLabels_WithStudentID(t *testing.T) {
-	l := Labels("test-exam", "alice", "a1b2c3d4")
+	l := Labels("test-exam", "alice", testSlug)
 
 	// Verify all three keys are present
 	if l["exam.otu.ca/exam"] != "test-exam" {
 		t.Errorf("exam label = %q, want %q", l["exam.otu.ca/exam"], "test-exam")
 	}
-	if l["exam.otu.ca/slug"] != "a1b2c3d4" {
-		t.Errorf("slug label = %q, want %q", l["exam.otu.ca/slug"], "a1b2c3d4")
+	if l["exam.otu.ca/slug"] != testSlug {
+		t.Errorf("slug label = %q, want %q", l["exam.otu.ca/slug"], testSlug)
 	}
 	if l["exam.otu.ca/student"] != "alice" {
 		t.Errorf("student label = %q, want %q", l["exam.otu.ca/student"], "alice")
@@ -302,14 +307,14 @@ func TestLabels_WithStudentID(t *testing.T) {
 }
 
 func TestLabels_WithoutStudentID(t *testing.T) {
-	l := Labels("test-exam", "", "a1b2c3d4")
+	l := Labels("test-exam", "", testSlug)
 
 	// Verify exam and slug keys are present
 	if l["exam.otu.ca/exam"] != "test-exam" {
 		t.Errorf("exam label = %q, want %q", l["exam.otu.ca/exam"], "test-exam")
 	}
-	if l["exam.otu.ca/slug"] != "a1b2c3d4" {
-		t.Errorf("slug label = %q, want %q", l["exam.otu.ca/slug"], "a1b2c3d4")
+	if l["exam.otu.ca/slug"] != testSlug {
+		t.Errorf("slug label = %q, want %q", l["exam.otu.ca/slug"], testSlug)
 	}
 
 	// Verify student key is ABSENT (not just empty)

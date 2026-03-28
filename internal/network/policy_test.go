@@ -7,18 +7,25 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 )
 
+const (
+	testSlug      = "abc123"
+	testNamespace = "exam-ns"
+	testDenyAll   = testSlug + "-deny-all"
+	ingressNginx  = "ingress-nginx"
+)
+
 func TestVanillaDenyAll(t *testing.T) {
 	p := &VanillaPolicyProvider{}
-	obj := p.DenyAll("exam-ns", map[string]string{"exam.otu.ca/slug": "abc123"})
+	obj := p.DenyAll(testNamespace, map[string]string{"exam.otu.ca/slug": testSlug})
 	np, ok := obj.(*networkingv1.NetworkPolicy)
 	if !ok {
 		t.Fatal("expected *NetworkPolicy")
 	}
-	if np.Namespace != "exam-ns" {
-		t.Errorf("namespace = %q, want %q", np.Namespace, "exam-ns")
+	if np.Namespace != testNamespace {
+		t.Errorf("namespace = %q, want %q", np.Namespace, testNamespace)
 	}
-	if np.Name != "abc123-deny-all" {
-		t.Errorf("name = %q, want %q", np.Name, "abc123-deny-all")
+	if np.Name != testDenyAll {
+		t.Errorf("name = %q, want %q", np.Name, testDenyAll)
 	}
 	if len(np.Spec.PolicyTypes) != 2 {
 		t.Fatalf("policyTypes len = %d, want 2", len(np.Spec.PolicyTypes))
@@ -27,12 +34,12 @@ func TestVanillaDenyAll(t *testing.T) {
 
 func TestVanillaDenyAll_Fields(t *testing.T) {
 	p := &VanillaPolicyProvider{}
-	obj := p.DenyAll("exam-ns", map[string]string{"exam.otu.ca/slug": "abc123"})
+	obj := p.DenyAll(testNamespace, map[string]string{"exam.otu.ca/slug": testSlug})
 	np := obj.(*networkingv1.NetworkPolicy)
 
 	// Name
-	if np.Name != "abc123-deny-all" {
-		t.Errorf("name = %q, want %q", np.Name, "abc123-deny-all")
+	if np.Name != testDenyAll {
+		t.Errorf("name = %q, want %q", np.Name, testDenyAll)
 	}
 
 	// PodSelector.MatchLabels
@@ -40,8 +47,8 @@ func TestVanillaDenyAll_Fields(t *testing.T) {
 	if ml == nil {
 		t.Fatal("PodSelector.MatchLabels is nil")
 	}
-	if ml["exam.otu.ca/slug"] != "abc123" {
-		t.Errorf("PodSelector.MatchLabels[exam.otu.ca/slug] = %q, want %q", ml["exam.otu.ca/slug"], "abc123")
+	if ml["exam.otu.ca/slug"] != testSlug {
+		t.Errorf("PodSelector.MatchLabels[exam.otu.ca/slug] = %q, want %q", ml["exam.otu.ca/slug"], testSlug)
 	}
 	if len(ml) != 1 {
 		t.Errorf("PodSelector.MatchLabels has %d entries, want 1", len(ml))
@@ -71,10 +78,10 @@ func TestVanillaDenyAll_Fields(t *testing.T) {
 
 func TestVanillaEgressAllowlist(t *testing.T) {
 	p := &VanillaPolicyProvider{}
-	obj := p.EgressAllowlist("exam-ns", map[string]string{"exam.otu.ca/slug": "abc123"})
+	obj := p.EgressAllowlist(testNamespace, map[string]string{"exam.otu.ca/slug": testSlug})
 	np := obj.(*networkingv1.NetworkPolicy)
-	if np.Name != "abc123-egress-allow" {
-		t.Errorf("name = %q, want %q", np.Name, "abc123-egress-allow")
+	if np.Name != testSlug+"-egress-allow" {
+		t.Errorf("name = %q, want %q", np.Name, testSlug+"-egress-allow")
 	}
 	// Should have egress rules for DNS (port 53 UDP+TCP) to CoreDNS pods
 	if len(np.Spec.Egress) != 1 {
@@ -95,7 +102,7 @@ func TestVanillaEgressAllowlist(t *testing.T) {
 
 func TestVanillaEgressAllowlist_Fields(t *testing.T) {
 	p := &VanillaPolicyProvider{}
-	obj := p.EgressAllowlist("exam-ns", map[string]string{"exam.otu.ca/slug": "abc123"})
+	obj := p.EgressAllowlist(testNamespace, map[string]string{"exam.otu.ca/slug": testSlug})
 	np := obj.(*networkingv1.NetworkPolicy)
 
 	// PolicyTypes = [Egress] only
@@ -154,10 +161,10 @@ func TestVanillaEgressAllowlist_Fields(t *testing.T) {
 
 func TestVanillaIngressAllow(t *testing.T) {
 	p := &VanillaPolicyProvider{}
-	obj := p.IngressAllow("exam-ns", map[string]string{"exam.otu.ca/slug": "abc123", "exam.otu.ca/port": "9090"})
+	obj := p.IngressAllow(testNamespace, map[string]string{"exam.otu.ca/slug": testSlug, "exam.otu.ca/port": "9090"})
 	np := obj.(*networkingv1.NetworkPolicy)
-	if np.Name != "abc123-ingress-allow" {
-		t.Errorf("name = %q, want %q", np.Name, "abc123-ingress-allow")
+	if np.Name != testSlug+"-ingress-allow" {
+		t.Errorf("name = %q, want %q", np.Name, testSlug+"-ingress-allow")
 	}
 	if len(np.Spec.Ingress) != 1 {
 		t.Fatalf("ingress rules = %d, want 1", len(np.Spec.Ingress))
@@ -180,7 +187,7 @@ func TestVanillaIngressAllow(t *testing.T) {
 
 func TestVanillaIngressAllow_Fields(t *testing.T) {
 	p := &VanillaPolicyProvider{}
-	obj := p.IngressAllow("exam-ns", map[string]string{"exam.otu.ca/slug": "abc123", "exam.otu.ca/port": "9090"})
+	obj := p.IngressAllow(testNamespace, map[string]string{"exam.otu.ca/slug": testSlug, "exam.otu.ca/port": "9090"})
 	np := obj.(*networkingv1.NetworkPolicy)
 
 	// PolicyTypes = [Ingress] only
@@ -215,7 +222,7 @@ func TestVanillaIngressAllow_Fields(t *testing.T) {
 	if peer.NamespaceSelector == nil {
 		t.Fatal("NamespaceSelector is nil")
 	}
-	if peer.NamespaceSelector.MatchLabels["kubernetes.io/metadata.name"] != "ingress-nginx" {
+	if peer.NamespaceSelector.MatchLabels["kubernetes.io/metadata.name"] != ingressNginx {
 		t.Errorf("NamespaceSelector = %v, want kubernetes.io/metadata.name=ingress-nginx",
 			peer.NamespaceSelector.MatchLabels)
 	}
@@ -224,7 +231,7 @@ func TestVanillaIngressAllow_Fields(t *testing.T) {
 	if peer.PodSelector == nil {
 		t.Fatal("PodSelector is nil")
 	}
-	if peer.PodSelector.MatchLabels["app.kubernetes.io/name"] != "ingress-nginx" {
+	if peer.PodSelector.MatchLabels["app.kubernetes.io/name"] != ingressNginx {
 		t.Errorf("PodSelector = %v, want app.kubernetes.io/name=ingress-nginx",
 			peer.PodSelector.MatchLabels)
 	}
@@ -233,7 +240,7 @@ func TestVanillaIngressAllow_Fields(t *testing.T) {
 func TestVanillaIngressAllow_DefaultPort(t *testing.T) {
 	p := &VanillaPolicyProvider{}
 	// Labels WITHOUT exam.otu.ca/port key
-	obj := p.IngressAllow("exam-ns", map[string]string{"exam.otu.ca/slug": "abc123"})
+	obj := p.IngressAllow(testNamespace, map[string]string{"exam.otu.ca/slug": testSlug})
 	np := obj.(*networkingv1.NetworkPolicy)
 
 	if len(np.Spec.Ingress) != 1 {
@@ -250,7 +257,7 @@ func TestVanillaIngressAllow_DefaultPort(t *testing.T) {
 
 func TestVanillaIngressAllow_CustomPort(t *testing.T) {
 	p := &VanillaPolicyProvider{}
-	obj := p.IngressAllow("exam-ns", map[string]string{"exam.otu.ca/slug": "abc123", "exam.otu.ca/port": "9090"})
+	obj := p.IngressAllow(testNamespace, map[string]string{"exam.otu.ca/slug": testSlug, "exam.otu.ca/port": "9090"})
 	np := obj.(*networkingv1.NetworkPolicy)
 
 	if len(np.Spec.Ingress) != 1 {

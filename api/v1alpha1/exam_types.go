@@ -169,12 +169,12 @@ type ExamStatus struct {
 	Metrics           *MetricsSummary    `json:"metrics,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-//+kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
-//+kubebuilder:printcolumn:name="Unlock",type=string,JSONPath=`.spec.schedule.unlock`
-//+kubebuilder:printcolumn:name="Lock",type=string,JSONPath=`.status.computedLockTime`
-//+kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
+// +kubebuilder:printcolumn:name="Unlock",type=string,JSONPath=`.spec.schedule.unlock`
+// +kubebuilder:printcolumn:name="Lock",type=string,JSONPath=`.status.computedLockTime`
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
 // Exam is the Schema for the exams API
 type Exam struct {
@@ -185,7 +185,7 @@ type Exam struct {
 	Status ExamStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 
 // ExamList contains a list of Exam
 type ExamList struct {

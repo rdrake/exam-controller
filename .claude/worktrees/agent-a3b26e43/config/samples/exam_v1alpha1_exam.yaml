@@ -1,0 +1,43 @@
+apiVersion: exam.otu.ca/v1alpha1
+kind: Exam
+metadata:
+  labels:
+    app.kubernetes.io/name: exam-controller
+    app.kubernetes.io/managed-by: kustomize
+  name: sofe4790u-midterm
+spec:
+  template:
+    image: registry.example.com/vuln-app:v2.1
+    resources:
+      requests:
+        cpu: "250m"
+        memory: "256Mi"
+      limits:
+        cpu: "500m"
+        memory: "512Mi"
+    port: 8080
+  schedule:
+    unlock: "2026-04-10T14:00:00-04:00"
+    duration: "2h"
+    timeMultiplier: 1.5
+    provisionBefore: "1h"
+    retention: "24h"
+    dryRun:
+      before: "5m"
+      duration: "2m"
+  email:
+    before: "30m"
+    rateLimit: 1
+    instructorEmail: "instructor@ontariotechu.net"
+    secretRef: exam-smtp-credentials
+    from: "noreply@otu.ca"
+    subject: "SOFE4790U - Your Exam Instance"
+  students:
+    - id: john.smith
+      email: john.smith@ontariotechu.net
+    - id: jane.doe
+      email: jane.doe@ontariotechu.net
+  spares: 2
+  ingressTLS:
+    secretName: exam-wildcard-tls
+  domain: exam.otu.ca

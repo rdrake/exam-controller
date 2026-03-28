@@ -11,7 +11,7 @@ import (
 )
 
 func TestSelectPolicyProvider_CiliumAvailable(t *testing.T) {
-	client := fakeclientset.NewSimpleClientset()
+	client := fakeclientset.NewClientset()
 	fakeDisc := client.Discovery().(*fakediscovery.FakeDiscovery)
 	fakeDisc.Resources = []*metav1.APIResourceList{
 		{
@@ -28,7 +28,7 @@ func TestSelectPolicyProvider_CiliumAvailable(t *testing.T) {
 }
 
 func TestSelectPolicyProvider_CiliumNotAvailable(t *testing.T) {
-	client := fakeclientset.NewSimpleClientset()
+	client := fakeclientset.NewClientset()
 	fakeDisc := client.Discovery().(*fakediscovery.FakeDiscovery)
 	fakeDisc.Resources = []*metav1.APIResourceList{}
 	p := SelectPolicyProvider(fakeDisc)
