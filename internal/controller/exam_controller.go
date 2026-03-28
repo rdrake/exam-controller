@@ -107,14 +107,13 @@ func (r *ExamReconciler) resolvedSender(ctx context.Context, exam *examv1alpha1.
 	return notifier.NewRetrySender(sender, 3), nil
 }
 
-// sendEmail resolves SMTP credentials and sends an email. Returns nil if
-// sending succeeds or if no sender is configured.
-func (r *ExamReconciler) sendEmail(ctx context.Context, exam *examv1alpha1.Exam, from string, to []string, msg []byte) error {
+// sendEmail resolves SMTP credentials and sends an email.
+func (r *ExamReconciler) sendEmail(ctx context.Context, exam *examv1alpha1.Exam, to []string, msg []byte) error {
 	sender, err := r.resolvedSender(ctx, exam)
 	if err != nil {
 		return err
 	}
-	return sender.Send(from, to, msg)
+	return sender.Send(exam.Spec.Email.From, to, msg)
 }
 
 func effectiveMultiplier(m float64) float64 {
@@ -254,7 +253,7 @@ func (r *ExamReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	var err error
 	switch exam.Status.Phase {
 	case examv1alpha1.ExamPhasePending:
-		result = ctrl.Result{RequeueAfter: time.Until(provisionTime)}
+		result = ctrl.Result{RequeueAfter: max(provisionTime.Sub(now), 0)}
 	case examv1alpha1.ExamPhaseProvisioning:
 		result, err = r.reconcileProvisioning(ctx, &exam)
 	case examv1alpha1.ExamPhaseReady:
@@ -270,17 +269,8 @@ func (r *ExamReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	// Update countdown gauges
 	if r.Metrics != nil {
 		unlock := exam.Spec.Schedule.Unlock.Time
-		secondsUntilUnlock := time.Until(unlock).Seconds()
-		if secondsUntilUnlock < 0 {
-			secondsUntilUnlock = 0
-		}
-		r.Metrics.SecondsUntilUnlock.WithLabelValues(exam.Name).Set(secondsUntilUnlock)
-
-		secondsUntilLock := time.Until(lockTime).Seconds()
-		if secondsUntilLock < 0 {
-			secondsUntilLock = 0
-		}
-		r.Metrics.SecondsUntilLock.WithLabelValues(exam.Name).Set(secondsUntilLock)
+		r.Metrics.SecondsUntilUnlock.WithLabelValues(exam.Name).Set(max(unlock.Sub(now).Seconds(), 0))
+		r.Metrics.SecondsUntilLock.WithLabelValues(exam.Name).Set(max(lockTime.Sub(now).Seconds(), 0))
 	}
 
 	// Update status
@@ -363,7 +353,7 @@ func (r *ExamReconciler) reconcileProvisioning(ctx context.Context, exam *examv1
 				urls = append(urls, sp.URL)
 			}
 			msg := notifier.BuildSparesMessage(exam.Spec.Email.From, exam.Spec.Email.InstructorEmail, exam.Spec.Email.Subject, urls)
-			if err := r.sendEmail(ctx, exam, exam.Spec.Email.From, []string{exam.Spec.Email.InstructorEmail}, []byte(msg)); err != nil {
+			if err := r.sendEmail(ctx, exam, []string{exam.Spec.Email.InstructorEmail}, []byte(msg)); err != nil {
 				logger.Error(err, "Failed to send spare URLs to instructor")
 			}
 		}
@@ -420,10 +410,7 @@ func (r *ExamReconciler) reconcileReady(ctx context.Context, exam *examv1alpha1.
 		}
 	}
 
-	requeue := time.Until(nextWake)
-	if requeue < 0 {
-		requeue = 0
-	}
+	requeue := max(nextWake.Sub(now), 0)
 	logger.Info("Ready phase waiting", "nextWake", nextWake, "requeue", requeue)
 	return ctrl.Result{RequeueAfter: requeue}, nil
 }
@@ -453,7 +440,7 @@ func (r *ExamReconciler) reconcileUnlock(ctx context.Context, exam *examv1alpha1
 		}
 		msg := notifier.BuildUnlockNotification(exam.Spec.Email.From, exam.Spec.Email.InstructorEmail,
 			exam.Spec.Email.Subject, len(exam.Spec.Students), exam.Spec.Spares, failedEmails)
-		if err := r.sendEmail(ctx, exam, exam.Spec.Email.From, []string{exam.Spec.Email.InstructorEmail}, []byte(msg)); err != nil {
+		if err := r.sendEmail(ctx, exam, []string{exam.Spec.Email.InstructorEmail}, []byte(msg)); err != nil {
 			logger.Error(err, "Failed to send unlock notification")
 		} else {
 			meta.SetStatusCondition(&exam.Status.Conditions, metav1.Condition{
@@ -465,7 +452,7 @@ func (r *ExamReconciler) reconcileUnlock(ctx context.Context, exam *examv1alpha1
 	exam.Status.Message = fmt.Sprintf("Exam in progress — %d students, %d spares", len(exam.Spec.Students), exam.Spec.Spares)
 
 	lockTime := exam.Status.ComputedLockTime.Time
-	return ctrl.Result{RequeueAfter: time.Until(lockTime)}, nil
+	return ctrl.Result{RequeueAfter: max(lockTime.Sub(now), 0)}, nil
 }
 
 func (r *ExamReconciler) reconcileLocked(ctx context.Context, exam *examv1alpha1.Exam, now time.Time) (ctrl.Result, error) {
@@ -500,7 +487,7 @@ func (r *ExamReconciler) reconcileLocked(ctx context.Context, exam *examv1alpha1
 		}
 		msg := notifier.BuildLockNotification(exam.Spec.Email.From, exam.Spec.Email.InstructorEmail,
 			exam.Spec.Email.Subject, len(exam.Spec.Students), healthy, failed)
-		if err := r.sendEmail(ctx, exam, exam.Spec.Email.From, []string{exam.Spec.Email.InstructorEmail}, []byte(msg)); err != nil {
+		if err := r.sendEmail(ctx, exam, []string{exam.Spec.Email.InstructorEmail}, []byte(msg)); err != nil {
 			logger.Error(err, "Failed to send lock notification")
 		} else {
 			meta.SetStatusCondition(&exam.Status.Conditions, metav1.Condition{
@@ -510,11 +497,7 @@ func (r *ExamReconciler) reconcileLocked(ctx context.Context, exam *examv1alpha1
 	}
 
 	exam.Status.Message = "Exam ended, instances retained for investigation"
-	requeue := time.Until(exam.Status.RetentionDeadline.Time)
-	if requeue < 0 {
-		requeue = 0
-	}
-	return ctrl.Result{RequeueAfter: requeue}, nil
+	return ctrl.Result{RequeueAfter: max(exam.Status.RetentionDeadline.Sub(now), 0)}, nil
 }
 
 func (r *ExamReconciler) reconcileTeardown(ctx context.Context, exam *examv1alpha1.Exam) error {
@@ -522,6 +505,9 @@ func (r *ExamReconciler) reconcileTeardown(ctx context.Context, exam *examv1alph
 	namespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ns}}
 	if err := r.Delete(ctx, namespace); err != nil && !errors.IsNotFound(err) {
 		return err
+	}
+	if r.Metrics != nil {
+		r.Metrics.CleanupExam(exam.Name)
 	}
 	exam.Status.Phase = examv1alpha1.ExamPhaseTearingDown
 	exam.Status.Message = "Namespace deleted"
@@ -614,7 +600,7 @@ func (r *ExamReconciler) sendNextPendingEmail(ctx context.Context, exam *examv1a
 			student := exam.Spec.Students[i]
 			msg := notifier.BuildStudentMessage(exam.Spec.Email.From, student.Email, exam.Spec.Email.Subject, exam.Status.Students[i].URL)
 			now := metav1.Now()
-			if err := r.sendEmail(ctx, exam, exam.Spec.Email.From, []string{student.Email}, []byte(msg)); err != nil {
+			if err := r.sendEmail(ctx, exam, []string{student.Email}, []byte(msg)); err != nil {
 				exam.Status.Students[i].EmailStatus = examv1alpha1.EmailStatusFailed
 				if r.Metrics != nil {
 					r.Metrics.EmailsFailed.WithLabelValues(exam.Name).Inc()
@@ -715,7 +701,6 @@ func (r *ExamReconciler) enforcePolicies(ctx context.Context, exam *examv1alpha1
 
 		ingressAllow := r.PolicyProvider.IngressAllow(ns, labels)
 		if unlocked {
-			// Create Ingress resource alongside ingress-allow policy
 			ing := provisioner.Ingress(exam, ns, entry.studentID, entry.slug)
 			if err := r.Create(ctx, ing); err != nil && !errors.IsAlreadyExists(err) {
 				log.FromContext(ctx).Error(err, "drift: failed to create ingress", "slug", entry.slug)

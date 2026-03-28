@@ -68,15 +68,15 @@ type ExamDryRunSpec struct {
 
 // ExamSchedule defines the timing for the exam lifecycle.
 type ExamSchedule struct {
-	Unlock metav1.Time     `json:"unlock"`
-	Duration        metav1.Duration `json:"duration"`
+	Unlock   metav1.Time     `json:"unlock"`
+	Duration metav1.Duration `json:"duration"`
 	// +kubebuilder:default=1.5
-	TimeMultiplier  float64         `json:"timeMultiplier,omitempty"`
+	TimeMultiplier float64 `json:"timeMultiplier,omitempty"`
 	// +kubebuilder:default="1h"
 	ProvisionBefore metav1.Duration `json:"provisionBefore,omitempty"`
 	// +kubebuilder:default="24h"
-	Retention       metav1.Duration `json:"retention,omitempty"`
-	DryRun          *ExamDryRunSpec `json:"dryRun,omitempty"`
+	Retention metav1.Duration `json:"retention,omitempty"`
+	DryRun    *ExamDryRunSpec `json:"dryRun,omitempty"`
 }
 
 // ExamStudent defines a student participating in the exam.
@@ -88,13 +88,13 @@ type ExamStudent struct {
 // ExamEmail configures email delivery.
 type ExamEmail struct {
 	// +kubebuilder:default="30m"
-	Before          metav1.Duration `json:"before,omitempty"`
+	Before metav1.Duration `json:"before,omitempty"`
 	// +kubebuilder:default=1
-	RateLimit       int             `json:"rateLimit,omitempty"`
-	InstructorEmail string          `json:"instructorEmail"`
-	SecretRef       string          `json:"secretRef"`
-	From            string          `json:"from"`
-	Subject         string          `json:"subject"`
+	RateLimit       int    `json:"rateLimit,omitempty"`
+	InstructorEmail string `json:"instructorEmail"`
+	SecretRef       string `json:"secretRef"`
+	From            string `json:"from"`
+	Subject         string `json:"subject"`
 }
 
 // ExamIngressTLS configures TLS for student Ingress resources.

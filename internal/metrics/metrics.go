@@ -80,3 +80,18 @@ func NewExamMetrics(reg prometheus.Registerer) *ExamMetrics {
 	)
 	return m
 }
+
+// CleanupExam removes all label series for a deleted exam to prevent
+// unbounded cardinality growth.
+func (m *ExamMetrics) CleanupExam(name string) {
+	m.PhaseTransitions.DeletePartialMatch(prometheus.Labels{"exam": name})
+	m.InstancesTotal.DeleteLabelValues(name)
+	m.InstancesHealthy.DeleteLabelValues(name)
+	m.InstancesFailed.DeleteLabelValues(name)
+	m.EmailsSent.DeleteLabelValues(name)
+	m.EmailsFailed.DeleteLabelValues(name)
+	m.DryRunPassed.DeleteLabelValues(name)
+	m.DryRunFailed.DeleteLabelValues(name)
+	m.SecondsUntilUnlock.DeleteLabelValues(name)
+	m.SecondsUntilLock.DeleteLabelValues(name)
+}
