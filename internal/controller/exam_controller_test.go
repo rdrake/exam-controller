@@ -23,13 +23,15 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	examv1alpha1 "github.com/rdrake/exam-controller/api/v1alpha1"
+	"github.com/rdrake/exam-controller/internal/network"
+	"github.com/rdrake/exam-controller/internal/notifier"
 )
 
 var _ = Describe("Exam Controller", func() {
@@ -56,24 +58,30 @@ var _ = Describe("Exam Controller", func() {
 					},
 					Spec: examv1alpha1.ExamSpec{
 						Template: examv1alpha1.ExamTemplate{
-							Image: "nginx:latest",
-							Port:  8080,
+							Image:     "nginx:latest",
+							Port:      8080,
 							Resources: corev1.ResourceRequirements{},
 						},
 						Schedule: examv1alpha1.ExamSchedule{
-							Unlock: metav1.NewTime(now.Add(1 * time.Hour)),
-							Lock:   metav1.NewTime(now.Add(3 * time.Hour)),
+							Unlock:          metav1.NewTime(now.Add(1 * time.Hour)),
+							Duration:        metav1.Duration{Duration: 2 * time.Hour},
+							TimeMultiplier:  1.5,
+							ProvisionBefore: metav1.Duration{Duration: 30 * time.Minute},
+							Retention:       metav1.Duration{Duration: 24 * time.Hour},
 						},
 						Students: []examv1alpha1.ExamStudent{
 							{ID: "alice", Email: "alice@test.com"},
 						},
+						Email: examv1alpha1.ExamEmail{
+							Before:          metav1.Duration{Duration: 15 * time.Minute},
+							RateLimit:       10,
+							InstructorEmail: "prof@test.com",
+							SecretRef:       "smtp-secret",
+							From:            "test@test.com",
+							Subject:         "Test Exam",
+						},
 						IngressTLS: examv1alpha1.ExamIngressTLS{SecretName: "test-tls"},
 						Domain:     "exam.test.com",
-						SMTP: examv1alpha1.ExamSMTP{
-							SecretRef: "smtp-secret",
-							From:      "test@test.com",
-							Subject:   "Test Exam",
-						},
 					},
 				}
 				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
@@ -85,15 +93,19 @@ var _ = Describe("Exam Controller", func() {
 			err := k8sClient.Get(ctx, typeNamespacedName, resource)
 			if err == nil {
 				By("Cleanup the specific resource instance Exam")
+				resource.Finalizers = nil
+				Expect(k8sClient.Update(ctx, resource)).To(Succeed())
 				Expect(k8sClient.Delete(ctx, resource)).To(Succeed())
 			}
 		})
 
-		It("should successfully reconcile and transition to Provisioning", func() {
-			By("Reconciling the created resource")
+		It("should add finalizer and stay Pending when before provision time", func() {
 			controllerReconciler := &ExamReconciler{
-				Client: k8sClient,
-				Scheme: k8sClient.Scheme(),
+				Client:         k8sClient,
+				Scheme:         k8sClient.Scheme(),
+				PolicyProvider: &network.VanillaPolicyProvider{},
+				Sender:         &notifier.FakeSender{},
+				Now:            func() time.Time { return time.Now() },
 			}
 
 			_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{
@@ -101,12 +113,30 @@ var _ = Describe("Exam Controller", func() {
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			// Verify the exam status was updated
 			exam := &examv1alpha1.Exam{}
 			Expect(k8sClient.Get(ctx, typeNamespacedName, exam)).To(Succeed())
-			// After first reconcile from Pending, should move to Provisioning
-			// (provisioning will fail since namespace creation requires cluster-level perms in envtest,
-			// but the phase transition logic is tested via unit tests)
+			Expect(exam.Finalizers).To(ContainElement("exam.otu.ca/cleanup"))
+		})
+
+		It("should compute and set status times", func() {
+			controllerReconciler := &ExamReconciler{
+				Client:         k8sClient,
+				Scheme:         k8sClient.Scheme(),
+				PolicyProvider: &network.VanillaPolicyProvider{},
+				Sender:         &notifier.FakeSender{},
+			}
+
+			_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: typeNamespacedName,
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			exam := &examv1alpha1.Exam{}
+			Expect(k8sClient.Get(ctx, typeNamespacedName, exam)).To(Succeed())
+			Expect(exam.Status.ComputedLockTime).NotTo(BeNil())
+			Expect(exam.Status.ProvisionTime).NotTo(BeNil())
+			Expect(exam.Status.EmailTime).NotTo(BeNil())
+			Expect(exam.Status.RetentionDeadline).NotTo(BeNil())
 		})
 	})
 })

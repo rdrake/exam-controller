@@ -70,7 +70,7 @@ type ExamDryRunSpec struct {
 type ExamSchedule struct {
 	Unlock metav1.Time     `json:"unlock"`
 	Duration        metav1.Duration `json:"duration"`
-	// +kubebuilder:default="1.5"
+	// +kubebuilder:default=1.5
 	TimeMultiplier  float64         `json:"timeMultiplier,omitempty"`
 	// +kubebuilder:default="1h"
 	ProvisionBefore metav1.Duration `json:"provisionBefore,omitempty"`

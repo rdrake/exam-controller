@@ -109,7 +109,7 @@ spec:
                     default: 24h
                     type: string
                   timeMultiplier:
-                    default: "1.5"
+                    default: 1.5
                     type: number
                   unlock:
                     format: date-time
