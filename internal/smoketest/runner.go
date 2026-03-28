@@ -19,6 +19,8 @@ type HealthChecker interface {
 type HTTPChecker struct {
 	HealthTimeout  time.Duration // default 5s
 	BlockedTimeout time.Duration // default 3s
+	healthClient   *http.Client
+	blockedClient  *http.Client
 }
 
 func (h *HTTPChecker) healthTimeout() time.Duration {
@@ -35,10 +37,24 @@ func (h *HTTPChecker) blockedTimeout() time.Duration {
 	return h.BlockedTimeout
 }
 
+func (h *HTTPChecker) getHealthClient() *http.Client {
+	if h.healthClient == nil {
+		h.healthClient = &http.Client{Timeout: h.healthTimeout()}
+	}
+	return h.healthClient
+}
+
+func (h *HTTPChecker) getBlockedClient() *http.Client {
+	if h.blockedClient == nil {
+		h.blockedClient = &http.Client{Timeout: h.blockedTimeout()}
+	}
+	return h.blockedClient
+}
+
 // CheckHealth sends a GET request and returns an error if the response status
 // is outside the 2xx range.
 func (h *HTTPChecker) CheckHealth(ctx context.Context, url string) error {
-	c := &http.Client{Timeout: h.healthTimeout()}
+	c := h.getHealthClient()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return err
@@ -57,7 +73,7 @@ func (h *HTTPChecker) CheckHealth(ctx context.Context, url string) error {
 // CheckBlocked verifies that a URL is NOT reachable. Returns an error if the
 // service IS reachable (meaning NetworkPolicy enforcement is broken).
 func (h *HTTPChecker) CheckBlocked(ctx context.Context, url string) error {
-	c := &http.Client{Timeout: h.blockedTimeout()}
+	c := h.getBlockedClient()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil // Can't even form the request, treat as blocked

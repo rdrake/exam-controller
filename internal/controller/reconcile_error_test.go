@@ -27,7 +27,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/prometheus/client_golang/prometheus"
-	dto "github.com/prometheus/client_model/go"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -46,35 +46,6 @@ type errorSender struct{}
 
 func (e *errorSender) Send(from string, to []string, msg []byte) error {
 	return fmt.Errorf("SMTP connection refused")
-}
-
-// drainEmails reconciles repeatedly until the AllEmailsSent condition is set,
-// ensuring the email queue is fully processed before testing other Ready-phase
-// behavior like dry runs.
-func drainEmails(ctx context.Context, reconciler *ExamReconciler, nn types.NamespacedName) {
-	for i := 0; i < 20; i++ { // safety limit
-		exam := &examv1alpha1.Exam{}
-		Expect(k8sClient.Get(ctx, nn, exam)).To(Succeed())
-		if meta.IsStatusConditionTrue(exam.Status.Conditions, "AllEmailsSent") {
-			return
-		}
-		_, err := reconciler.Reconcile(ctx, reconcileRequest(nn))
-		Expect(err).NotTo(HaveOccurred())
-	}
-	// Verify AllEmailsSent was eventually set
-	exam := &examv1alpha1.Exam{}
-	Expect(k8sClient.Get(ctx, nn, exam)).To(Succeed())
-	Expect(meta.IsStatusConditionTrue(exam.Status.Conditions, "AllEmailsSent")).To(BeTrue(),
-		"AllEmailsSent condition should be set after draining emails")
-}
-
-// counterValue reads a Prometheus CounterVec value for the given label.
-func counterValue(c *prometheus.CounterVec, label string) float64 {
-	m := &dto.Metric{}
-	counter, err := c.GetMetricWithLabelValues(label)
-	Expect(err).NotTo(HaveOccurred())
-	Expect(counter.Write(m)).To(Succeed())
-	return m.GetCounter().GetValue()
 }
 
 // createExamCRWithDryRun creates an Exam CR with DryRun spec set on the schedule.
@@ -150,38 +121,16 @@ var _ = Describe("Error Paths and Dry Run", func() {
 			createExamCR(ctx, examName, unlock, students, 0)
 			preseedSlugs(ctx, nn)
 
-			// Pre-create a conflicting Deployment for alice's slug to cause a
-			// provisioning failure. We need to create the namespace first, then
-			// create a Deployment that will conflict.
 			nsName := examNamespace(examName)
 			ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nsName}}
 			Expect(k8sClient.Create(ctx, ns)).To(Succeed())
 
-			// Read the exam to get alice's slug
 			exam := &examv1alpha1.Exam{}
 			Expect(k8sClient.Get(ctx, nn, exam)).To(Succeed())
-			aliceSlug := exam.Status.Students[0].Slug
 
-			// Create a conflicting Service (same name) that has a different ClusterIP
-			// so the controller's Create call will get AlreadyExists. But actually
-			// provisionInstance tolerates AlreadyExists. Instead, we create a
-			// Deployment with the same name but owned by a different controller,
-			// which won't conflict. We need to trigger a real failure.
-			//
-			// A simpler approach: create a Service with the same name but
-			// conflicting spec. Actually provisionInstance uses Create with
-			// IsAlreadyExists guard so that won't fail either.
-			//
-			// Alternative: trigger provisioning failure by making the slug invalid
-			// for K8s DNS. We can directly set an invalid slug in the status.
-			// But preseedSlugs already set valid slugs.
-			//
-			// Simplest approach that actually works: set alice's slug to something
-			// that will cause a DNS-1035 label validation failure. K8s Deployment
-			// names must match DNS-1035. A name starting with a dash will fail.
+			// Set an invalid DNS-1035 slug to trigger a provisioning failure.
 			exam.Status.Students[0].Slug = "-invalid-slug"
 			Expect(k8sClient.Status().Update(ctx, exam)).To(Succeed())
-			_ = aliceSlug
 
 			clockTime := unlock.Add(-30 * time.Minute)
 			reconciler := newReconciler(func() time.Time { return clockTime }, fakeSender, nil)
@@ -480,8 +429,8 @@ var _ = Describe("Error Paths and Dry Run", func() {
 			Expect(npCond.Reason).To(Equal("Verified"))
 
 			// Metrics should reflect dry run results
-			Expect(gaugeValue(m.DryRunPassed, examName)).To(Equal(float64(3)))
-			Expect(gaugeValue(m.DryRunFailed, examName)).To(Equal(float64(0)))
+			Expect(testutil.ToFloat64(m.DryRunPassed.WithLabelValues(examName))).To(Equal(float64(3)))
+			Expect(testutil.ToFloat64(m.DryRunFailed.WithLabelValues(examName))).To(Equal(float64(0)))
 		})
 	})
 })

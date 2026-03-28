@@ -20,6 +20,7 @@ package controller
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -105,10 +106,10 @@ var _ = Describe("Provisioning and Drift Correction", func() {
 			egressAllowCount := 0
 			for _, np := range netpols.Items {
 				name := np.Name
-				if len(name) > len("-deny-all") && name[len(name)-len("-deny-all"):] == "-deny-all" {
+				if strings.HasSuffix(name, "-deny-all") {
 					denyAllCount++
 				}
-				if len(name) > len("-egress-allow") && name[len(name)-len("-egress-allow"):] == "-egress-allow" {
+				if strings.HasSuffix(name, "-egress-allow") {
 					egressAllowCount++
 				}
 			}
@@ -325,7 +326,7 @@ var _ = Describe("Provisioning and Drift Correction", func() {
 			var denyAllPolicy *networkingv1.NetworkPolicy
 			for i := range netpols.Items {
 				name := netpols.Items[i].Name
-				if len(name) > len("-deny-all") && name[len(name)-len("-deny-all"):] == "-deny-all" {
+				if strings.HasSuffix(name, "-deny-all") {
 					denyAllPolicy = &netpols.Items[i]
 					break
 				}

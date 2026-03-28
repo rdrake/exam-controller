@@ -26,10 +26,11 @@ import (
 
 	. "github.com/onsi/gomega"
 	"github.com/prometheus/client_golang/prometheus"
-	dto "github.com/prometheus/client_model/go"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -179,13 +180,29 @@ func createSMTPSecret(ctx context.Context, name, namespace string) {
 	}
 }
 
-// gaugeValue reads a Prometheus GaugeVec value for the given label.
-func gaugeValue(g *prometheus.GaugeVec, label string) float64 {
-	m := &dto.Metric{}
-	gauge, err := g.GetMetricWithLabelValues(label)
-	Expect(err).NotTo(HaveOccurred())
-	Expect(gauge.Write(m)).To(Succeed())
-	return m.GetGauge().GetValue()
+// drainEmails reconciles repeatedly until the AllEmailsSent condition is set,
+// ensuring the email queue is fully processed before testing other Ready-phase
+// behavior like dry runs.
+func drainEmails(ctx context.Context, reconciler *ExamReconciler, nn types.NamespacedName) {
+	for i := 0; i < 20; i++ { // safety limit
+		exam := &examv1alpha1.Exam{}
+		Expect(k8sClient.Get(ctx, nn, exam)).To(Succeed())
+		if meta.IsStatusConditionTrue(exam.Status.Conditions, "AllEmailsSent") {
+			return
+		}
+		_, err := reconciler.Reconcile(ctx, reconcileRequest(nn))
+		Expect(err).NotTo(HaveOccurred())
+	}
+	// Verify AllEmailsSent was eventually set
+	exam := &examv1alpha1.Exam{}
+	Expect(k8sClient.Get(ctx, nn, exam)).To(Succeed())
+	Expect(meta.IsStatusConditionTrue(exam.Status.Conditions, "AllEmailsSent")).To(BeTrue(),
+		"AllEmailsSent condition should be set after draining emails")
+}
+
+// counterValue reads a Prometheus CounterVec value for the given labels.
+func counterValue(cv *prometheus.CounterVec, labels ...string) float64 {
+	return testutil.ToFloat64(cv.WithLabelValues(labels...))
 }
 
 // driveToPhase drives the reconciler through the lifecycle until the exam

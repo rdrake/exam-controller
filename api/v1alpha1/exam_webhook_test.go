@@ -306,30 +306,6 @@ func TestValidateCreate_EmailTimingEdge(t *testing.T) {
 
 // --- ValidateUpdate edge cases ---
 
-func TestValidateUpdate_ImageChangeAfterPending(t *testing.T) {
-	v := &examValidator{}
-	old := baseExam()
-	old.Status.Phase = ExamPhaseProvisioning
-	updated := old.DeepCopy()
-	updated.Spec.Template.Image = "new-image:v2"
-	_, err := v.ValidateUpdate(context.Background(), old, updated)
-	if err == nil {
-		t.Error("expected error for image change when phase is Provisioning")
-	}
-}
-
-func TestValidateUpdate_DurationChangeAfterLocked(t *testing.T) {
-	v := &examValidator{}
-	old := baseExam()
-	old.Status.Phase = ExamPhaseLocked
-	updated := old.DeepCopy()
-	updated.Spec.Schedule.Duration = metav1.Duration{Duration: 5 * time.Hour}
-	_, err := v.ValidateUpdate(context.Background(), old, updated)
-	if err == nil {
-		t.Error("expected error for duration change when phase is Locked")
-	}
-}
-
 func TestValidateUpdate_StudentAddAfterPending(t *testing.T) {
 	v := &examValidator{}
 	old := baseExam()

@@ -72,7 +72,7 @@ var _ = Describe("Finalizer and Deletion", func() {
 
 		exam := &examv1alpha1.Exam{}
 		Expect(k8sClient.Get(ctx, nn, exam)).To(Succeed())
-		Expect(exam.Finalizers).To(ContainElement("exam.otu.ca/cleanup"))
+		Expect(exam.Finalizers).To(ContainElement(finalizerName))
 	})
 
 	It("deletion triggers namespace cleanup and finalizer removal", func() {
