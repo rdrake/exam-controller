@@ -267,15 +267,15 @@ func (r *ExamReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		err = r.reconcileTeardown(ctx, &exam)
 	}
 
-	// Update countdown gauges
-	if r.Metrics != nil {
-		unlock := exam.Spec.Schedule.Unlock.Time
-		r.Metrics.SecondsUntilUnlock.WithLabelValues(exam.Name).Set(max(unlock.Sub(now).Seconds(), 0))
-		r.Metrics.SecondsUntilLock.WithLabelValues(exam.Name).Set(max(lockTime.Sub(now).Seconds(), 0))
+	// Update countdown gauges and metrics summary (skip after teardown — CleanupExam already ran)
+	if exam.Status.Phase != examv1alpha1.ExamPhaseTearingDown {
+		if r.Metrics != nil {
+			unlock := exam.Spec.Schedule.Unlock.Time
+			r.Metrics.SecondsUntilUnlock.WithLabelValues(exam.Name).Set(max(unlock.Sub(now).Seconds(), 0))
+			r.Metrics.SecondsUntilLock.WithLabelValues(exam.Name).Set(max(lockTime.Sub(now).Seconds(), 0))
+		}
+		r.updateMetricsSummary(&exam)
 	}
-
-	// Update status
-	r.updateMetricsSummary(&exam)
 	if statusErr := r.Status().Update(ctx, &exam); statusErr != nil {
 		logger.Error(statusErr, "Failed to update status")
 		return ctrl.Result{}, statusErr
@@ -305,7 +305,7 @@ func (r *ExamReconciler) reconcileProvisioning(ctx context.Context, exam *examv1
 
 	allHealthy := true
 	for i, student := range exam.Spec.Students {
-		s, err := r.findOrGenerateSlug(exam, student.ID)
+		s, err := r.findOrGenerateSlug(ctx, exam, ns, student.ID)
 		if err != nil {
 			return ctrl.Result{}, fmt.Errorf("slug generation for %s: %w", student.ID, err)
 		}
@@ -319,7 +319,7 @@ func (r *ExamReconciler) reconcileProvisioning(ctx context.Context, exam *examv1
 	}
 
 	for i := range exam.Spec.Spares {
-		s, err := r.findOrGenerateSpareSlug(exam, i)
+		s, err := r.findOrGenerateSpareSlug(ctx, exam, ns, i)
 		if err != nil {
 			return ctrl.Result{}, fmt.Errorf("slug generation for spare %d: %w", i, err)
 		}
@@ -338,6 +338,14 @@ func (r *ExamReconciler) reconcileProvisioning(ctx context.Context, exam *examv1
 			Reason:  "SomeInstancesFailed",
 			Message: "One or more instances failed to provision",
 		})
+	}
+
+	// Clean up orphaned resources left by concurrent reconcile races.
+	// Two simultaneous reconciles can each generate a different slug for the
+	// same student, creating duplicate deployments/services/policies. Remove
+	// any resources whose slug doesn't match the now-canonical set.
+	if err := r.cleanupOrphanedResources(ctx, exam, ns); err != nil {
+		logger.Error(err, "Failed to clean up orphaned resources")
 	}
 
 	if r.allInstancesHealthy(ctx, exam, ns) {
@@ -543,18 +551,48 @@ func (r *ExamReconciler) provisionInstance(ctx context.Context, exam *examv1alph
 	return nil
 }
 
-func (r *ExamReconciler) findOrGenerateSlug(exam *examv1alpha1.Exam, studentID string) (string, error) {
+func (r *ExamReconciler) findOrGenerateSlug(ctx context.Context, exam *examv1alpha1.Exam, ns, studentID string) (string, error) {
 	for _, s := range exam.Status.Students {
 		if s.ID == studentID && s.Slug != "" {
 			return s.Slug, nil
 		}
 	}
+	// Check for an existing deployment created by a concurrent reconcile whose
+	// status update lost the race.  Reusing that slug prevents orphaned resources.
+	if r.Client != nil {
+		var deps appsv1.DeploymentList
+		if err := r.List(ctx, &deps, client.InNamespace(ns),
+			client.MatchingLabels{"exam.otu.ca/exam": exam.Name, "exam.otu.ca/student": studentID}); err == nil && len(deps.Items) > 0 {
+			if s := deps.Items[0].Labels["exam.otu.ca/slug"]; s != "" {
+				return s, nil
+			}
+		}
+	}
 	return slug.Generate()
 }
 
-func (r *ExamReconciler) findOrGenerateSpareSlug(exam *examv1alpha1.Exam, index int) (string, error) {
+func (r *ExamReconciler) findOrGenerateSpareSlug(ctx context.Context, exam *examv1alpha1.Exam, ns string, index int) (string, error) {
 	if index < len(exam.Status.Spares) && exam.Status.Spares[index].Slug != "" {
 		return exam.Status.Spares[index].Slug, nil
+	}
+	// Check for existing spare deployments (no student label) to reuse slugs
+	// from concurrent reconcile races.
+	if r.Client != nil {
+		var deps appsv1.DeploymentList
+		if err := r.List(ctx, &deps, client.InNamespace(ns),
+			client.MatchingLabels{"exam.otu.ca/exam": exam.Name}); err == nil {
+			spareDeployments := make([]string, 0)
+			for _, d := range deps.Items {
+				if _, hasStudent := d.Labels["exam.otu.ca/student"]; !hasStudent {
+					if s := d.Labels["exam.otu.ca/slug"]; s != "" {
+						spareDeployments = append(spareDeployments, s)
+					}
+				}
+			}
+			if index < len(spareDeployments) {
+				return spareDeployments[index], nil
+			}
+		}
 	}
 	return slug.Generate()
 }
@@ -595,6 +633,67 @@ func (r *ExamReconciler) allInstancesHealthy(ctx context.Context, exam *examv1al
 		}
 	}
 	return len(deps.Items) == len(exam.Spec.Students)+exam.Spec.Spares
+}
+
+func (r *ExamReconciler) validSlugs(exam *examv1alpha1.Exam) map[string]bool {
+	slugs := make(map[string]bool)
+	for _, s := range exam.Status.Students {
+		if s.Slug != "" {
+			slugs[s.Slug] = true
+		}
+	}
+	for _, s := range exam.Status.Spares {
+		if s.Slug != "" {
+			slugs[s.Slug] = true
+		}
+	}
+	return slugs
+}
+
+func (r *ExamReconciler) cleanupOrphanedResources(ctx context.Context, exam *examv1alpha1.Exam, ns string) error {
+	logger := log.FromContext(ctx)
+	slugs := r.validSlugs(exam)
+
+	var deps appsv1.DeploymentList
+	if err := r.List(ctx, &deps, client.InNamespace(ns), client.MatchingLabels{"exam.otu.ca/exam": exam.Name}); err != nil {
+		return err
+	}
+	for i := range deps.Items {
+		if s := deps.Items[i].Labels["exam.otu.ca/slug"]; s != "" && !slugs[s] {
+			logger.Info("Deleting orphaned deployment", "slug", s)
+			if err := r.Delete(ctx, &deps.Items[i]); err != nil && !errors.IsNotFound(err) {
+				return err
+			}
+		}
+	}
+
+	var svcs corev1.ServiceList
+	if err := r.List(ctx, &svcs, client.InNamespace(ns), client.MatchingLabels{"exam.otu.ca/exam": exam.Name}); err != nil {
+		return err
+	}
+	for i := range svcs.Items {
+		if s := svcs.Items[i].Labels["exam.otu.ca/slug"]; s != "" && !slugs[s] {
+			logger.Info("Deleting orphaned service", "slug", s)
+			if err := r.Delete(ctx, &svcs.Items[i]); err != nil && !errors.IsNotFound(err) {
+				return err
+			}
+		}
+	}
+
+	var pols networkingv1.NetworkPolicyList
+	if err := r.List(ctx, &pols, client.InNamespace(ns), client.MatchingLabels{"exam.otu.ca/exam": exam.Name}); err != nil {
+		return err
+	}
+	for i := range pols.Items {
+		if s := pols.Items[i].Labels["exam.otu.ca/slug"]; s != "" && !slugs[s] {
+			logger.Info("Deleting orphaned network policy", "slug", s)
+			if err := r.Delete(ctx, &pols.Items[i]); err != nil && !errors.IsNotFound(err) {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func (r *ExamReconciler) sendNextPendingEmail(ctx context.Context, exam *examv1alpha1.Exam) bool {

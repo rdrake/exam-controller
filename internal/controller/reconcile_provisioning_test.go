@@ -349,4 +349,175 @@ var _ = Describe("Provisioning and Drift Correction", func() {
 			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: deletedName, Namespace: ns}, recreated)).To(Succeed())
 		})
 	})
+
+	Describe("resolvedSender", func() {
+		var (
+			ctx      context.Context
+			examName string
+		)
+
+		BeforeEach(func() {
+			ctx = context.Background()
+			examName = uniqueExamName("sender")
+		})
+
+		It("reads SMTP credentials from Secret when Sender is nil", func() {
+			createSMTPSecret(ctx, "smtp-secret", examCRNamespace)
+
+			exam := &examv1alpha1.Exam{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      examName,
+					Namespace: examCRNamespace,
+				},
+				Spec: examv1alpha1.ExamSpec{
+					Email: examv1alpha1.ExamEmail{
+						SecretRef: "smtp-secret",
+					},
+				},
+			}
+
+			reconciler := newReconciler(nil, nil, nil) // Sender is nil
+			sender, err := reconciler.resolvedSender(ctx, exam)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(sender).NotTo(BeNil())
+			// Should return a RetrySender wrapping an SMTPSender
+			_, ok := sender.(*notifier.RetrySender)
+			Expect(ok).To(BeTrue(), "expected RetrySender, got %T", sender)
+		})
+
+		It("defaults port to 587 when not specified in Secret", func() {
+			// Create a secret without a port key
+			secret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "smtp-noport",
+					Namespace: examCRNamespace,
+				},
+				Data: map[string][]byte{
+					"host":     []byte("mail.test.com"),
+					"username": []byte("user"),
+					"password": []byte("pass"),
+				},
+			}
+			Expect(k8sClient.Create(ctx, secret)).To(Succeed())
+
+			exam := &examv1alpha1.Exam{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      examName,
+					Namespace: examCRNamespace,
+				},
+				Spec: examv1alpha1.ExamSpec{
+					Email: examv1alpha1.ExamEmail{
+						SecretRef: "smtp-noport",
+					},
+				},
+			}
+
+			reconciler := newReconciler(nil, nil, nil)
+			sender, err := reconciler.resolvedSender(ctx, exam)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(sender).NotTo(BeNil())
+		})
+
+		It("returns error when Secret does not exist", func() {
+			exam := &examv1alpha1.Exam{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      examName,
+					Namespace: examCRNamespace,
+				},
+				Spec: examv1alpha1.ExamSpec{
+					Email: examv1alpha1.ExamEmail{
+						SecretRef: "nonexistent-secret",
+					},
+				},
+			}
+
+			reconciler := newReconciler(nil, nil, nil)
+			_, err := reconciler.resolvedSender(ctx, exam)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("nonexistent-secret"))
+		})
+	})
+
+	Describe("Drift correction during Unlocked phase", func() {
+		var (
+			ctx      context.Context
+			examName string
+			nn       types.NamespacedName
+			unlock   time.Time
+		)
+
+		BeforeEach(func() {
+			ctx = context.Background()
+			examName = uniqueExamName("driftunlock")
+			nn = types.NamespacedName{Name: examName, Namespace: examCRNamespace}
+			unlock = time.Date(2026, 6, 15, 14, 0, 0, 0, time.UTC)
+		})
+
+		AfterEach(func() {
+			cleanupExam(ctx, examName, examCRNamespace)
+			ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: examNamespace(examName)}}
+			_ = k8sClient.Delete(ctx, ns)
+		})
+
+		It("recreates deleted ingress-allow network policy while unlocked", func() {
+			students := []examv1alpha1.ExamStudent{
+				{ID: "alice", Email: "alice@test.com"},
+			}
+			createExamCR(ctx, examName, unlock, students, 0)
+			preseedSlugs(ctx, nn)
+
+			By("Driving the exam to Unlocked phase")
+			fakeSender := &notifier.FakeSender{}
+			reconciler := driveToPhase(ctx, nn, examv1alpha1.ExamPhaseUnlocked, unlock, fakeSender, nil)
+
+			ns := examNamespace(examName)
+
+			By("Verifying exam is in Unlocked phase")
+			exam := &examv1alpha1.Exam{}
+			Expect(k8sClient.Get(ctx, nn, exam)).To(Succeed())
+			Expect(exam.Status.Phase).To(Equal(examv1alpha1.ExamPhaseUnlocked))
+
+			By("Listing all network policies with exam label")
+			var netpols networkingv1.NetworkPolicyList
+			Expect(k8sClient.List(ctx, &netpols,
+				client.InNamespace(ns),
+				client.MatchingLabels{"exam.otu.ca/exam": examName},
+			)).To(Succeed())
+
+			By("Finding an ingress-allow network policy")
+			var ingressAllowPolicy *networkingv1.NetworkPolicy
+			for i := range netpols.Items {
+				if strings.HasSuffix(netpols.Items[i].Name, "-ingress-allow") {
+					ingressAllowPolicy = &netpols.Items[i]
+					break
+				}
+			}
+			Expect(ingressAllowPolicy).NotTo(BeNil(), "expected to find an ingress-allow network policy in Unlocked phase")
+			deletedName := ingressAllowPolicy.Name
+
+			By("Deleting the ingress-allow network policy")
+			Expect(k8sClient.Delete(ctx, ingressAllowPolicy)).To(Succeed())
+
+			By("Verifying the ingress-allow policy is gone")
+			deleted := &networkingv1.NetworkPolicy{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: deletedName, Namespace: ns}, deleted)
+			Expect(err).To(HaveOccurred(), "ingress-allow policy should be deleted")
+
+			By("Reconciling again while still in Unlocked phase")
+			_, err = reconciler.Reconcile(ctx, reconcileRequest(nn))
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Verifying the ingress-allow policy is recreated")
+			recreated := &networkingv1.NetworkPolicy{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: deletedName, Namespace: ns}, recreated)).To(Succeed())
+
+			By("Verifying ingress resources still exist")
+			var ingresses networkingv1.IngressList
+			Expect(k8sClient.List(ctx, &ingresses,
+				client.InNamespace(ns),
+				client.MatchingLabels{"exam.otu.ca/exam": examName},
+			)).To(Succeed())
+			Expect(ingresses.Items).NotTo(BeEmpty(), "ingress resources should still exist after drift correction")
+		})
+	})
 })

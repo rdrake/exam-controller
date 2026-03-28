@@ -188,4 +188,78 @@ var _ = Describe("Metrics", func() {
 		}
 		Expect(found).To(BeTrue(), "exam_reconcile_duration_seconds metric family not found")
 	})
+
+	Describe("re-creation with same name", func() {
+		const fixedName = "metrics-recreate"
+		var (
+			fixedNN     types.NamespacedName
+			reg         *prometheus.Registry
+			m           *metrics.ExamMetrics
+			fixedSender *notifier.FakeSender
+		)
+
+		BeforeEach(func() {
+			fixedNN = types.NamespacedName{Name: fixedName, Namespace: examCRNamespace}
+			reg = prometheus.NewRegistry()
+			m = metrics.NewExamMetrics(reg)
+			fixedSender = &notifier.FakeSender{}
+		})
+
+		AfterEach(func() {
+			cleanupExam(ctx, fixedName, examCRNamespace)
+			ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: examNamespace(fixedName)}}
+			_ = k8sClient.Delete(ctx, ns)
+		})
+
+		It("does not carry over stale metrics after CleanupExam and re-creation", func() {
+			students := []examv1alpha1.ExamStudent{
+				{ID: "alice", Email: "alice@test.com"},
+				{ID: "bob", Email: "bob@test.com"},
+			}
+
+			// --- First exam lifecycle ---
+			createExamCR(ctx, fixedName, unlock, students, 0)
+			preseedSlugs(ctx, fixedNN)
+
+			// Drive to Ready: populates InstancesTotal=2, InstancesHealthy=2
+			driveToPhase(ctx, fixedNN, examv1alpha1.ExamPhaseReady, unlock, fixedSender, m)
+
+			// Verify metrics are populated after reaching Ready
+			healthy1 := testutil.ToFloat64(m.InstancesHealthy.WithLabelValues(fixedName))
+			Expect(healthy1).To(Equal(float64(2)), "InstancesHealthy should be 2 after first exam reaches Ready")
+			total1 := testutil.ToFloat64(m.InstancesTotal.WithLabelValues(fixedName))
+			Expect(total1).To(Equal(float64(2)), "InstancesTotal should be 2 after first exam reaches Ready")
+			transitions1 := testutil.ToFloat64(m.PhaseTransitions.WithLabelValues(fixedName, "", "Provisioning"))
+			Expect(transitions1).To(BeNumerically(">", 0), "PhaseTransitions should record at least one transition")
+
+			// Call CleanupExam directly (simulating teardown metrics cleanup)
+			m.CleanupExam(fixedName)
+
+			// Verify gauge metrics are reset after cleanup
+			Expect(testutil.CollectAndCount(m.InstancesTotal)).To(Equal(0),
+				"InstancesTotal series should be removed after CleanupExam")
+			Expect(testutil.CollectAndCount(m.InstancesHealthy)).To(Equal(0),
+				"InstancesHealthy series should be removed after CleanupExam")
+			Expect(testutil.CollectAndCount(m.InstancesFailed)).To(Equal(0),
+				"InstancesFailed series should be removed after CleanupExam")
+
+			// --- Simulate re-creation: setting metrics for the same exam name ---
+			// After cleanup, WithLabelValues should return a fresh zero-value gauge
+			healthyAfterCleanup := testutil.ToFloat64(m.InstancesHealthy.WithLabelValues(fixedName))
+			Expect(healthyAfterCleanup).To(Equal(float64(0)),
+				"InstancesHealthy should be 0 after cleanup, not carried over")
+
+			totalAfterCleanup := testutil.ToFloat64(m.InstancesTotal.WithLabelValues(fixedName))
+			Expect(totalAfterCleanup).To(Equal(float64(0)),
+				"InstancesTotal should be 0 after cleanup, not carried over")
+
+			// Setting new values should work correctly (no stale state)
+			m.InstancesHealthy.WithLabelValues(fixedName).Set(3)
+			m.InstancesTotal.WithLabelValues(fixedName).Set(3)
+			Expect(testutil.ToFloat64(m.InstancesHealthy.WithLabelValues(fixedName))).To(Equal(float64(3)),
+				"InstancesHealthy should reflect newly set value, not old value of 2")
+			Expect(testutil.ToFloat64(m.InstancesTotal.WithLabelValues(fixedName))).To(Equal(float64(3)),
+				"InstancesTotal should reflect newly set value, not old value of 2")
+		})
+	})
 })

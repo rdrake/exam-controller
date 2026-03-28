@@ -344,3 +344,120 @@ func TestValidateDelete_AlwaysAllowed(t *testing.T) {
 		t.Errorf("ValidateDelete should return nil warnings, got: %v", warnings)
 	}
 }
+
+// --- ValidateCreate default value paths ---
+
+func TestValidateCreate_DefaultMultiplier(t *testing.T) {
+	v := &examValidator{}
+	e := baseExam()
+	e.Spec.Schedule.TimeMultiplier = 0 // should default to 1.5
+	_, err := v.ValidateCreate(context.Background(), e)
+	if err != nil {
+		t.Errorf("multiplier=0 should default to 1.5 and pass, got error: %v", err)
+	}
+}
+
+func TestValidateCreate_DefaultRateLimit(t *testing.T) {
+	v := &examValidator{}
+	e := baseExam()
+	e.Spec.Email.RateLimit = 0 // should default to 1
+	_, err := v.ValidateCreate(context.Background(), e)
+	if err != nil {
+		t.Errorf("rateLimit=0 should default to 1 and pass, got error: %v", err)
+	}
+}
+
+func TestValidateCreate_DefaultEmailBefore(t *testing.T) {
+	v := &examValidator{}
+	e := baseExam()
+	e.Spec.Email.Before = metav1.Duration{} // should default to 30m
+	_, err := v.ValidateCreate(context.Background(), e)
+	if err != nil {
+		t.Errorf("emailBefore=0 should default to 30m and pass, got error: %v", err)
+	}
+}
+
+func TestValidateCreate_DefaultProvisionBefore(t *testing.T) {
+	v := &examValidator{}
+	e := baseExam()
+	e.Spec.Schedule.ProvisionBefore = metav1.Duration{} // should default to 1h
+	e.Spec.Email.Before = metav1.Duration{}             // also defaults to 30m
+	_, err := v.ValidateCreate(context.Background(), e)
+	if err != nil {
+		t.Errorf("provisionBefore=0 should default to 1h and pass, got error: %v", err)
+	}
+}
+
+// --- ValidateUpdate missing immutability checks ---
+
+func TestValidateUpdate_PortImmutableAfterPending(t *testing.T) {
+	v := &examValidator{}
+	old := baseExam()
+	old.Status.Phase = ExamPhaseProvisioning
+	updated := old.DeepCopy()
+	updated.Spec.Template.Port = 9090
+	_, err := v.ValidateUpdate(context.Background(), old, updated)
+	if err == nil {
+		t.Error("expected error for port change after Pending")
+	}
+}
+
+func TestValidateUpdate_UnlockImmutableAfterPending(t *testing.T) {
+	v := &examValidator{}
+	old := baseExam()
+	old.Status.Phase = ExamPhaseProvisioning
+	updated := old.DeepCopy()
+	updated.Spec.Schedule.Unlock = metav1.NewTime(time.Now().Add(5 * time.Hour))
+	_, err := v.ValidateUpdate(context.Background(), old, updated)
+	if err == nil {
+		t.Error("expected error for unlock time change after Pending")
+	}
+}
+
+func TestValidateUpdate_StudentIDChangeAfterPending(t *testing.T) {
+	v := &examValidator{}
+	old := baseExam()
+	old.Status.Phase = ExamPhaseReady
+	updated := old.DeepCopy()
+	updated.Spec.Students[0].ID = "bob"
+	_, err := v.ValidateUpdate(context.Background(), old, updated)
+	if err == nil {
+		t.Error("expected error for student ID change after Pending")
+	}
+}
+
+func TestValidateUpdate_MultiplierImmutableWhenLocked(t *testing.T) {
+	v := &examValidator{}
+	old := baseExam()
+	old.Status.Phase = ExamPhaseLocked
+	updated := old.DeepCopy()
+	updated.Spec.Schedule.TimeMultiplier = 2.0
+	_, err := v.ValidateUpdate(context.Background(), old, updated)
+	if err == nil {
+		t.Error("expected error for multiplier change when Locked")
+	}
+}
+
+func TestValidateUpdate_DurationImmutableWhenTearingDown(t *testing.T) {
+	v := &examValidator{}
+	old := baseExam()
+	old.Status.Phase = ExamPhaseTearingDown
+	updated := old.DeepCopy()
+	updated.Spec.Schedule.Duration = metav1.Duration{Duration: 5 * time.Hour}
+	_, err := v.ValidateUpdate(context.Background(), old, updated)
+	if err == nil {
+		t.Error("expected error for duration change when TearingDown")
+	}
+}
+
+func TestValidateUpdate_MultiplierImmutableWhenTearingDown(t *testing.T) {
+	v := &examValidator{}
+	old := baseExam()
+	old.Status.Phase = ExamPhaseTearingDown
+	updated := old.DeepCopy()
+	updated.Spec.Schedule.TimeMultiplier = 2.0
+	_, err := v.ValidateUpdate(context.Background(), old, updated)
+	if err == nil {
+		t.Error("expected error for multiplier change when TearingDown")
+	}
+}

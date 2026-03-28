@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -264,5 +265,136 @@ func TestComputeSchedule_LockTimeEqualsUnlockPlusDurationTimesMultiplier(t *test
 	want := unlock.Add(time.Duration(float64(duration) * multiplier))
 	if !lockTime.Equal(want) {
 		t.Errorf("lockTime = %v, want %v", lockTime, want)
+	}
+}
+
+// --- now() fallback ---
+
+func TestNow_NilFallback(t *testing.T) {
+	r := &ExamReconciler{} // Now is nil
+	before := time.Now()
+	got := r.now()
+	after := time.Now()
+	if got.Before(before) || got.After(after) {
+		t.Errorf("now() with nil Now should return time.Now(), got %v", got)
+	}
+}
+
+// --- findOrGenerateSlug ---
+
+func TestFindOrGenerateSlug_ExistingSlug(t *testing.T) {
+	r := &ExamReconciler{}
+	exam := examWithSchedule(time.Now().Add(2 * time.Hour))
+	exam.Status.Students = []examv1alpha1.StudentStatus{
+		{ID: "alice", Slug: "abcd1234"},
+	}
+	slug, err := r.findOrGenerateSlug(context.Background(), exam, "test-ns", "alice")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if slug != "abcd1234" {
+		t.Errorf("slug = %q, want %q", slug, "abcd1234")
+	}
+}
+
+func TestFindOrGenerateSlug_NewSlug(t *testing.T) {
+	r := &ExamReconciler{}
+	exam := examWithSchedule(time.Now().Add(2 * time.Hour))
+	exam.Status.Students = nil
+	// nil client means List will fail, falling through to slug.Generate()
+	slug, err := r.findOrGenerateSlug(context.Background(), exam, "test-ns", "alice")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(slug) != 8 {
+		t.Errorf("generated slug length = %d, want 8", len(slug))
+	}
+}
+
+// --- findOrGenerateSpareSlug ---
+
+func TestFindOrGenerateSpareSlug_ExistingSlug(t *testing.T) {
+	r := &ExamReconciler{}
+	exam := examWithSchedule(time.Now().Add(2 * time.Hour))
+	exam.Status.Spares = []examv1alpha1.SpareStatus{
+		{Slug: "xyzw5678"},
+	}
+	slug, err := r.findOrGenerateSpareSlug(context.Background(), exam, "test-ns", 0)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if slug != "xyzw5678" {
+		t.Errorf("slug = %q, want %q", slug, "xyzw5678")
+	}
+}
+
+func TestFindOrGenerateSpareSlug_NewSlug(t *testing.T) {
+	r := &ExamReconciler{}
+	exam := examWithSchedule(time.Now().Add(2 * time.Hour))
+	exam.Status.Spares = nil
+	// nil client means List will fail, falling through to slug.Generate()
+	slug, err := r.findOrGenerateSpareSlug(context.Background(), exam, "test-ns", 0)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(slug) != 8 {
+		t.Errorf("generated slug length = %d, want 8", len(slug))
+	}
+}
+
+// --- setStudentStatus / setSpareStatus slice growth ---
+
+func TestSetStudentStatus_GrowsSlice(t *testing.T) {
+	r := &ExamReconciler{}
+	exam := examWithSchedule(time.Now().Add(2 * time.Hour))
+	exam.Status.Students = nil // empty slice
+	r.setStudentStatus(exam, 0, "abcd1234", examv1alpha1.StudentPhaseProvisioned)
+	if len(exam.Status.Students) != 1 {
+		t.Fatalf("students len = %d, want 1", len(exam.Status.Students))
+	}
+	if exam.Status.Students[0].Slug != "abcd1234" {
+		t.Errorf("slug = %q, want %q", exam.Status.Students[0].Slug, "abcd1234")
+	}
+	if exam.Status.Students[0].Phase != examv1alpha1.StudentPhaseProvisioned {
+		t.Errorf("phase = %q, want Provisioned", exam.Status.Students[0].Phase)
+	}
+}
+
+func TestSetSpareStatus_GrowsSlice(t *testing.T) {
+	r := &ExamReconciler{}
+	exam := examWithSchedule(time.Now().Add(2 * time.Hour))
+	exam.Spec.Domain = "exam.test.com"
+	exam.Status.Spares = nil // empty slice
+	r.setSpareStatus(exam, 0, "xyzw5678", examv1alpha1.StudentPhaseProvisioned)
+	if len(exam.Status.Spares) != 1 {
+		t.Fatalf("spares len = %d, want 1", len(exam.Status.Spares))
+	}
+	if exam.Status.Spares[0].Slug != "xyzw5678" {
+		t.Errorf("slug = %q, want %q", exam.Status.Spares[0].Slug, "xyzw5678")
+	}
+	if exam.Status.Spares[0].Phase != examv1alpha1.StudentPhaseProvisioned {
+		t.Errorf("phase = %q, want Provisioned", exam.Status.Spares[0].Phase)
+	}
+}
+
+// --- determineDesiredPhase additional cases ---
+
+func TestDetermineDesiredPhase_EmptyPhaseToProvisioning(t *testing.T) {
+	now := time.Date(2026, 4, 10, 13, 30, 0, 0, time.UTC)
+	exam := examWithSchedule(now.Add(30 * time.Minute)) // provision time = unlock - 1h = now - 30m
+	exam.Status.Phase = ""                              // empty/initial
+	phase := determineDesiredPhase(exam, now)
+	if phase != examv1alpha1.ExamPhaseProvisioning {
+		t.Errorf("phase = %q, want Provisioning", phase)
+	}
+}
+
+func TestDetermineDesiredPhase_TearingDownStays(t *testing.T) {
+	now := time.Date(2026, 4, 10, 14, 0, 0, 0, time.UTC)
+	exam := examWithSchedule(now)
+	exam.Status.Phase = examv1alpha1.ExamPhaseTearingDown
+	phase := determineDesiredPhase(exam, now)
+	if phase != examv1alpha1.ExamPhaseTearingDown {
+		t.Errorf("phase = %q, want TearingDown", phase)
 	}
 }

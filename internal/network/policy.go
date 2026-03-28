@@ -1,6 +1,8 @@
 package network
 
 import (
+	"strconv"
+
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -82,11 +84,12 @@ func (v *VanillaPolicyProvider) EgressAllowlist(namespace string, labels map[str
 
 func (v *VanillaPolicyProvider) IngressAllow(namespace string, labels map[string]string) client.Object {
 	slug := slugFromLabels(labels)
-	port := labels["exam.otu.ca/port"]
-	if port == "" {
-		port = "8080"
+	portStr := labels["exam.otu.ca/port"]
+	if portStr == "" {
+		portStr = "8080"
 	}
-	portVal := intstr.FromString(port)
+	portNum, _ := strconv.Atoi(portStr)
+	portVal := intstr.FromInt32(int32(portNum))
 	tcp := corev1.ProtocolTCP
 	return &networkingv1.NetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{

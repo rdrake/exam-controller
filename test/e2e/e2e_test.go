@@ -184,13 +184,6 @@ var _ = Describe("Manager", Ordered, func() {
 			_, err := utils.Run(cmd)
 			Expect(err).NotTo(HaveOccurred(), "CRD exams.exam.otu.ca should be registered")
 
-			By("verifying webhook configuration exists")
-			cmd = exec.Command("kubectl", "get", "validatingwebhookconfiguration",
-				"-l", "app.kubernetes.io/name=exam-controller")
-			output, err := utils.Run(cmd)
-			Expect(err).NotTo(HaveOccurred(), "ValidatingWebhookConfiguration should exist")
-			Expect(output).NotTo(BeEmpty())
-
 			By("creating a ClusterRoleBinding for metrics access")
 			cmd = exec.Command("kubectl", "create", "clusterrolebinding", metricsRoleBindingName,
 				"--clusterrole=exam-controller-metrics-reader",
@@ -279,7 +272,7 @@ metadata:
   namespace: %s
 spec:
   template:
-    image: nginx:latest
+    image: nginxinc/nginx-unprivileged:latest
     port: 80
   schedule:
     unlock: "%s"
@@ -351,8 +344,8 @@ spec:
 			}, 3*time.Minute, 5*time.Second).Should(Succeed())
 		})
 
-		// Scenario 3: Webhook validation
-		It("webhook rejects invalid exam", func() {
+		// Scenario 3: Webhook validation (requires --enable-webhooks + cert-manager)
+		PIt("webhook rejects invalid exam", func() {
 			unlock := time.Now().UTC().Add(10 * time.Minute).Format(time.RFC3339)
 
 			By("rejecting an Exam with empty students")
@@ -363,7 +356,7 @@ metadata:
   namespace: %s
 spec:
   template:
-    image: nginx:latest
+    image: nginxinc/nginx-unprivileged:latest
     port: 80
   schedule:
     unlock: "%s"
@@ -401,7 +394,7 @@ metadata:
   namespace: %s
 spec:
   template:
-    image: nginx:latest
+    image: nginxinc/nginx-unprivileged:latest
     port: 80
   schedule:
     unlock: "%s"
@@ -441,7 +434,7 @@ metadata:
   namespace: %s
 spec:
   template:
-    image: nginx:latest
+    image: nginxinc/nginx-unprivileged:latest
     port: 80
   schedule:
     unlock: "%s"
@@ -500,7 +493,7 @@ metadata:
   namespace: %s
 spec:
   template:
-    image: nginx:latest
+    image: nginxinc/nginx-unprivileged:latest
     port: 80
   schedule:
     unlock: "%s"
@@ -581,6 +574,283 @@ spec:
 
 			By("cleaning up the SMTP secret")
 			cmd = exec.Command("kubectl", "delete", "secret", "exam-smtp-phases",
+				"-n", examCRNamespace, "--ignore-not-found")
+			_, _ = utils.Run(cmd)
+		})
+
+		// Scenario 5: Full 6-phase lifecycle with compressed timeline
+		It("exercises the full 6-phase lifecycle with compressed timeline", func() {
+			const examName = "e2e-full-lifecycle"
+			examNS := "exam-" + examName
+
+			unlock := time.Now().UTC().Add(60 * time.Second).Format(time.RFC3339)
+
+			By("creating the SMTP secret with non-routable host for fast failure")
+			cmd := exec.Command("kubectl", "create", "secret", "generic",
+				"exam-smtp-lifecycle",
+				"--namespace", examCRNamespace,
+				"--from-literal=host=smtp.invalid",
+				"--from-literal=port=587",
+				"--from-literal=username=dummy",
+				"--from-literal=password=dummy",
+			)
+			_, _ = utils.Run(cmd) // ignore if already exists
+
+			By("creating the Exam CR with compressed timings")
+			examYAML := fmt.Sprintf(`apiVersion: exam.otu.ca/v1alpha1
+kind: Exam
+metadata:
+  name: %s
+  namespace: %s
+spec:
+  template:
+    image: nginxinc/nginx-unprivileged:latest
+    port: 80
+  schedule:
+    unlock: "%s"
+    duration: "20s"
+    timeMultiplier: 1.0
+    provisionBefore: "90s"
+    retention: "10s"
+  students:
+    - id: student-one
+      email: student1@example.com
+    - id: student-two
+      email: student2@example.com
+  spares: 1
+  email:
+    before: "15s"
+    rateLimit: 10
+    instructorEmail: "instructor@example.com"
+    secretRef: exam-smtp-lifecycle
+    from: "noreply@example.com"
+    subject: "E2E Full Lifecycle Test"
+  ingressTLS:
+    secretName: test-tls
+  domain: exam.test.local`, examName, examCRNamespace, unlock)
+
+			tmpFile := filepath.Join(os.TempDir(), "exam-full-lifecycle.yaml")
+			Expect(os.WriteFile(tmpFile, []byte(examYAML), 0644)).To(Succeed())
+			defer os.Remove(tmpFile)
+
+			cmd = exec.Command("kubectl", "apply", "-f", tmpFile)
+			_, err := utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred(), "Failed to create Exam CR")
+
+			// --- Phase 1: Provisioning ---
+			By("waiting for Provisioning phase")
+			Eventually(func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "exam", examName,
+					"-n", examCRNamespace,
+					"-o", "jsonpath={.status.phase}")
+				output, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(BeElementOf("Provisioning", "Ready"),
+					"expected phase to be at least Provisioning")
+			}, 2*time.Minute, 5*time.Second).Should(Succeed())
+
+			By("verifying exam namespace exists")
+			cmd = exec.Command("kubectl", "get", "ns", examNS)
+			_, err = utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred(), "exam namespace %s should exist", examNS)
+
+			By("verifying 3 deployments exist (2 students + 1 spare)")
+			Eventually(func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "deployments",
+					"-n", examNS,
+					"-l", "exam.otu.ca/exam="+examName,
+					"-o", "jsonpath={.items[*].metadata.name}")
+				output, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				names := strings.Fields(strings.TrimSpace(output))
+				g.Expect(names).To(HaveLen(3), "expected 3 deployments, got: %v", names)
+			}, 2*time.Minute, 5*time.Second).Should(Succeed())
+
+			By("verifying 3 services exist")
+			cmd = exec.Command("kubectl", "get", "services",
+				"-n", examNS,
+				"-l", "exam.otu.ca/exam="+examName,
+				"-o", "jsonpath={.items[*].metadata.name}")
+			output, err := utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(strings.Fields(strings.TrimSpace(output))).To(HaveLen(3), "expected 3 services")
+
+			By("verifying 6 network policies exist (deny-all + egress-allow per instance)")
+			cmd = exec.Command("kubectl", "get", "networkpolicies",
+				"-n", examNS,
+				"-l", "exam.otu.ca/exam="+examName,
+				"-o", "jsonpath={.items[*].metadata.name}")
+			output, err = utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			npNames := strings.Fields(strings.TrimSpace(output))
+			Expect(npNames).To(HaveLen(6), "expected 6 network policies, got: %v", npNames)
+
+			By("verifying student statuses have slugs and URLs")
+			cmd = exec.Command("kubectl", "get", "exam", examName,
+				"-n", examCRNamespace,
+				"-o", "jsonpath={.status.students[*].slug}")
+			output, err = utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(strings.Fields(strings.TrimSpace(output))).To(HaveLen(2), "expected 2 student slugs")
+
+			cmd = exec.Command("kubectl", "get", "exam", examName,
+				"-n", examCRNamespace,
+				"-o", "jsonpath={.status.spares[0].slug}")
+			output, err = utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(strings.TrimSpace(output)).NotTo(BeEmpty(), "expected spare slug to be populated")
+
+			// --- Phase 2: Ready ---
+			By("waiting for Ready phase (pods become healthy)")
+			Eventually(func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "exam", examName,
+					"-n", examCRNamespace,
+					"-o", "jsonpath={.status.phase}")
+				output, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(Equal("Ready"))
+			}, 3*time.Minute, 5*time.Second).Should(Succeed())
+
+			By("verifying Provisioned condition is True")
+			cmd = exec.Command("kubectl", "get", "exam", examName,
+				"-n", examCRNamespace,
+				"-o", "jsonpath={.status.conditions[?(@.type=='Provisioned')].status}")
+			output, err = utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(output).To(Equal("True"), "Provisioned condition should be True")
+
+			By("verifying metrics summary is populated")
+			cmd = exec.Command("kubectl", "get", "exam", examName,
+				"-n", examCRNamespace,
+				"-o", "jsonpath={.status.metrics.instancesHealthy}")
+			output, err = utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(output).To(Equal("3"), "expected 3 healthy instances")
+
+			// --- Phase 3: Unlocked ---
+			By("waiting for Unlocked phase")
+			Eventually(func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "exam", examName,
+					"-n", examCRNamespace,
+					"-o", "jsonpath={.status.phase}")
+				output, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(Equal("Unlocked"))
+			}, 3*time.Minute, 5*time.Second).Should(Succeed())
+
+			By("verifying 3 ingresses exist")
+			cmd = exec.Command("kubectl", "get", "ingress",
+				"-n", examNS,
+				"-o", "jsonpath={.items[*].metadata.name}")
+			output, err = utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(strings.Fields(strings.TrimSpace(output))).To(HaveLen(3),
+				"expected 3 ingresses (2 students + 1 spare)")
+
+			By("verifying student phases are Unlocked")
+			cmd = exec.Command("kubectl", "get", "exam", examName,
+				"-n", examCRNamespace,
+				"-o", "jsonpath={.status.students[*].phase}")
+			output, err = utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			for _, p := range strings.Fields(strings.TrimSpace(output)) {
+				Expect(p).To(Equal("Unlocked"))
+			}
+
+			By("verifying spare phases are Unlocked")
+			cmd = exec.Command("kubectl", "get", "exam", examName,
+				"-n", examCRNamespace,
+				"-o", "jsonpath={.status.spares[*].phase}")
+			output, err = utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			for _, p := range strings.Fields(strings.TrimSpace(output)) {
+				Expect(p).To(Equal("Unlocked"))
+			}
+
+			// --- Phase 4: Locked ---
+			By("waiting for Locked phase")
+			Eventually(func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "exam", examName,
+					"-n", examCRNamespace,
+					"-o", "jsonpath={.status.phase}")
+				output, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(Equal("Locked"))
+			}, 2*time.Minute, 5*time.Second).Should(Succeed())
+
+			By("verifying ingresses are deleted after lock")
+			cmd = exec.Command("kubectl", "get", "ingress",
+				"-n", examNS,
+				"-o", "jsonpath={.items[*].metadata.name}")
+			output, err = utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(strings.TrimSpace(output)).To(BeEmpty(), "expected no ingresses after Locked")
+
+			By("verifying student phases are Locked")
+			cmd = exec.Command("kubectl", "get", "exam", examName,
+				"-n", examCRNamespace,
+				"-o", "jsonpath={.status.students[*].phase}")
+			output, err = utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			for _, p := range strings.Fields(strings.TrimSpace(output)) {
+				Expect(p).To(Equal("Locked"))
+			}
+
+			By("verifying spare phases are Locked")
+			cmd = exec.Command("kubectl", "get", "exam", examName,
+				"-n", examCRNamespace,
+				"-o", "jsonpath={.status.spares[*].phase}")
+			output, err = utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			for _, p := range strings.Fields(strings.TrimSpace(output)) {
+				Expect(p).To(Equal("Locked"))
+			}
+
+			By("verifying status message during Locked phase")
+			cmd = exec.Command("kubectl", "get", "exam", examName,
+				"-n", examCRNamespace,
+				"-o", "jsonpath={.status.message}")
+			output, err = utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(output).To(Equal("Exam ended, instances retained for investigation"))
+
+			// --- Phase 5: TearingDown ---
+			By("waiting for TearingDown phase (after retention deadline)")
+			Eventually(func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "exam", examName,
+					"-n", examCRNamespace,
+					"-o", "jsonpath={.status.phase}")
+				output, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(Equal("TearingDown"))
+			}, 3*time.Minute, 5*time.Second).Should(Succeed())
+
+			By("verifying status message is 'Namespace deleted'")
+			cmd = exec.Command("kubectl", "get", "exam", examName,
+				"-n", examCRNamespace,
+				"-o", "jsonpath={.status.message}")
+			output, err = utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(output).To(Equal("Namespace deleted"))
+
+			By("waiting for exam namespace to be deleted")
+			Eventually(func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "ns", examNS)
+				_, err := utils.Run(cmd)
+				if err != nil {
+					return // namespace gone -- success
+				}
+				g.Expect("namespace still exists").To(BeEmpty())
+			}, 3*time.Minute, 5*time.Second).Should(Succeed())
+
+			// --- Cleanup ---
+			By("cleaning up the Exam CR")
+			cmd = exec.Command("kubectl", "delete", "exam", examName,
+				"-n", examCRNamespace, "--ignore-not-found", "--timeout=60s")
+			_, _ = utils.Run(cmd)
+
+			By("cleaning up the SMTP secret")
+			cmd = exec.Command("kubectl", "delete", "secret", "exam-smtp-lifecycle",
 				"-n", examCRNamespace, "--ignore-not-found")
 			_, _ = utils.Run(cmd)
 		})
