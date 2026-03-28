@@ -82,6 +82,12 @@ func (v *VanillaPolicyProvider) EgressAllowlist(namespace string, labels map[str
 
 func (v *VanillaPolicyProvider) IngressAllow(namespace string, labels map[string]string) client.Object {
 	slug := slugFromLabels(labels)
+	port := labels["exam.otu.ca/port"]
+	if port == "" {
+		port = "8080"
+	}
+	portVal := intstr.FromString(port)
+	tcp := corev1.ProtocolTCP
 	return &networkingv1.NetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      slug + "-ingress-allow",
@@ -104,6 +110,9 @@ func (v *VanillaPolicyProvider) IngressAllow(namespace string, labels map[string
 								MatchLabels: map[string]string{"app.kubernetes.io/name": "ingress-nginx"},
 							},
 						},
+					},
+					Ports: []networkingv1.NetworkPolicyPort{
+						{Port: &portVal, Protocol: &tcp},
 					},
 				},
 			},

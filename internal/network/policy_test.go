@@ -50,7 +50,7 @@ func TestVanillaEgressAllowlist(t *testing.T) {
 
 func TestVanillaIngressAllow(t *testing.T) {
 	p := &VanillaPolicyProvider{}
-	obj := p.IngressAllow("exam-ns", map[string]string{"exam.otu.ca/slug": "abc123"})
+	obj := p.IngressAllow("exam-ns", map[string]string{"exam.otu.ca/slug": "abc123", "exam.otu.ca/port": "9090"})
 	np := obj.(*networkingv1.NetworkPolicy)
 	if np.Name != "abc123-ingress-allow" {
 		t.Errorf("name = %q, want %q", np.Name, "abc123-ingress-allow")
@@ -58,12 +58,19 @@ func TestVanillaIngressAllow(t *testing.T) {
 	if len(np.Spec.Ingress) != 1 {
 		t.Fatalf("ingress rules = %d, want 1", len(np.Spec.Ingress))
 	}
-	from := np.Spec.Ingress[0].From
+	rule := np.Spec.Ingress[0]
+	from := rule.From
 	if len(from) != 1 {
 		t.Fatalf("from = %d, want 1", len(from))
 	}
 	if from[0].NamespaceSelector == nil || from[0].PodSelector == nil {
 		t.Error("expected both namespaceSelector and podSelector")
+	}
+	if len(rule.Ports) != 1 {
+		t.Fatalf("ports = %d, want 1", len(rule.Ports))
+	}
+	if rule.Ports[0].Port.String() != "9090" {
+		t.Errorf("port = %q, want 9090", rule.Ports[0].Port.String())
 	}
 }
 

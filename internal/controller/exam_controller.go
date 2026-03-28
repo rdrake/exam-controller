@@ -370,7 +370,6 @@ func (r *ExamReconciler) reconcileReady(ctx context.Context, exam *examv1alpha1.
 
 func (r *ExamReconciler) reconcileUnlock(ctx context.Context, exam *examv1alpha1.Exam, now time.Time) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
-	ns := examNamespace(exam.Name)
 
 	r.enforcePolicies(ctx, exam, true)
 
@@ -405,7 +404,6 @@ func (r *ExamReconciler) reconcileUnlock(ctx context.Context, exam *examv1alpha1
 
 	exam.Status.Message = fmt.Sprintf("Exam in progress — %d students, %d spares", len(exam.Spec.Students), exam.Spec.Spares)
 
-	_ = ns
 	lockTime := exam.Status.ComputedLockTime.Time
 	return ctrl.Result{RequeueAfter: time.Until(lockTime)}, nil
 }
@@ -415,7 +413,9 @@ func (r *ExamReconciler) reconcileLocked(ctx context.Context, exam *examv1alpha1
 	ns := examNamespace(exam.Name)
 
 	r.enforcePolicies(ctx, exam, false)
-	r.deleteIngresses(ctx, ns, exam.Name)
+	if err := r.deleteIngresses(ctx, ns, exam.Name); err != nil {
+		return ctrl.Result{}, err
+	}
 
 	for i := range exam.Status.Students {
 		if exam.Status.Students[i].Phase != examv1alpha1.StudentPhaseFailed {
@@ -676,14 +676,17 @@ func (r *ExamReconciler) collectSlugs(exam *examv1alpha1.Exam) []slugEntry {
 	return entries
 }
 
-func (r *ExamReconciler) deleteIngresses(ctx context.Context, ns, examName string) {
+func (r *ExamReconciler) deleteIngresses(ctx context.Context, ns, examName string) error {
 	var ingresses networkingv1.IngressList
 	if err := r.List(ctx, &ingresses, client.InNamespace(ns), client.MatchingLabels{"exam.otu.ca/exam": examName}); err != nil {
-		return
+		return err
 	}
 	for i := range ingresses.Items {
-		_ = r.Delete(ctx, &ingresses.Items[i])
+		if err := r.Delete(ctx, &ingresses.Items[i]); err != nil && !errors.IsNotFound(err) {
+			return err
+		}
 	}
+	return nil
 }
 
 func (r *ExamReconciler) updateMetricsSummary(exam *examv1alpha1.Exam) {
