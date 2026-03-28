@@ -25,6 +25,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -35,6 +36,9 @@ import (
 
 // namespace where the project is deployed in
 const namespace = "exam-controller-system"
+
+// examCRNamespace is where Exam CRs are created (controller watches this namespace)
+const examCRNamespace = "exam-system"
 
 // serviceAccountName created for the project
 const serviceAccountName = "exam-controller-controller-manager"
@@ -68,6 +72,10 @@ var _ = Describe("Manager", Ordered, func() {
 		_, err = utils.Run(cmd)
 		Expect(err).NotTo(HaveOccurred(), "Failed to install CRDs")
 
+		By("creating the exam CR namespace")
+		cmd = exec.Command("kubectl", "create", "ns", examCRNamespace)
+		_, _ = utils.Run(cmd) // ignore if already exists
+
 		By("deploying the controller-manager")
 		cmd = exec.Command("make", "deploy", fmt.Sprintf("IMG=%s", managerImage))
 		_, err = utils.Run(cmd)
@@ -87,6 +95,10 @@ var _ = Describe("Manager", Ordered, func() {
 
 		By("uninstalling CRDs")
 		cmd = exec.Command("make", "uninstall")
+		_, _ = utils.Run(cmd)
+
+		By("removing exam CR namespace")
+		cmd = exec.Command("kubectl", "delete", "ns", examCRNamespace, "--ignore-not-found")
 		_, _ = utils.Run(cmd)
 
 		By("removing manager namespace")
@@ -270,15 +282,492 @@ var _ = Describe("Manager", Ordered, func() {
 
 		// +kubebuilder:scaffold:e2e-webhooks-checks
 
-		// TODO: Customize the e2e test suite with scenarios specific to your project.
-		// Consider applying sample/CR(s) and check their status and/or verifying
-		// the reconciliation by using the metrics, i.e.:
-		// metricsOutput, err := getMetricsOutput()
-		// Expect(err).NotTo(HaveOccurred(), "Failed to retrieve logs from curl pod")
-		// Expect(metricsOutput).To(ContainSubstring(
-		//    fmt.Sprintf(`controller_runtime_reconcile_total{controller="%s",result="success"} 1`,
-		//    strings.ToLower(<Kind>),
-		// ))
+		// --- Task 11: Provisioning through Ready ---
+		It("should provision an exam through Ready phase", func() {
+			const examName = "e2e-provision"
+			examNS := "exam-" + examName
+
+			unlock := time.Now().UTC().Add(5 * time.Minute).Format(time.RFC3339)
+
+			By("creating the SMTP secret")
+			cmd := exec.Command("kubectl", "create", "secret", "generic",
+				"exam-smtp-credentials",
+				"--namespace", examCRNamespace,
+				"--from-literal=host=smtp.example.com",
+				"--from-literal=port=587",
+				"--from-literal=username=user",
+				"--from-literal=password=pass",
+			)
+			_, _ = utils.Run(cmd) // ignore if already exists
+
+			By("creating the Exam CR")
+			examYAML := fmt.Sprintf(`apiVersion: exam.otu.ca/v1alpha1
+kind: Exam
+metadata:
+  name: %s
+  namespace: %s
+spec:
+  template:
+    image: nginx:latest
+    port: 80
+  schedule:
+    unlock: "%s"
+    duration: "1h"
+    timeMultiplier: 1.5
+    provisionBefore: "10m"
+  students:
+    - id: test-student
+      email: test@example.com
+  spares: 0
+  email:
+    before: "3m"
+    rateLimit: 10
+    instructorEmail: "instructor@example.com"
+    secretRef: exam-smtp-credentials
+    from: "noreply@example.com"
+    subject: "E2E Test Exam"
+  ingressTLS:
+    secretName: test-tls
+  domain: exam.test.local`, examName, examCRNamespace, unlock)
+
+			tmpFile := filepath.Join(os.TempDir(), "exam-provision.yaml")
+			Expect(os.WriteFile(tmpFile, []byte(examYAML), 0644)).To(Succeed())
+			defer os.Remove(tmpFile)
+
+			cmd = exec.Command("kubectl", "apply", "-f", tmpFile)
+			_, err := utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred(), "Failed to create Exam CR")
+
+			By("waiting for Provisioning phase")
+			Eventually(func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "exam", examName,
+					"-n", examCRNamespace,
+					"-o", "jsonpath={.status.phase}")
+				output, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(Equal("Provisioning"))
+			}, 3*time.Minute, time.Second).Should(Succeed())
+
+			By("waiting for exam namespace to be created")
+			Eventually(func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "ns", examNS)
+				_, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+			}, 3*time.Minute, time.Second).Should(Succeed())
+
+			By("waiting for Deployment in exam namespace")
+			Eventually(func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "deployments", "-n", examNS,
+					"-o", "jsonpath={.items[*].metadata.name}")
+				output, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).NotTo(BeEmpty(), "expected at least one Deployment")
+			}, 3*time.Minute, time.Second).Should(Succeed())
+
+			By("waiting for Ready phase")
+			Eventually(func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "exam", examName,
+					"-n", examCRNamespace,
+					"-o", "jsonpath={.status.phase}")
+				output, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(Equal("Ready"))
+			}, 5*time.Minute, time.Second).Should(Succeed())
+
+			By("cleaning up the Exam CR")
+			cmd = exec.Command("kubectl", "delete", "exam", examName,
+				"-n", examCRNamespace, "--ignore-not-found", "--timeout=60s")
+			_, _ = utils.Run(cmd)
+
+			By("waiting for exam namespace to be cleaned up")
+			Eventually(func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "ns", examNS)
+				output, err := utils.Run(cmd)
+				if err != nil {
+					return // namespace gone — success
+				}
+				g.Expect(output).To(ContainSubstring("Terminating"),
+					"namespace should be terminating or deleted")
+			}, 3*time.Minute, time.Second).Should(Succeed())
+		})
+
+		// --- Task 12: Email and Dry Run ---
+		It("should handle email sending and dry run", func() {
+			const examName = "e2e-email"
+			examNS := "exam-" + examName
+
+			unlock := time.Now().UTC().Add(2 * time.Minute).Format(time.RFC3339)
+
+			By("creating the SMTP secret")
+			cmd := exec.Command("kubectl", "create", "secret", "generic",
+				"exam-smtp-email",
+				"--namespace", examCRNamespace,
+				"--from-literal=host=smtp.invalid.example.com",
+				"--from-literal=port=587",
+				"--from-literal=username=dummy",
+				"--from-literal=password=dummy",
+			)
+			_, _ = utils.Run(cmd)
+
+			By("creating the Exam CR with email and dry run settings")
+			examYAML := fmt.Sprintf(`apiVersion: exam.otu.ca/v1alpha1
+kind: Exam
+metadata:
+  name: %s
+  namespace: %s
+spec:
+  template:
+    image: nginx:latest
+    port: 80
+  schedule:
+    unlock: "%s"
+    duration: "1h"
+    timeMultiplier: 1.5
+    provisionBefore: "5m"
+    dryRun:
+      before: "1m"
+      duration: "30s"
+  students:
+    - id: test-student
+      email: test@example.com
+  spares: 0
+  email:
+    before: "3m"
+    rateLimit: 10
+    instructorEmail: "instructor@example.com"
+    secretRef: exam-smtp-email
+    from: "noreply@example.com"
+    subject: "E2E Email Test"
+  ingressTLS:
+    secretName: test-tls
+  domain: exam.test.local`, examName, examCRNamespace, unlock)
+
+			tmpFile := filepath.Join(os.TempDir(), "exam-email.yaml")
+			Expect(os.WriteFile(tmpFile, []byte(examYAML), 0644)).To(Succeed())
+			defer os.Remove(tmpFile)
+
+			cmd = exec.Command("kubectl", "apply", "-f", tmpFile)
+			_, err := utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred(), "Failed to create Exam CR")
+
+			By("waiting for Ready phase")
+			Eventually(func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "exam", examName,
+					"-n", examCRNamespace,
+					"-o", "jsonpath={.status.phase}")
+				output, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(Equal("Ready"))
+			}, 5*time.Minute, time.Second).Should(Succeed())
+
+			By("waiting for AllEmailsSent condition")
+			Eventually(func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "exam", examName,
+					"-n", examCRNamespace,
+					"-o", `jsonpath={.status.conditions[?(@.type=="AllEmailsSent")].status}`)
+				output, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(Equal("True"))
+			}, 5*time.Minute, time.Second).Should(Succeed())
+
+			By("verifying student emailStatus is Failed (dummy SMTP)")
+			cmd = exec.Command("kubectl", "get", "exam", examName,
+				"-n", examCRNamespace,
+				"-o", "jsonpath={.status.students[0].emailStatus}")
+			output, err := utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(output).To(Equal("Failed"))
+
+			By("waiting for DryRunComplete condition")
+			Eventually(func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "exam", examName,
+					"-n", examCRNamespace,
+					"-o", `jsonpath={.status.conditions[?(@.type=="DryRunComplete")].status}`)
+				output, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(Equal("True"))
+			}, 5*time.Minute, time.Second).Should(Succeed())
+
+			By("verifying dryRun completedAt is set")
+			cmd = exec.Command("kubectl", "get", "exam", examName,
+				"-n", examCRNamespace,
+				"-o", "jsonpath={.status.dryRun.completedAt}")
+			output, err = utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(output).NotTo(BeEmpty(), "dryRun.completedAt should be set")
+
+			By("cleaning up the Exam CR")
+			cmd = exec.Command("kubectl", "delete", "exam", examName,
+				"-n", examCRNamespace, "--ignore-not-found", "--timeout=60s")
+			_, _ = utils.Run(cmd)
+
+			By("waiting for exam namespace cleanup")
+			Eventually(func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "ns", examNS)
+				_, err := utils.Run(cmd)
+				if err != nil {
+					return
+				}
+				g.Expect("namespace still exists").To(BeEmpty())
+			}, 3*time.Minute, time.Second).Should(Succeed())
+
+			By("cleaning up the SMTP secret")
+			cmd = exec.Command("kubectl", "delete", "secret", "exam-smtp-email",
+				"-n", examCRNamespace, "--ignore-not-found")
+			_, _ = utils.Run(cmd)
+		})
+
+		// --- Task 13: Unlock and Lock transitions ---
+		It("should transition through Unlocked and Locked phases", func() {
+			const examName = "e2e-phases"
+			examNS := "exam-" + examName
+
+			unlock := time.Now().UTC().Add(30 * time.Second).Format(time.RFC3339)
+
+			By("creating the SMTP secret")
+			cmd := exec.Command("kubectl", "create", "secret", "generic",
+				"exam-smtp-phases",
+				"--namespace", examCRNamespace,
+				"--from-literal=host=smtp.invalid.example.com",
+				"--from-literal=port=587",
+				"--from-literal=username=dummy",
+				"--from-literal=password=dummy",
+			)
+			_, _ = utils.Run(cmd)
+
+			By("creating the Exam CR with short timings")
+			examYAML := fmt.Sprintf(`apiVersion: exam.otu.ca/v1alpha1
+kind: Exam
+metadata:
+  name: %s
+  namespace: %s
+spec:
+  template:
+    image: nginx:latest
+    port: 80
+  schedule:
+    unlock: "%s"
+    duration: "30s"
+    timeMultiplier: 1.0
+    provisionBefore: "2m"
+  students:
+    - id: test-student
+      email: test@example.com
+  spares: 0
+  email:
+    before: "1m30s"
+    rateLimit: 10
+    instructorEmail: "instructor@example.com"
+    secretRef: exam-smtp-phases
+    from: "noreply@example.com"
+    subject: "E2E Phase Test"
+  ingressTLS:
+    secretName: test-tls
+  domain: exam.test.local`, examName, examCRNamespace, unlock)
+
+			tmpFile := filepath.Join(os.TempDir(), "exam-phases.yaml")
+			Expect(os.WriteFile(tmpFile, []byte(examYAML), 0644)).To(Succeed())
+			defer os.Remove(tmpFile)
+
+			cmd = exec.Command("kubectl", "apply", "-f", tmpFile)
+			_, err := utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred(), "Failed to create Exam CR")
+
+			By("waiting for Ready phase")
+			Eventually(func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "exam", examName,
+					"-n", examCRNamespace,
+					"-o", "jsonpath={.status.phase}")
+				output, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(Equal("Ready"))
+			}, 3*time.Minute, time.Second).Should(Succeed())
+
+			By("waiting for Unlocked phase")
+			Eventually(func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "exam", examName,
+					"-n", examCRNamespace,
+					"-o", "jsonpath={.status.phase}")
+				output, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(Equal("Unlocked"))
+			}, 2*time.Minute, time.Second).Should(Succeed())
+
+			By("verifying Ingress resources exist")
+			cmd = exec.Command("kubectl", "get", "ingress", "-n", examNS,
+				"-o", "jsonpath={.items[*].metadata.name}")
+			output, err := utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(output).NotTo(BeEmpty(), "expected Ingress resources while Unlocked")
+
+			By("waiting for Locked phase")
+			Eventually(func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "exam", examName,
+					"-n", examCRNamespace,
+					"-o", "jsonpath={.status.phase}")
+				output, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(Equal("Locked"))
+			}, 2*time.Minute, time.Second).Should(Succeed())
+
+			By("verifying Ingress resources are deleted")
+			cmd = exec.Command("kubectl", "get", "ingress", "-n", examNS,
+				"-o", "jsonpath={.items[*].metadata.name}")
+			output, err = utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(strings.TrimSpace(output)).To(BeEmpty(), "expected no Ingress resources after Locked")
+
+			By("cleaning up the Exam CR")
+			cmd = exec.Command("kubectl", "delete", "exam", examName,
+				"-n", examCRNamespace, "--ignore-not-found", "--timeout=60s")
+			_, _ = utils.Run(cmd)
+
+			By("waiting for exam namespace cleanup")
+			Eventually(func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "ns", examNS)
+				_, err := utils.Run(cmd)
+				if err != nil {
+					return
+				}
+				g.Expect("namespace still exists").To(BeEmpty())
+			}, 3*time.Minute, time.Second).Should(Succeed())
+
+			By("cleaning up the SMTP secret")
+			cmd = exec.Command("kubectl", "delete", "secret", "exam-smtp-phases",
+				"-n", examCRNamespace, "--ignore-not-found")
+			_, _ = utils.Run(cmd)
+		})
+
+		// --- Task 14: Webhook validation ---
+		It("should reject invalid Exam CRs via webhook", func() {
+			By("checking if ValidatingWebhookConfiguration exists")
+			cmd := exec.Command("kubectl", "get", "validatingwebhookconfiguration",
+				"-l", "app.kubernetes.io/name=exam-controller")
+			_, err := utils.Run(cmd)
+			if err != nil {
+				Skip("Webhook is not deployed; skipping webhook validation tests")
+			}
+
+			unlock := time.Now().UTC().Add(10 * time.Minute).Format(time.RFC3339)
+
+			By("rejecting an Exam with 0 students")
+			zeroStudentsYAML := fmt.Sprintf(`apiVersion: exam.otu.ca/v1alpha1
+kind: Exam
+metadata:
+  name: e2e-webhook-no-students
+  namespace: %s
+spec:
+  template:
+    image: nginx:latest
+    port: 80
+  schedule:
+    unlock: "%s"
+    duration: "1h"
+    timeMultiplier: 1.5
+    provisionBefore: "2h"
+  students: []
+  spares: 0
+  email:
+    before: "30m"
+    rateLimit: 1
+    instructorEmail: "instructor@example.com"
+    secretRef: exam-smtp-credentials
+    from: "noreply@example.com"
+    subject: "Webhook Test"
+  ingressTLS:
+    secretName: test-tls
+  domain: exam.test.local`, examCRNamespace, unlock)
+
+			tmpFile := filepath.Join(os.TempDir(), "exam-webhook-no-students.yaml")
+			Expect(os.WriteFile(tmpFile, []byte(zeroStudentsYAML), 0644)).To(Succeed())
+			defer os.Remove(tmpFile)
+
+			cmd = exec.Command("kubectl", "apply", "-f", tmpFile)
+			output, err := utils.Run(cmd)
+			Expect(err).To(HaveOccurred(), "expected kubectl apply to fail for 0 students")
+			Expect(output).To(ContainSubstring("at least one entry"),
+				"expected error about requiring at least one student")
+
+			By("rejecting an Exam with duration 0")
+			zeroDurationYAML := fmt.Sprintf(`apiVersion: exam.otu.ca/v1alpha1
+kind: Exam
+metadata:
+  name: e2e-webhook-zero-duration
+  namespace: %s
+spec:
+  template:
+    image: nginx:latest
+    port: 80
+  schedule:
+    unlock: "%s"
+    duration: "0s"
+    timeMultiplier: 1.5
+    provisionBefore: "2h"
+  students:
+    - id: test-student
+      email: test@example.com
+  spares: 0
+  email:
+    before: "30m"
+    rateLimit: 10
+    instructorEmail: "instructor@example.com"
+    secretRef: exam-smtp-credentials
+    from: "noreply@example.com"
+    subject: "Webhook Test"
+  ingressTLS:
+    secretName: test-tls
+  domain: exam.test.local`, examCRNamespace, unlock)
+
+			tmpFile2 := filepath.Join(os.TempDir(), "exam-webhook-zero-duration.yaml")
+			Expect(os.WriteFile(tmpFile2, []byte(zeroDurationYAML), 0644)).To(Succeed())
+			defer os.Remove(tmpFile2)
+
+			cmd = exec.Command("kubectl", "apply", "-f", tmpFile2)
+			output, err = utils.Run(cmd)
+			Expect(err).To(HaveOccurred(), "expected kubectl apply to fail for duration 0")
+			Expect(output).To(ContainSubstring("duration must be > 0"),
+				"expected error about positive duration")
+
+			By("rejecting an Exam with timeMultiplier < 1.0")
+			lowMultiplierYAML := fmt.Sprintf(`apiVersion: exam.otu.ca/v1alpha1
+kind: Exam
+metadata:
+  name: e2e-webhook-low-multiplier
+  namespace: %s
+spec:
+  template:
+    image: nginx:latest
+    port: 80
+  schedule:
+    unlock: "%s"
+    duration: "1h"
+    timeMultiplier: 0.5
+    provisionBefore: "2h"
+  students:
+    - id: test-student
+      email: test@example.com
+  spares: 0
+  email:
+    before: "30m"
+    rateLimit: 10
+    instructorEmail: "instructor@example.com"
+    secretRef: exam-smtp-credentials
+    from: "noreply@example.com"
+    subject: "Webhook Test"
+  ingressTLS:
+    secretName: test-tls
+  domain: exam.test.local`, examCRNamespace, unlock)
+
+			tmpFile3 := filepath.Join(os.TempDir(), "exam-webhook-low-multiplier.yaml")
+			Expect(os.WriteFile(tmpFile3, []byte(lowMultiplierYAML), 0644)).To(Succeed())
+			defer os.Remove(tmpFile3)
+
+			cmd = exec.Command("kubectl", "apply", "-f", tmpFile3)
+			output, err = utils.Run(cmd)
+			Expect(err).To(HaveOccurred(), "expected kubectl apply to fail for timeMultiplier < 1.0")
+			Expect(output).To(ContainSubstring("timeMultiplier must be >= 1.0"),
+				"expected error about timeMultiplier minimum")
+		})
 	})
 })
 
