@@ -1,3 +1,5 @@
+//go:build integration
+
 /*
 Copyright 2026.
 
@@ -78,8 +80,8 @@ func createExamCR(ctx context.Context, name string, unlock time.Time, students [
 				ProvisionBefore: metav1.Duration{Duration: 1 * time.Hour},
 				Retention:       metav1.Duration{Duration: 24 * time.Hour},
 			},
-			Students:   students,
-			Spares:     spares,
+			Students: students,
+			Spares:   spares,
 			Email: examv1alpha1.ExamEmail{
 				Before:          metav1.Duration{Duration: 30 * time.Minute},
 				RateLimit:       10,
@@ -288,10 +290,10 @@ var _ = Describe("Exam Controller", func() {
 
 	Context("Full provisioning lifecycle", func() {
 		var (
-			ctx      context.Context
-			examName string
-			nn       types.NamespacedName
-			unlock   time.Time
+			ctx        context.Context
+			examName   string
+			nn         types.NamespacedName
+			unlock     time.Time
 			fakeSender *notifier.FakeSender
 			reconciler *ExamReconciler
 		)
@@ -791,13 +793,13 @@ var _ = Describe("Exam Controller", func() {
 			Expect(exam.Status.Metrics).NotTo(BeNil())
 			Expect(exam.Status.Metrics.TotalStudents).To(Equal(3))
 			Expect(exam.Status.Metrics.TotalSpares).To(Equal(2))
-			Expect(exam.Status.Metrics.InstancesHealthy).To(Equal(3))  // alice + charlie + spare1
-			Expect(exam.Status.Metrics.InstancesFailed).To(Equal(2))   // bob + spare2
-			Expect(exam.Status.Metrics.EmailsSent).To(Equal(1))        // alice
-			Expect(exam.Status.Metrics.EmailsFailed).To(Equal(1))      // bob
+			Expect(exam.Status.Metrics.InstancesHealthy).To(Equal(3)) // alice + charlie + spare1
+			Expect(exam.Status.Metrics.InstancesFailed).To(Equal(2))  // bob + spare2
+			Expect(exam.Status.Metrics.EmailsSent).To(Equal(1))       // alice
+			Expect(exam.Status.Metrics.EmailsFailed).To(Equal(1))     // bob
 
 			By("Verifying Prometheus gauge values")
-			Expect(gaugeValue(m.InstancesTotal, "metrics-exam")).To(Equal(5.0))    // 3 students + 2 spares
+			Expect(gaugeValue(m.InstancesTotal, "metrics-exam")).To(Equal(5.0)) // 3 students + 2 spares
 			Expect(gaugeValue(m.InstancesHealthy, "metrics-exam")).To(Equal(3.0))
 			Expect(gaugeValue(m.InstancesFailed, "metrics-exam")).To(Equal(2.0))
 		})
