@@ -40,7 +40,7 @@ import (
 	examv1alpha1 "github.com/rdrake/exam-controller/api/v1alpha1"
 	"github.com/rdrake/exam-controller/internal/controller"
 	"github.com/rdrake/exam-controller/internal/metrics"
-	"github.com/rdrake/exam-controller/internal/network"
+	"github.com/rdrake/exam-controller/internal/provider"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -182,7 +182,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	policyProvider := selectPolicyProvider(mgr)
+	disc, err := discovery.NewDiscoveryClientForConfig(mgr.GetConfig())
+	if err != nil {
+		setupLog.Info("Cannot create discovery client, using vanilla NetworkPolicy")
+	}
+	policyProvider := provider.SelectPolicyProvider(disc)
 	examMetrics := metrics.NewExamMetrics(crmmetrics.Registry)
 
 	if err := (&controller.ExamReconciler{
@@ -214,23 +218,4 @@ func main() {
 		setupLog.Error(err, "Failed to run manager")
 		os.Exit(1)
 	}
-}
-
-func selectPolicyProvider(mgr ctrl.Manager) network.PolicyProvider {
-	disc, err := discovery.NewDiscoveryClientForConfig(mgr.GetConfig())
-	if err != nil {
-		setupLog.Info("Cannot create discovery client, using vanilla NetworkPolicy")
-		return &network.VanillaPolicyProvider{}
-	}
-	resources, err := disc.ServerResourcesForGroupVersion("cilium.io/v2")
-	if err == nil {
-		for _, r := range resources.APIResources {
-			if r.Kind == "CiliumNetworkPolicy" {
-				setupLog.Info("CiliumNetworkPolicy CRD detected, using Cilium policy provider")
-				return &network.CiliumPolicyProvider{}
-			}
-		}
-	}
-	setupLog.Info("CiliumNetworkPolicy CRD not found, using vanilla NetworkPolicy")
-	return &network.VanillaPolicyProvider{}
 }
