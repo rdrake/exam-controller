@@ -1,0 +1,6 @@
+apiVersion: v2
+name: exam-controller
+description: A Kubernetes operator for managing pen-testing exam instances
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
