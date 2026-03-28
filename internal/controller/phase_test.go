@@ -149,3 +149,120 @@ func TestDetermineDesiredPhase_LockedWaiting(t *testing.T) {
 		t.Errorf("phase = %q, want Locked", phase)
 	}
 }
+
+// --- computeSchedule tests ---
+
+func TestComputeSchedule_DefaultValues(t *testing.T) {
+	unlock := time.Date(2026, 4, 10, 14, 0, 0, 0, time.UTC)
+	exam := &examv1alpha1.Exam{
+		Spec: examv1alpha1.ExamSpec{
+			Schedule: examv1alpha1.ExamSchedule{
+				Unlock:   metav1.NewTime(unlock),
+				Duration: metav1.Duration{Duration: 2 * time.Hour},
+				// ProvisionBefore, Retention, and TimeMultiplier all zero → defaults
+			},
+			Email: examv1alpha1.ExamEmail{
+				// Before zero → default 30m
+			},
+		},
+	}
+
+	provisionTime, emailTime, lockTime, retentionDeadline := computeSchedule(exam)
+
+	// Default provisionBefore = 1h
+	wantProvision := unlock.Add(-1 * time.Hour)
+	if !provisionTime.Equal(wantProvision) {
+		t.Errorf("provisionTime = %v, want %v", provisionTime, wantProvision)
+	}
+
+	// Default emailBefore = 30m
+	wantEmail := unlock.Add(-30 * time.Minute)
+	if !emailTime.Equal(wantEmail) {
+		t.Errorf("emailTime = %v, want %v", emailTime, wantEmail)
+	}
+
+	// Default multiplier = 1.5, lockTime = unlock + 2h*1.5 = unlock + 3h
+	wantLock := unlock.Add(3 * time.Hour)
+	if !lockTime.Equal(wantLock) {
+		t.Errorf("lockTime = %v, want %v", lockTime, wantLock)
+	}
+
+	// Default retention = 24h
+	wantRetention := wantLock.Add(24 * time.Hour)
+	if !retentionDeadline.Equal(wantRetention) {
+		t.Errorf("retentionDeadline = %v, want %v", retentionDeadline, wantRetention)
+	}
+}
+
+func TestComputeSchedule_CustomValues(t *testing.T) {
+	unlock := time.Date(2026, 4, 10, 14, 0, 0, 0, time.UTC)
+	exam := &examv1alpha1.Exam{
+		Spec: examv1alpha1.ExamSpec{
+			Schedule: examv1alpha1.ExamSchedule{
+				Unlock:          metav1.NewTime(unlock),
+				Duration:        metav1.Duration{Duration: 3 * time.Hour},
+				TimeMultiplier:  2.0,
+				ProvisionBefore: metav1.Duration{Duration: 2 * time.Hour},
+				Retention:       metav1.Duration{Duration: 48 * time.Hour},
+			},
+			Email: examv1alpha1.ExamEmail{
+				Before: metav1.Duration{Duration: 45 * time.Minute},
+			},
+		},
+	}
+
+	provisionTime, emailTime, lockTime, retentionDeadline := computeSchedule(exam)
+
+	// Custom provisionBefore = 2h
+	wantProvision := unlock.Add(-2 * time.Hour)
+	if !provisionTime.Equal(wantProvision) {
+		t.Errorf("provisionTime = %v, want %v", provisionTime, wantProvision)
+	}
+
+	// Custom emailBefore = 45m
+	wantEmail := unlock.Add(-45 * time.Minute)
+	if !emailTime.Equal(wantEmail) {
+		t.Errorf("emailTime = %v, want %v", emailTime, wantEmail)
+	}
+
+	// Custom multiplier = 2.0, lockTime = unlock + 3h*2.0 = unlock + 6h
+	wantLock := unlock.Add(6 * time.Hour)
+	if !lockTime.Equal(wantLock) {
+		t.Errorf("lockTime = %v, want %v", lockTime, wantLock)
+	}
+
+	// Custom retention = 48h
+	wantRetention := wantLock.Add(48 * time.Hour)
+	if !retentionDeadline.Equal(wantRetention) {
+		t.Errorf("retentionDeadline = %v, want %v", retentionDeadline, wantRetention)
+	}
+}
+
+func TestComputeSchedule_LockTimeEqualsUnlockPlusDurationTimesMultiplier(t *testing.T) {
+	unlock := time.Date(2026, 6, 15, 9, 0, 0, 0, time.UTC)
+	duration := 90 * time.Minute
+	multiplier := 1.75
+
+	exam := &examv1alpha1.Exam{
+		Spec: examv1alpha1.ExamSpec{
+			Schedule: examv1alpha1.ExamSchedule{
+				Unlock:          metav1.NewTime(unlock),
+				Duration:        metav1.Duration{Duration: duration},
+				TimeMultiplier:  multiplier,
+				ProvisionBefore: metav1.Duration{Duration: 1 * time.Hour},
+				Retention:       metav1.Duration{Duration: 24 * time.Hour},
+			},
+			Email: examv1alpha1.ExamEmail{
+				Before: metav1.Duration{Duration: 30 * time.Minute},
+			},
+		},
+	}
+
+	_, _, lockTime, _ := computeSchedule(exam)
+
+	// lockTime = unlock + duration * multiplier = 9:00 + 90m * 1.75 = 9:00 + 157.5m = 11:37:30
+	want := unlock.Add(time.Duration(float64(duration) * multiplier))
+	if !lockTime.Equal(want) {
+		t.Errorf("lockTime = %v, want %v", lockTime, want)
+	}
+}
