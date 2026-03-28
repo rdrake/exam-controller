@@ -19,6 +19,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -71,6 +72,49 @@ func (r *ExamReconciler) now() time.Time {
 		return r.Now()
 	}
 	return time.Now()
+}
+
+// resolvedSender returns a Sender configured with SMTP credentials from the
+// Exam's referenced Secret. If r.Sender is already set to a non-SMTPSender
+// (e.g., FakeSender for tests), it is returned directly.
+func (r *ExamReconciler) resolvedSender(ctx context.Context, exam *examv1alpha1.Exam) (notifier.Sender, error) {
+	if r.Sender != nil {
+		if _, ok := r.Sender.(*notifier.RetrySender); !ok {
+			// Non-RetrySender (e.g., FakeSender) — use directly for testing
+			return r.Sender, nil
+		}
+	}
+
+	var secret corev1.Secret
+	if err := r.Get(ctx, types.NamespacedName{
+		Name:      exam.Spec.Email.SecretRef,
+		Namespace: exam.Namespace,
+	}, &secret); err != nil {
+		return nil, fmt.Errorf("reading SMTP secret %q: %w", exam.Spec.Email.SecretRef, err)
+	}
+
+	port, _ := strconv.Atoi(string(secret.Data["port"]))
+	if port == 0 {
+		port = 587
+	}
+
+	sender := &notifier.SMTPSender{
+		Host:     string(secret.Data["host"]),
+		Port:     port,
+		Username: string(secret.Data["username"]),
+		Password: string(secret.Data["password"]),
+	}
+	return notifier.NewRetrySender(sender, 3), nil
+}
+
+// sendEmail resolves SMTP credentials and sends an email. Returns nil if
+// sending succeeds or if no sender is configured.
+func (r *ExamReconciler) sendEmail(ctx context.Context, exam *examv1alpha1.Exam, from string, to []string, msg []byte) error {
+	sender, err := r.resolvedSender(ctx, exam)
+	if err != nil {
+		return err
+	}
+	return sender.Send(from, to, msg)
 }
 
 func effectiveMultiplier(m float64) float64 {
@@ -313,13 +357,13 @@ func (r *ExamReconciler) reconcileProvisioning(ctx context.Context, exam *examv1
 		})
 		exam.Status.Phase = examv1alpha1.ExamPhaseReady
 
-		if exam.Spec.Spares > 0 && r.Sender != nil {
+		if exam.Spec.Spares > 0 {
 			var urls []string
 			for _, sp := range exam.Status.Spares {
 				urls = append(urls, sp.URL)
 			}
 			msg := notifier.BuildSparesMessage(exam.Spec.Email.From, exam.Spec.Email.InstructorEmail, exam.Spec.Email.Subject, urls)
-			if err := r.Sender.Send(exam.Spec.Email.From, []string{exam.Spec.Email.InstructorEmail}, []byte(msg)); err != nil {
+			if err := r.sendEmail(ctx, exam, exam.Spec.Email.From, []string{exam.Spec.Email.InstructorEmail}, []byte(msg)); err != nil {
 				logger.Error(err, "Failed to send spare URLs to instructor")
 			}
 		}
@@ -400,7 +444,7 @@ func (r *ExamReconciler) reconcileUnlock(ctx context.Context, exam *examv1alpha1
 		}
 	}
 
-	if !meta.IsStatusConditionTrue(exam.Status.Conditions, "InstructorNotifiedUnlock") && r.Sender != nil {
+	if !meta.IsStatusConditionTrue(exam.Status.Conditions, "InstructorNotifiedUnlock") {
 		var failedEmails []string
 		for _, s := range exam.Status.Students {
 			if s.EmailStatus == examv1alpha1.EmailStatusFailed {
@@ -409,7 +453,7 @@ func (r *ExamReconciler) reconcileUnlock(ctx context.Context, exam *examv1alpha1
 		}
 		msg := notifier.BuildUnlockNotification(exam.Spec.Email.From, exam.Spec.Email.InstructorEmail,
 			exam.Spec.Email.Subject, len(exam.Spec.Students), exam.Spec.Spares, failedEmails)
-		if err := r.Sender.Send(exam.Spec.Email.From, []string{exam.Spec.Email.InstructorEmail}, []byte(msg)); err != nil {
+		if err := r.sendEmail(ctx, exam, exam.Spec.Email.From, []string{exam.Spec.Email.InstructorEmail}, []byte(msg)); err != nil {
 			logger.Error(err, "Failed to send unlock notification")
 		} else {
 			meta.SetStatusCondition(&exam.Status.Conditions, metav1.Condition{
@@ -444,7 +488,7 @@ func (r *ExamReconciler) reconcileLocked(ctx context.Context, exam *examv1alpha1
 		}
 	}
 
-	if !meta.IsStatusConditionTrue(exam.Status.Conditions, "InstructorNotifiedLock") && r.Sender != nil {
+	if !meta.IsStatusConditionTrue(exam.Status.Conditions, "InstructorNotifiedLock") {
 		healthy := 0
 		failed := 0
 		for _, s := range exam.Status.Students {
@@ -456,7 +500,7 @@ func (r *ExamReconciler) reconcileLocked(ctx context.Context, exam *examv1alpha1
 		}
 		msg := notifier.BuildLockNotification(exam.Spec.Email.From, exam.Spec.Email.InstructorEmail,
 			exam.Spec.Email.Subject, len(exam.Spec.Students), healthy, failed)
-		if err := r.Sender.Send(exam.Spec.Email.From, []string{exam.Spec.Email.InstructorEmail}, []byte(msg)); err != nil {
+		if err := r.sendEmail(ctx, exam, exam.Spec.Email.From, []string{exam.Spec.Email.InstructorEmail}, []byte(msg)); err != nil {
 			logger.Error(err, "Failed to send lock notification")
 		} else {
 			meta.SetStatusCondition(&exam.Status.Conditions, metav1.Condition{
@@ -567,15 +611,12 @@ func (r *ExamReconciler) allInstancesHealthy(ctx context.Context, exam *examv1al
 }
 
 func (r *ExamReconciler) sendNextPendingEmail(ctx context.Context, exam *examv1alpha1.Exam) bool {
-	if r.Sender == nil {
-		return false
-	}
 	for i := range exam.Status.Students {
 		if exam.Status.Students[i].EmailStatus == examv1alpha1.EmailStatusPending {
 			student := exam.Spec.Students[i]
 			msg := notifier.BuildStudentMessage(exam.Spec.Email.From, student.Email, exam.Spec.Email.Subject, exam.Status.Students[i].URL)
 			now := metav1.Now()
-			if err := r.Sender.Send(exam.Spec.Email.From, []string{student.Email}, []byte(msg)); err != nil {
+			if err := r.sendEmail(ctx, exam, exam.Spec.Email.From, []string{student.Email}, []byte(msg)); err != nil {
 				exam.Status.Students[i].EmailStatus = examv1alpha1.EmailStatusFailed
 				if r.Metrics != nil {
 					r.Metrics.EmailsFailed.WithLabelValues(exam.Name).Inc()

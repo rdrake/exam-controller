@@ -41,7 +41,6 @@ import (
 	"github.com/rdrake/exam-controller/internal/controller"
 	"github.com/rdrake/exam-controller/internal/metrics"
 	"github.com/rdrake/exam-controller/internal/network"
-	"github.com/rdrake/exam-controller/internal/notifier"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -190,7 +189,6 @@ func main() {
 		Client:         mgr.GetClient(),
 		Scheme:         mgr.GetScheme(),
 		PolicyProvider: policyProvider,
-		Sender:         notifier.NewRetrySender(&notifier.SMTPSender{}, 3),
 		Metrics:        examMetrics,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "Failed to create controller", "controller", "Exam")
