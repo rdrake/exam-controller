@@ -46,8 +46,8 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
-      - name: Cache tool binaries
-        uses: actions/cache@v4
+      - name: Restore tool binaries
+        uses: actions/cache/restore@v4
         with:
           path: bin/
           key: tools-${{ runner.os }}-go${{ hashFiles('go.mod') }}-${{ hashFiles('Makefile') }}
@@ -162,6 +162,12 @@ jobs:
         with:
           go-version-file: go.mod
 
+      - name: Restore tool binaries
+        uses: actions/cache/restore@v4
+        with:
+          path: bin/
+          key: tools-${{ runner.os }}-go${{ hashFiles('go.mod') }}-${{ hashFiles('Makefile') }}
+
       - uses: actions/download-artifact@v8
         with:
           name: manager-linux-amd64
@@ -178,12 +184,6 @@ jobs:
           curl -Lo ./kind https://kind.sigs.k8s.io/dl/latest/kind-linux-amd64
           chmod +x ./kind
           sudo mv ./kind /usr/local/bin/kind
-
-      - name: Cache tool binaries
-        uses: actions/cache@v4
-        with:
-          path: bin/
-          key: tools-${{ runner.os }}-go${{ hashFiles('go.mod') }}-${{ hashFiles('Makefile') }}
 
       - name: Build manager image from pre-built binary
         run: docker build --build-arg BUILD_MODE=prebuilt -t example.com/exam-controller:v0.0.1 .
