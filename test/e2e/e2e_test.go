@@ -236,7 +236,7 @@ var _ = Describe("Manager", Ordered, func() {
 	})
 
 	SetDefaultEventuallyTimeout(2 * time.Minute)
-	SetDefaultEventuallyPollingInterval(5 * time.Second)
+	SetDefaultEventuallyPollingInterval(2 * time.Second)
 
 	Context("Manager", func() {
 		// Scenario 1: Controller health and infrastructure
