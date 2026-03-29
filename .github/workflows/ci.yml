@@ -179,10 +179,16 @@ jobs:
           chmod +x ./kind
           sudo mv ./kind /usr/local/bin/kind
 
+      - name: Cache tool binaries
+        uses: actions/cache@v4
+        with:
+          path: bin/
+          key: tools-${{ runner.os }}-go${{ hashFiles('go.mod') }}-${{ hashFiles('Makefile') }}
+
       - name: Build manager image from pre-built binary
         run: docker build --build-arg BUILD_MODE=prebuilt -t example.com/exam-controller:v0.0.1 .
 
       - name: Run e2e tests
         env:
           SKIP_IMG_BUILD: "1"
-        run: make test-e2e
+        run: make test-e2e-ci
