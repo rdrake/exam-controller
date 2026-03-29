@@ -346,6 +346,9 @@ func (r *ExamReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	if oldPhase != desiredPhase {
 		logger.Info("Phase transition", "from", oldPhase, "to", desiredPhase)
+		if r.Metrics != nil && oldPhase != "" {
+			r.Metrics.PhaseDuration.DeleteLabelValues(exam.Name, exam.Namespace, string(oldPhase))
+		}
 		exam.Status.Phase = desiredPhase
 		phaseNow := metav1.NewTime(r.now())
 		exam.Status.PhaseEntryTime = &phaseNow
@@ -496,6 +499,7 @@ func (r *ExamReconciler) reconcileProvisioning(ctx context.Context, exam *examv1
 		phaseNow := metav1.NewTime(r.now())
 		exam.Status.PhaseEntryTime = &phaseNow
 		if r.Metrics != nil {
+			r.Metrics.PhaseDuration.DeleteLabelValues(exam.Name, exam.Namespace, string(examv1alpha1.ExamPhaseProvisioning))
 			r.Metrics.PhaseTransitions.WithLabelValues(
 				phaseTransitionMetricLabelValues(exam, examv1alpha1.ExamPhaseProvisioning, examv1alpha1.ExamPhaseReady)...,
 			).Inc()
@@ -666,6 +670,8 @@ func (r *ExamReconciler) reconcileTeardown(ctx context.Context, exam *examv1alph
 		r.Metrics.CleanupExam(exam.Name, exam.Namespace)
 	}
 	exam.Status.Phase = examv1alpha1.ExamPhaseTearingDown
+	phaseNow := metav1.NewTime(r.now())
+	exam.Status.PhaseEntryTime = &phaseNow
 	exam.Status.Message = "Namespace deleted"
 	return nil
 }
