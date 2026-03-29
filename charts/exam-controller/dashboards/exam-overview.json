@@ -38,7 +38,44 @@
             ]
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Ready" },
+            "properties": [
+              { "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Unlocked" },
+            "properties": [
+              { "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Provisioning" },
+            "properties": [
+              { "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Pending" },
+            "properties": [
+              { "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Locked" },
+            "properties": [
+              { "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "TearingDown" },
+            "properties": [
+              { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }
+            ]
+          }
+        ]
       },
       "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
       "id": 1,
@@ -545,13 +582,13 @@
           "targets": [
             {
               "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-              "expr": "histogram_quantile(0.5, rate(exam_reconcile_duration_seconds_bucket[$__rate_interval]))",
+              "expr": "histogram_quantile(0.5, sum(rate(exam_reconcile_duration_seconds_bucket[$__rate_interval])) by (le))",
               "legendFormat": "p50",
               "refId": "A"
             },
             {
               "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-              "expr": "histogram_quantile(0.99, rate(exam_reconcile_duration_seconds_bucket[$__rate_interval]))",
+              "expr": "histogram_quantile(0.99, sum(rate(exam_reconcile_duration_seconds_bucket[$__rate_interval])) by (le))",
               "legendFormat": "p99",
               "refId": "B"
             }
