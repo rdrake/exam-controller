@@ -81,7 +81,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           pattern: manager-linux-*
           path: bin/
@@ -151,7 +151,7 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: manager-linux-amd64
           path: bin/
