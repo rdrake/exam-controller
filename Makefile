@@ -160,6 +160,10 @@ lint-fix: golangci-lint ## Run golangci-lint linter and perform fixes
 lint-config: golangci-lint ## Verify golangci-lint linter configuration
 	"$(GOLANGCI_LINT)" config verify
 
+.PHONY: setup
+setup: install-hooks ## One-time developer setup after cloning the repo.
+	@echo "Ready to develop. Run 'make verify-fast' before pushing."
+
 .PHONY: install-hooks
 install-hooks: ## Install git pre-commit and pre-push hooks.
 	@printf '#!/usr/bin/env bash\nset -e\nmake fmt-check vet\n' > .git/hooks/pre-commit

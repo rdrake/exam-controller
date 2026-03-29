@@ -26,7 +26,7 @@ Pending --> Provisioning --> Ready --> Unlocked --> Locked --> TearingDown
 
 ### Prerequisites
 
-- Go 1.24.6+
+- Go 1.25.3+
 - Docker 17.03+
 - kubectl 1.11.3+
 - Access to a Kubernetes cluster
@@ -182,46 +182,13 @@ Metric series for a given exam are automatically cleaned up during the TearingDo
 ## Development
 
 ```sh
-# Run the fast preflight checks before pushing
-make verify-fast
-
-# Build the manager binary
-make build
-
-# Run the envtest-backed integration suite and coverage gate
-make test
-
-# Run the linter
-make lint
-
-# Run end-to-end tests (requires Kind)
-make test-e2e
-
-# Run the controller locally against your current kubeconfig
-make run
+make setup         # one-time post-clone setup (installs git hooks)
+make verify-fast   # fast preflight checks
+make test          # full integration suite + coverage gate
+make test-e2e      # end-to-end tests on Kind
 ```
 
-Additional targets:
-
-```sh
-# Generate CRD manifests and RBAC
-make manifests
-
-# Generate DeepCopy methods
-make generate
-
-# Verify generated files are committed
-make check-generated
-
-# Verify Helm linting and key chart renders
-make helm-verify
-
-# Build the container image
-make docker-build IMG=ghcr.io/rdrake/exam-controller:dev
-
-# Push the container image
-make docker-push IMG=ghcr.io/rdrake/exam-controller:dev
-```
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full workflow, all make targets, and CI details.
 
 ## License
 

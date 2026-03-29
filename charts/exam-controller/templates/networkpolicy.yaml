@@ -20,4 +20,11 @@ spec:
     ports:
     - port: {{ .Values.metrics.port }}
       protocol: TCP
+  {{- if .Values.webhook.enabled }}
+  - from:
+    - namespaceSelector: {}
+    ports:
+    - port: 9443
+      protocol: TCP
+  {{- end }}
 {{- end }}
