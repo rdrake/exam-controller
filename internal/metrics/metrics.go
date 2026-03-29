@@ -19,6 +19,9 @@ type ExamMetrics struct {
 	DryRunFailed       *prometheus.GaugeVec
 	SecondsUntilUnlock *prometheus.GaugeVec
 	SecondsUntilLock   *prometheus.GaugeVec
+	ProvisionDuration  *prometheus.HistogramVec
+	PhaseDuration      *prometheus.GaugeVec
+	SpareSwaps         *prometheus.CounterVec
 }
 
 func NewExamMetrics(reg prometheus.Registerer) *ExamMetrics {
@@ -72,6 +75,19 @@ func NewExamMetrics(reg prometheus.Registerer) *ExamMetrics {
 			Name: "exam_seconds_until_lock",
 			Help: "Countdown to lock (0 after lock).",
 		}, examLabels),
+		ProvisionDuration: prometheus.NewHistogramVec(prometheus.HistogramOpts{
+			Name:    "exam_provision_duration_seconds",
+			Help:    "Time to provision a student instance.",
+			Buckets: []float64{5, 10, 30, 60, 120, 300},
+		}, []string{"exam", "namespace", "student"}),
+		PhaseDuration: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Name: "exam_phase_duration_seconds",
+			Help: "Seconds the exam has been in its current phase.",
+		}, []string{"exam", "namespace", "phase"}),
+		SpareSwaps: prometheus.NewCounterVec(prometheus.CounterOpts{
+			Name: "exam_spare_swaps_total",
+			Help: "Spare instances swapped in to replace failures.",
+		}, examLabels),
 	}
 	reg.MustRegister(
 		m.ReconcileDuration, m.ReconcileErrors, m.PhaseTransitions,
@@ -79,6 +95,7 @@ func NewExamMetrics(reg prometheus.Registerer) *ExamMetrics {
 		m.EmailsSent, m.EmailsFailed,
 		m.DryRunPassed, m.DryRunFailed,
 		m.SecondsUntilUnlock, m.SecondsUntilLock,
+		m.ProvisionDuration, m.PhaseDuration, m.SpareSwaps,
 	)
 	return m
 }
@@ -101,4 +118,7 @@ func (m *ExamMetrics) CleanupExam(name, namespace string) {
 	m.DryRunFailed.DeleteLabelValues(name, namespace)
 	m.SecondsUntilUnlock.DeleteLabelValues(name, namespace)
 	m.SecondsUntilLock.DeleteLabelValues(name, namespace)
+	m.ProvisionDuration.DeletePartialMatch(match)
+	m.PhaseDuration.DeletePartialMatch(match)
+	m.SpareSwaps.DeleteLabelValues(name, namespace)
 }
