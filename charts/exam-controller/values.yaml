@@ -60,3 +60,10 @@ networkPolicy:
   enabled: false
   metricsNamespaceSelector:
     metrics: enabled
+
+grafana:
+  dashboard:
+    enabled: false
+    label: grafana_dashboard
+    labelValue: "1"
+    folder: ""
