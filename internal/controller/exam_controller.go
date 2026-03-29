@@ -347,6 +347,8 @@ func (r *ExamReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	if oldPhase != desiredPhase {
 		logger.Info("Phase transition", "from", oldPhase, "to", desiredPhase)
 		exam.Status.Phase = desiredPhase
+		phaseNow := metav1.NewTime(r.now())
+		exam.Status.PhaseEntryTime = &phaseNow
 		if r.Metrics != nil {
 			r.Metrics.PhaseTransitions.WithLabelValues(
 				phaseTransitionMetricLabelValues(&exam, oldPhase, desiredPhase)...,
@@ -379,6 +381,12 @@ func (r *ExamReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 			metricLabels := examMetricLabelValues(&exam)
 			r.Metrics.SecondsUntilUnlock.WithLabelValues(metricLabels...).Set(max(unlock.Sub(now).Seconds(), 0))
 			r.Metrics.SecondsUntilLock.WithLabelValues(metricLabels...).Set(max(lockTime.Sub(now).Seconds(), 0))
+
+			if exam.Status.PhaseEntryTime != nil {
+				r.Metrics.PhaseDuration.WithLabelValues(
+					exam.Name, exam.Namespace, string(exam.Status.Phase),
+				).Set(r.now().Sub(exam.Status.PhaseEntryTime.Time).Seconds())
+			}
 		}
 		r.updateMetricsSummary(&exam)
 	}
@@ -430,6 +438,11 @@ func (r *ExamReconciler) reconcileProvisioning(ctx context.Context, exam *examv1
 			continue
 		}
 		r.setStudentStatus(exam, i, s, examv1alpha1.StudentPhaseProvisioned)
+		if r.Metrics != nil && exam.Status.ProvisionTime != nil {
+			r.Metrics.ProvisionDuration.WithLabelValues(
+				exam.Name, exam.Namespace, student.ID,
+			).Observe(r.now().Sub(exam.Status.ProvisionTime.Time).Seconds())
+		}
 	}
 
 	for i := range exam.Spec.Spares {
@@ -443,7 +456,16 @@ func (r *ExamReconciler) reconcileProvisioning(ctx context.Context, exam *examv1
 			continue
 		}
 		r.setSpareStatus(exam, i, s, examv1alpha1.StudentPhaseProvisioned)
+		if r.Metrics != nil && exam.Status.ProvisionTime != nil {
+			r.Metrics.ProvisionDuration.WithLabelValues(
+				exam.Name, exam.Namespace, s,
+			).Observe(r.now().Sub(exam.Status.ProvisionTime.Time).Seconds())
+		}
 	}
+
+	// TODO: When spare-swap logic is implemented (replacing a failed student
+	// instance with a spare), increment r.Metrics.SpareSwaps here:
+	//   r.Metrics.SpareSwaps.WithLabelValues(examMetricLabelValues(exam)...).Inc()
 
 	if !allHealthy {
 		setCondition(exam, metav1.Condition{
@@ -469,6 +491,13 @@ func (r *ExamReconciler) reconcileProvisioning(ctx context.Context, exam *examv1
 			Reason: "AllHealthy",
 		})
 		exam.Status.Phase = examv1alpha1.ExamPhaseReady
+		phaseNow := metav1.NewTime(r.now())
+		exam.Status.PhaseEntryTime = &phaseNow
+		if r.Metrics != nil {
+			r.Metrics.PhaseTransitions.WithLabelValues(
+				phaseTransitionMetricLabelValues(exam, examv1alpha1.ExamPhaseProvisioning, examv1alpha1.ExamPhaseReady)...,
+			).Inc()
+		}
 
 		if exam.Spec.Spares > 0 {
 			var urls []string

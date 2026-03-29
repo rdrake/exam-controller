@@ -189,6 +189,177 @@ var _ = Describe("Metrics", func() {
 		Expect(found).To(BeTrue(), "exam_reconcile_duration_seconds metric family not found")
 	})
 
+	It("sets PhaseEntryTime on phase transition", func() {
+		students := []examv1alpha1.ExamStudent{
+			{ID: "alice", Email: "alice@test.com"},
+		}
+		createExamCR(ctx, examName, unlock, students, 0)
+		preseedSlugs(ctx, nn)
+
+		reg := prometheus.NewRegistry()
+		m := metrics.NewExamMetrics(reg)
+
+		// Clock is after provision time but before unlock -> "" -> Provisioning
+		clockTime := unlock.Add(-30 * time.Minute)
+		reconciler := newReconciler(func() time.Time { return clockTime }, fakeSender, m)
+
+		_, err := reconciler.Reconcile(ctx, reconcileRequest(nn))
+		Expect(err).NotTo(HaveOccurred())
+
+		exam := &examv1alpha1.Exam{}
+		Expect(k8sClient.Get(ctx, nn, exam)).To(Succeed())
+		Expect(exam.Status.PhaseEntryTime).NotTo(BeNil(), "PhaseEntryTime should be set after phase transition")
+		Expect(exam.Status.PhaseEntryTime.Time).To(BeTemporally("~", clockTime, time.Second))
+	})
+
+	It("updates PhaseEntryTime on subsequent phase transitions", func() {
+		students := []examv1alpha1.ExamStudent{
+			{ID: "alice", Email: "alice@test.com"},
+		}
+		createExamCR(ctx, examName, unlock, students, 0)
+		preseedSlugs(ctx, nn)
+
+		reg := prometheus.NewRegistry()
+		m := metrics.NewExamMetrics(reg)
+
+		// Drive to Ready (Provisioning -> Ready transition happens inside reconcileProvisioning)
+		reconciler := driveToPhase(ctx, nn, examv1alpha1.ExamPhaseReady, unlock, fakeSender, m)
+
+		exam := &examv1alpha1.Exam{}
+		Expect(k8sClient.Get(ctx, nn, exam)).To(Succeed())
+		Expect(exam.Status.Phase).To(Equal(examv1alpha1.ExamPhaseReady))
+		Expect(exam.Status.PhaseEntryTime).NotTo(BeNil(), "PhaseEntryTime should be set after Ready transition")
+		readyEntryTime := exam.Status.PhaseEntryTime.Time
+
+		// Now transition to Unlocked
+		reconciler.Now = func() time.Time { return unlock.Add(5 * time.Minute) }
+		_, err := reconciler.Reconcile(ctx, reconcileRequest(nn))
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(k8sClient.Get(ctx, nn, exam)).To(Succeed())
+		Expect(exam.Status.Phase).To(Equal(examv1alpha1.ExamPhaseUnlocked))
+		Expect(exam.Status.PhaseEntryTime).NotTo(BeNil())
+		Expect(exam.Status.PhaseEntryTime.Time).NotTo(Equal(readyEntryTime),
+			"PhaseEntryTime should update on each transition")
+	})
+
+	It("reports PhaseDuration gauge", func() {
+		students := []examv1alpha1.ExamStudent{
+			{ID: "alice", Email: "alice@test.com"},
+		}
+		createExamCR(ctx, examName, unlock, students, 0)
+		preseedSlugs(ctx, nn)
+
+		reg := prometheus.NewRegistry()
+		m := metrics.NewExamMetrics(reg)
+
+		// First reconcile: enter Provisioning
+		clockTime := unlock.Add(-30 * time.Minute)
+		reconciler := newReconciler(func() time.Time { return clockTime }, fakeSender, m)
+		_, err := reconciler.Reconcile(ctx, reconcileRequest(nn))
+		Expect(err).NotTo(HaveOccurred())
+
+		// Second reconcile 60 seconds later: still Provisioning, PhaseDuration should reflect elapsed time
+		clockTime2 := clockTime.Add(60 * time.Second)
+		reconciler.Now = func() time.Time { return clockTime2 }
+		_, err = reconciler.Reconcile(ctx, reconcileRequest(nn))
+		Expect(err).NotTo(HaveOccurred())
+
+		val := testutil.ToFloat64(m.PhaseDuration.WithLabelValues(examName, examCRNamespace, "Provisioning"))
+		Expect(val).To(BeNumerically(">=", 60), "PhaseDuration should reflect time in current phase")
+	})
+
+	It("observes ProvisionDuration for students", func() {
+		students := []examv1alpha1.ExamStudent{
+			{ID: "alice", Email: "alice@test.com"},
+			{ID: "bob", Email: "bob@test.com"},
+		}
+		createExamCR(ctx, examName, unlock, students, 0)
+		preseedSlugs(ctx, nn)
+
+		reg := prometheus.NewRegistry()
+		m := metrics.NewExamMetrics(reg)
+
+		// Clock is 30 minutes after provision time (which is unlock - 1h)
+		// So provision duration should be about 30 minutes (1800 seconds)
+		clockTime := unlock.Add(-30 * time.Minute)
+		reconciler := newReconciler(func() time.Time { return clockTime }, fakeSender, m)
+
+		_, err := reconciler.Reconcile(ctx, reconcileRequest(nn))
+		Expect(err).NotTo(HaveOccurred())
+
+		// Gather metrics to verify histogram observations
+		mfs, err := reg.Gather()
+		Expect(err).NotTo(HaveOccurred())
+
+		var found bool
+		for _, mf := range mfs {
+			if mf.GetName() == "exam_provision_duration_seconds" {
+				found = true
+				// Should have observations for both students
+				Expect(mf.GetMetric()).To(HaveLen(2))
+				for _, metric := range mf.GetMetric() {
+					h := metric.GetHistogram()
+					Expect(h).NotTo(BeNil())
+					Expect(h.GetSampleCount()).To(Equal(uint64(1)))
+					// Value should be approximately 1800 seconds (30 min)
+					Expect(h.GetSampleSum()).To(BeNumerically("~", 1800, 1))
+				}
+			}
+		}
+		Expect(found).To(BeTrue(), "exam_provision_duration_seconds metric family not found")
+	})
+
+	It("observes ProvisionDuration for spares", func() {
+		students := []examv1alpha1.ExamStudent{
+			{ID: "alice", Email: "alice@test.com"},
+		}
+		createExamCR(ctx, examName, unlock, students, 1)
+		preseedSlugs(ctx, nn)
+
+		reg := prometheus.NewRegistry()
+		m := metrics.NewExamMetrics(reg)
+
+		clockTime := unlock.Add(-30 * time.Minute)
+		reconciler := newReconciler(func() time.Time { return clockTime }, fakeSender, m)
+
+		_, err := reconciler.Reconcile(ctx, reconcileRequest(nn))
+		Expect(err).NotTo(HaveOccurred())
+
+		// Gather metrics: should have 2 observations (1 student + 1 spare)
+		mfs, err := reg.Gather()
+		Expect(err).NotTo(HaveOccurred())
+
+		var found bool
+		for _, mf := range mfs {
+			if mf.GetName() == "exam_provision_duration_seconds" {
+				found = true
+				// 1 student + 1 spare = 2 label sets
+				Expect(mf.GetMetric()).To(HaveLen(2))
+			}
+		}
+		Expect(found).To(BeTrue(), "exam_provision_duration_seconds metric family not found")
+	})
+
+	It("records Provisioning->Ready phase transition counter", func() {
+		students := []examv1alpha1.ExamStudent{
+			{ID: "alice", Email: "alice@test.com"},
+		}
+		createExamCR(ctx, examName, unlock, students, 0)
+		preseedSlugs(ctx, nn)
+
+		reg := prometheus.NewRegistry()
+		m := metrics.NewExamMetrics(reg)
+
+		// Drive to Ready — this should record both "" -> Provisioning and Provisioning -> Ready transitions
+		driveToPhase(ctx, nn, examv1alpha1.ExamPhaseReady, unlock, fakeSender, m)
+
+		provToReady := testutil.ToFloat64(m.PhaseTransitions.WithLabelValues(
+			examName, examCRNamespace, "Provisioning", "Ready"))
+		Expect(provToReady).To(Equal(float64(1)),
+			"Provisioning->Ready phase transition should be counted")
+	})
+
 	Describe("re-creation with same name", func() {
 		const fixedName = "metrics-recreate"
 		var (

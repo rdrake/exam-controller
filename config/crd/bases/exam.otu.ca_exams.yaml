@@ -317,6 +317,9 @@ spec:
               phase:
                 description: ExamPhase represents the current state of an Exam.
                 type: string
+              phaseEntryTime:
+                format: date-time
+                type: string
               provisionTime:
                 format: date-time
                 type: string

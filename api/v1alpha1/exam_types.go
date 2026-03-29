@@ -147,6 +147,7 @@ type MetricsSummary struct {
 // ExamStatus defines the observed state of Exam.
 type ExamStatus struct {
 	Phase             ExamPhase          `json:"phase,omitempty"`
+	PhaseEntryTime    *metav1.Time       `json:"phaseEntryTime,omitempty"`
 	Message           string             `json:"message,omitempty"`
 	Conditions        []metav1.Condition `json:"conditions,omitempty"`
 	ComputedLockTime  *metav1.Time       `json:"computedLockTime,omitempty"`
