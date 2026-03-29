@@ -1,798 +1,1151 @@
 {
-  "__inputs": [
-    {
-      "name": "DS_PROMETHEUS",
-      "label": "Prometheus",
-      "description": "",
-      "type": "datasource",
-      "pluginId": "prometheus",
-      "pluginName": "Prometheus"
-    }
-  ],
-  "annotations": {
-    "list": []
-  },
-  "description": "Overview dashboard for the exam-controller operator",
-  "editable": true,
-  "fiscalYearStartMonth": 0,
-  "graphTooltip": 1,
-  "id": null,
-  "links": [],
-  "panels": [
-    {
-      "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
-      "id": 100,
-      "title": "Status at a Glance",
-      "type": "row"
-    },
-    {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null }
-            ]
-          }
-        },
-        "overrides": [
-          {
-            "matcher": { "id": "byName", "options": "Ready" },
-            "properties": [
-              { "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }
-            ]
-          },
-          {
-            "matcher": { "id": "byName", "options": "Unlocked" },
-            "properties": [
-              { "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }
-            ]
-          },
-          {
-            "matcher": { "id": "byName", "options": "Provisioning" },
-            "properties": [
-              { "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }
-            ]
-          },
-          {
-            "matcher": { "id": "byName", "options": "Pending" },
-            "properties": [
-              { "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }
-            ]
-          },
-          {
-            "matcher": { "id": "byName", "options": "Locked" },
-            "properties": [
-              { "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }
-            ]
-          },
-          {
-            "matcher": { "id": "byName", "options": "TearingDown" },
-            "properties": [
-              { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }
-            ]
-          }
-        ]
-      },
-      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
-      "id": 1,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["last"],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "name"
-      },
-      "pluginVersion": "10.0.0",
-      "targets": [
-        {
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "exam_phase_duration_seconds{exam=\"$exam\", namespace=\"$namespace\"}",
-          "legendFormat": "{{phase}}",
-          "refId": "A"
-        }
-      ],
-      "title": "Phase",
-      "type": "stat"
-    },
-    {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null },
-              { "color": "red", "value": 1 }
-            ]
-          }
-        },
-        "overrides": [
-          {
-            "matcher": { "id": "byName", "options": "Total" },
-            "properties": [
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    { "color": "green", "value": null }
-                  ]
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
-      "id": 2,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["last"],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "value_and_name"
-      },
-      "pluginVersion": "10.0.0",
-      "targets": [
-        {
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "exam_instances_healthy{exam=\"$exam\", namespace=\"$namespace\"}",
-          "legendFormat": "Healthy",
-          "refId": "A"
-        },
-        {
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "exam_instances_total{exam=\"$exam\", namespace=\"$namespace\"}",
-          "legendFormat": "Total",
-          "refId": "B"
-        }
-      ],
-      "title": "Healthy / Total",
-      "type": "stat"
-    },
-    {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
-      "id": 3,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["last"],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "pluginVersion": "10.0.0",
-      "targets": [
-        {
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "exam_emails_sent_total{exam=\"$exam\", namespace=\"$namespace\"}",
-          "legendFormat": "",
-          "refId": "A"
-        }
-      ],
-      "title": "Emails Sent",
-      "type": "stat"
-    },
-    {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null }
-            ]
-          }
-        },
-        "overrides": [
-          {
-            "matcher": { "id": "byName", "options": "Failed" },
-            "properties": [
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    { "color": "green", "value": null },
-                    { "color": "red", "value": 1 }
-                  ]
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 },
-      "id": 4,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["last"],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "value_and_name"
-      },
-      "pluginVersion": "10.0.0",
-      "targets": [
-        {
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "exam_dryrun_passed{exam=\"$exam\", namespace=\"$namespace\"}",
-          "legendFormat": "Passed",
-          "refId": "A"
-        },
-        {
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "exam_dryrun_failed{exam=\"$exam\", namespace=\"$namespace\"}",
-          "legendFormat": "Failed",
-          "refId": "B"
-        }
-      ],
-      "title": "Dry Run",
-      "type": "stat"
-    },
-    {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null }
-            ]
-          },
-          "unit": "s"
-        },
-        "overrides": []
-      },
-      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
-      "id": 5,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["last"],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "pluginVersion": "10.0.0",
-      "targets": [
-        {
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "exam_seconds_until_unlock{exam=\"$exam\", namespace=\"$namespace\"}",
-          "legendFormat": "",
-          "refId": "A"
-        }
-      ],
-      "title": "Time Until Unlock",
-      "type": "stat"
-    },
-    {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null }
-            ]
-          },
-          "unit": "s"
-        },
-        "overrides": []
-      },
-      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 },
-      "id": 6,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["last"],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "pluginVersion": "10.0.0",
-      "targets": [
-        {
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "exam_seconds_until_lock{exam=\"$exam\", namespace=\"$namespace\"}",
-          "legendFormat": "",
-          "refId": "A"
-        }
-      ],
-      "title": "Time Until Lock",
-      "type": "stat"
-    },
-    {
-      "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
-      "id": 200,
-      "title": "Provisioning & Health",
-      "type": "row"
-    },
-    {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "palette-classic" },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 10,
-            "gradientMode": "none",
-            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": { "type": "linear" },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": { "group": "A", "mode": "normal" },
-            "thresholdsStyle": { "mode": "off" }
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null }
-            ]
-          }
-        },
-        "overrides": [
-          {
-            "matcher": { "id": "byName", "options": "Total" },
-            "properties": [
-              {
-                "id": "custom.stacking",
-                "value": { "group": "A", "mode": "none" }
-              },
-              {
-                "id": "custom.fillOpacity",
-                "value": 0
-              },
-              {
-                "id": "custom.lineWidth",
-                "value": 2
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 6 },
-      "id": 7,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": { "mode": "multi", "sort": "none" }
-      },
-      "pluginVersion": "10.0.0",
-      "targets": [
-        {
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "exam_instances_healthy{exam=\"$exam\", namespace=\"$namespace\"}",
-          "legendFormat": "Healthy",
-          "refId": "A"
-        },
-        {
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "exam_instances_failed{exam=\"$exam\", namespace=\"$namespace\"}",
-          "legendFormat": "Failed",
-          "refId": "B"
-        },
-        {
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "exam_instances_total{exam=\"$exam\", namespace=\"$namespace\"}",
-          "legendFormat": "Total",
-          "refId": "C"
-        }
-      ],
-      "title": "Instance Health Over Time",
-      "type": "timeseries"
-    },
-    {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "scheme", "schemeName": "Oranges", "steps": 128 },
-          "custom": {
-            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
-            "scaleDistribution": { "type": "linear" }
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": { "h": 10, "w": 6, "x": 12, "y": 6 },
-      "id": 8,
-      "options": {
-        "calculate": false,
-        "cellGap": 1,
-        "color": { "exponent": 0.5, "fill": "dark-orange", "mode": "scheme", "reverse": false, "scale": "exponential", "scheme": "Oranges", "steps": 128 },
-        "exemplars": { "color": "rgba(255,0,255,0.7)" },
-        "filterValues": { "le": 1e-9 },
-        "legend": { "show": true },
-        "rowsFrame": { "layout": "auto" },
-        "tooltip": { "show": true, "yHistogram": true },
-        "yAxis": { "axisPlacement": "left", "reverse": false, "unit": "s" }
-      },
-      "pluginVersion": "10.0.0",
-      "targets": [
-        {
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "sum(rate(exam_provision_duration_seconds_bucket{exam=\"$exam\", namespace=\"$namespace\"}[$__rate_interval])) by (le)",
-          "format": "heatmap",
-          "legendFormat": "{{le}}",
-          "refId": "A"
-        }
-      ],
-      "title": "Provisioning Latency",
-      "type": "heatmap"
-    },
-    {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "continuous-GrYlRd" },
-          "custom": {
-            "fillOpacity": 80,
-            "lineWidth": 0
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": { "h": 10, "w": 6, "x": 18, "y": 6 },
-      "id": 9,
-      "options": {
-        "alignValue": "left",
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "mergeValues": true,
-        "rowHeight": 0.9,
-        "showValue": "auto",
-        "tooltip": { "mode": "single", "sort": "none" }
-      },
-      "pluginVersion": "10.0.0",
-      "targets": [
-        {
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "exam_phase_duration_seconds{exam=\"$exam\", namespace=\"$namespace\"} > 0",
-          "legendFormat": "{{phase}}",
-          "refId": "A"
-        }
-      ],
-      "title": "Phase Timeline",
-      "type": "state-timeline"
-    },
-    {
-      "collapsed": true,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 16 },
-      "id": 300,
-      "panels": [
-        {
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "fieldConfig": {
-            "defaults": {
-              "color": { "mode": "palette-classic" },
-              "custom": {
-                "axisBorderShow": false,
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 10,
-                "gradientMode": "none",
-                "hideFrom": { "legend": false, "tooltip": false, "viz": false },
-                "insertNulls": false,
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": { "type": "linear" },
-                "showPoints": "auto",
-                "spanNulls": false,
-                "stacking": { "group": "A", "mode": "none" },
-                "thresholdsStyle": { "mode": "off" }
-              },
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  { "color": "green", "value": null }
-                ]
-              },
-              "unit": "s"
-            },
-            "overrides": []
-          },
-          "gridPos": { "h": 8, "w": 8, "x": 0, "y": 17 },
-          "id": 10,
-          "options": {
-            "legend": {
-              "calcs": [],
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": { "mode": "multi", "sort": "none" }
-          },
-          "pluginVersion": "10.0.0",
-          "targets": [
-            {
-              "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-              "expr": "histogram_quantile(0.5, sum(rate(exam_reconcile_duration_seconds_bucket[$__rate_interval])) by (le))",
-              "legendFormat": "p50",
-              "refId": "A"
-            },
-            {
-              "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-              "expr": "histogram_quantile(0.99, sum(rate(exam_reconcile_duration_seconds_bucket[$__rate_interval])) by (le))",
-              "legendFormat": "p99",
-              "refId": "B"
-            }
-          ],
-          "title": "Reconcile Latency",
-          "type": "timeseries"
-        },
-        {
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "fieldConfig": {
-            "defaults": {
-              "color": { "mode": "palette-classic" },
-              "custom": {
-                "axisBorderShow": false,
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 10,
-                "gradientMode": "none",
-                "hideFrom": { "legend": false, "tooltip": false, "viz": false },
-                "insertNulls": false,
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": { "type": "linear" },
-                "showPoints": "auto",
-                "spanNulls": false,
-                "stacking": { "group": "A", "mode": "none" },
-                "thresholdsStyle": { "mode": "off" }
-              },
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  { "color": "green", "value": null }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "gridPos": { "h": 8, "w": 4, "x": 8, "y": 17 },
-          "id": 11,
-          "options": {
-            "legend": {
-              "calcs": [],
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": { "mode": "multi", "sort": "none" }
-          },
-          "pluginVersion": "10.0.0",
-          "targets": [
-            {
-              "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-              "expr": "rate(exam_reconcile_errors_total[$__rate_interval])",
-              "legendFormat": "errors/s",
-              "refId": "A"
-            }
-          ],
-          "title": "Reconcile Errors",
-          "type": "timeseries"
-        },
-        {
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "fieldConfig": {
-            "defaults": {
-              "color": { "mode": "thresholds" },
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  { "color": "green", "value": null },
-                  { "color": "red", "value": 1 }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "gridPos": { "h": 8, "w": 6, "x": 12, "y": 17 },
-          "id": 12,
-          "options": {
-            "colorMode": "value",
-            "graphMode": "none",
-            "justifyMode": "auto",
-            "orientation": "auto",
-            "reduceOptions": {
-              "calcs": ["last"],
-              "fields": "",
-              "values": false
-            },
-            "textMode": "auto"
-          },
-          "pluginVersion": "10.0.0",
-          "targets": [
-            {
-              "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-              "expr": "exam_emails_failed_total{exam=\"$exam\", namespace=\"$namespace\"}",
-              "legendFormat": "",
-              "refId": "A"
-            }
-          ],
-          "title": "Email Failures",
-          "type": "stat"
-        },
-        {
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "fieldConfig": {
-            "defaults": {
-              "color": { "mode": "thresholds" },
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  { "color": "green", "value": null },
-                  { "color": "yellow", "value": 1 }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "gridPos": { "h": 8, "w": 6, "x": 18, "y": 17 },
-          "id": 13,
-          "options": {
-            "colorMode": "value",
-            "graphMode": "none",
-            "justifyMode": "auto",
-            "orientation": "auto",
-            "reduceOptions": {
-              "calcs": ["last"],
-              "fields": "",
-              "values": false
-            },
-            "textMode": "auto"
-          },
-          "pluginVersion": "10.0.0",
-          "targets": [
-            {
-              "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-              "expr": "exam_spare_swaps_total{exam=\"$exam\", namespace=\"$namespace\"}",
-              "legendFormat": "",
-              "refId": "A"
-            }
-          ],
-          "title": "Spare Swaps",
-          "type": "stat"
-        }
-      ],
-      "title": "Operational",
-      "type": "row"
-    }
-  ],
-  "schemaVersion": 39,
-  "tags": ["exam-controller", "kubernetes"],
-  "templating": {
-    "list": [
+   "__inputs": [
       {
-        "current": {},
-        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-        "definition": "label_values(exam_instances_total, namespace)",
-        "hide": 0,
-        "includeAll": false,
-        "label": "Namespace",
-        "multi": false,
-        "name": "namespace",
-        "options": [],
-        "query": {
-          "qryType": 1,
-          "query": "label_values(exam_instances_total, namespace)",
-          "refId": "PrometheusVariableQueryEditor-VariableQuery"
-        },
-        "refresh": 2,
-        "regex": "",
-        "skipUrlSync": false,
-        "sort": 1,
-        "type": "query"
-      },
-      {
-        "current": {},
-        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-        "definition": "label_values(exam_instances_total{namespace=\"$namespace\"}, exam)",
-        "hide": 0,
-        "includeAll": false,
-        "label": "Exam",
-        "multi": false,
-        "name": "exam",
-        "options": [],
-        "query": {
-          "qryType": 1,
-          "query": "label_values(exam_instances_total{namespace=\"$namespace\"}, exam)",
-          "refId": "PrometheusVariableQueryEditor-VariableQuery"
-        },
-        "refresh": 2,
-        "regex": "",
-        "skipUrlSync": false,
-        "sort": 1,
-        "type": "query"
+         "description": "",
+         "label": "Prometheus",
+         "name": "DS_PROMETHEUS",
+         "pluginId": "prometheus",
+         "pluginName": "Prometheus",
+         "type": "datasource"
       }
-    ]
-  },
-  "time": { "from": "now-3h", "to": "now" },
-  "timepicker": {},
-  "timezone": "browser",
-  "title": "Exam Controller Overview",
-  "uid": "exam-controller-overview",
-  "version": 1
+   ],
+   "annotations": {
+      "list": [ ]
+   },
+   "description": "Overview dashboard for the exam-controller operator",
+   "editable": true,
+   "fiscalYearStartMonth": 0,
+   "graphTooltip": 1,
+   "id": null,
+   "links": [ ],
+   "panels": [
+      {
+         "collapsed": false,
+         "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 0
+         },
+         "id": 100,
+         "title": "Status at a Glance",
+         "type": "row"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+         },
+         "fieldConfig": {
+            "defaults": {
+               "color": {
+                  "mode": "thresholds"
+               },
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                     {
+                        "color": "green",
+                        "value": null
+                     }
+                  ]
+               }
+            },
+            "overrides": [
+               {
+                  "matcher": {
+                     "id": "byName",
+                     "options": "Ready"
+                  },
+                  "properties": [
+                     {
+                        "id": "color",
+                        "value": {
+                           "fixedColor": "green",
+                           "mode": "fixed"
+                        }
+                     }
+                  ]
+               },
+               {
+                  "matcher": {
+                     "id": "byName",
+                     "options": "Unlocked"
+                  },
+                  "properties": [
+                     {
+                        "id": "color",
+                        "value": {
+                           "fixedColor": "green",
+                           "mode": "fixed"
+                        }
+                     }
+                  ]
+               },
+               {
+                  "matcher": {
+                     "id": "byName",
+                     "options": "Provisioning"
+                  },
+                  "properties": [
+                     {
+                        "id": "color",
+                        "value": {
+                           "fixedColor": "yellow",
+                           "mode": "fixed"
+                        }
+                     }
+                  ]
+               },
+               {
+                  "matcher": {
+                     "id": "byName",
+                     "options": "Pending"
+                  },
+                  "properties": [
+                     {
+                        "id": "color",
+                        "value": {
+                           "fixedColor": "blue",
+                           "mode": "fixed"
+                        }
+                     }
+                  ]
+               },
+               {
+                  "matcher": {
+                     "id": "byName",
+                     "options": "Locked"
+                  },
+                  "properties": [
+                     {
+                        "id": "color",
+                        "value": {
+                           "fixedColor": "orange",
+                           "mode": "fixed"
+                        }
+                     }
+                  ]
+               },
+               {
+                  "matcher": {
+                     "id": "byName",
+                     "options": "TearingDown"
+                  },
+                  "properties": [
+                     {
+                        "id": "color",
+                        "value": {
+                           "fixedColor": "red",
+                           "mode": "fixed"
+                        }
+                     }
+                  ]
+               }
+            ]
+         },
+         "gridPos": {
+            "h": 4,
+            "w": 4,
+            "x": 0,
+            "y": 1
+         },
+         "id": 1,
+         "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+               "calcs": [
+                  "last"
+               ],
+               "fields": "",
+               "values": false
+            },
+            "textMode": "name"
+         },
+         "pluginVersion": "v11.4.0",
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${DS_PROMETHEUS}"
+               },
+               "expr": "exam_phase_duration_seconds{exam=\"$exam\", namespace=\"$namespace\"}",
+               "legendFormat": "{{phase}}",
+               "refId": "A"
+            }
+         ],
+         "title": "Phase",
+         "type": "stat"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+         },
+         "fieldConfig": {
+            "defaults": {
+               "color": {
+                  "mode": "thresholds"
+               },
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                     {
+                        "color": "green",
+                        "value": null
+                     },
+                     {
+                        "color": "red",
+                        "value": 1
+                     }
+                  ]
+               }
+            },
+            "overrides": [
+               {
+                  "matcher": {
+                     "id": "byName",
+                     "options": "Total"
+                  },
+                  "properties": [
+                     {
+                        "id": "thresholds",
+                        "value": {
+                           "mode": "absolute",
+                           "steps": [
+                              {
+                                 "color": "green",
+                                 "value": null
+                              }
+                           ]
+                        }
+                     }
+                  ]
+               }
+            ]
+         },
+         "gridPos": {
+            "h": 4,
+            "w": 4,
+            "x": 4,
+            "y": 1
+         },
+         "id": 2,
+         "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+               "calcs": [
+                  "last"
+               ],
+               "fields": "",
+               "values": false
+            },
+            "textMode": "value_and_name"
+         },
+         "pluginVersion": "v11.4.0",
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${DS_PROMETHEUS}"
+               },
+               "expr": "exam_instances_healthy{exam=\"$exam\", namespace=\"$namespace\"}",
+               "legendFormat": "Healthy",
+               "refId": "A"
+            },
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${DS_PROMETHEUS}"
+               },
+               "expr": "exam_instances_total{exam=\"$exam\", namespace=\"$namespace\"}",
+               "legendFormat": "Total",
+               "refId": "B"
+            }
+         ],
+         "title": "Healthy / Total",
+         "type": "stat"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+         },
+         "fieldConfig": {
+            "defaults": {
+               "color": {
+                  "mode": "thresholds"
+               },
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                     {
+                        "color": "green",
+                        "value": null
+                     }
+                  ]
+               }
+            }
+         },
+         "gridPos": {
+            "h": 4,
+            "w": 4,
+            "x": 8,
+            "y": 1
+         },
+         "id": 3,
+         "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+               "calcs": [
+                  "last"
+               ],
+               "fields": "",
+               "values": false
+            },
+            "textMode": "auto"
+         },
+         "pluginVersion": "v11.4.0",
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${DS_PROMETHEUS}"
+               },
+               "expr": "exam_emails_sent_total{exam=\"$exam\", namespace=\"$namespace\"}",
+               "legendFormat": "",
+               "refId": "A"
+            }
+         ],
+         "title": "Emails Sent",
+         "type": "stat"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+         },
+         "fieldConfig": {
+            "defaults": {
+               "color": {
+                  "mode": "thresholds"
+               },
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                     {
+                        "color": "green",
+                        "value": null
+                     }
+                  ]
+               }
+            },
+            "overrides": [
+               {
+                  "matcher": {
+                     "id": "byName",
+                     "options": "Failed"
+                  },
+                  "properties": [
+                     {
+                        "id": "thresholds",
+                        "value": {
+                           "mode": "absolute",
+                           "steps": [
+                              {
+                                 "color": "green",
+                                 "value": null
+                              },
+                              {
+                                 "color": "red",
+                                 "value": 1
+                              }
+                           ]
+                        }
+                     }
+                  ]
+               }
+            ]
+         },
+         "gridPos": {
+            "h": 4,
+            "w": 4,
+            "x": 12,
+            "y": 1
+         },
+         "id": 4,
+         "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+               "calcs": [
+                  "last"
+               ],
+               "fields": "",
+               "values": false
+            },
+            "textMode": "value_and_name"
+         },
+         "pluginVersion": "v11.4.0",
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${DS_PROMETHEUS}"
+               },
+               "expr": "exam_dryrun_passed{exam=\"$exam\", namespace=\"$namespace\"}",
+               "legendFormat": "Passed",
+               "refId": "A"
+            },
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${DS_PROMETHEUS}"
+               },
+               "expr": "exam_dryrun_failed{exam=\"$exam\", namespace=\"$namespace\"}",
+               "legendFormat": "Failed",
+               "refId": "B"
+            }
+         ],
+         "title": "Dry Run",
+         "type": "stat"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+         },
+         "fieldConfig": {
+            "defaults": {
+               "color": {
+                  "mode": "thresholds"
+               },
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                     {
+                        "color": "green",
+                        "value": null
+                     }
+                  ]
+               },
+               "unit": "s"
+            }
+         },
+         "gridPos": {
+            "h": 4,
+            "w": 4,
+            "x": 16,
+            "y": 1
+         },
+         "id": 5,
+         "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+               "calcs": [
+                  "last"
+               ],
+               "fields": "",
+               "values": false
+            },
+            "textMode": "auto"
+         },
+         "pluginVersion": "v11.4.0",
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${DS_PROMETHEUS}"
+               },
+               "expr": "exam_seconds_until_unlock{exam=\"$exam\", namespace=\"$namespace\"}",
+               "legendFormat": "",
+               "refId": "A"
+            }
+         ],
+         "title": "Time Until Unlock",
+         "type": "stat"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+         },
+         "fieldConfig": {
+            "defaults": {
+               "color": {
+                  "mode": "thresholds"
+               },
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                     {
+                        "color": "green",
+                        "value": null
+                     }
+                  ]
+               },
+               "unit": "s"
+            }
+         },
+         "gridPos": {
+            "h": 4,
+            "w": 4,
+            "x": 20,
+            "y": 1
+         },
+         "id": 6,
+         "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+               "calcs": [
+                  "last"
+               ],
+               "fields": "",
+               "values": false
+            },
+            "textMode": "auto"
+         },
+         "pluginVersion": "v11.4.0",
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${DS_PROMETHEUS}"
+               },
+               "expr": "exam_seconds_until_lock{exam=\"$exam\", namespace=\"$namespace\"}",
+               "legendFormat": "",
+               "refId": "A"
+            }
+         ],
+         "title": "Time Until Lock",
+         "type": "stat"
+      },
+      {
+         "collapsed": false,
+         "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 5
+         },
+         "id": 200,
+         "title": "Provisioning & Health",
+         "type": "row"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+         },
+         "fieldConfig": {
+            "defaults": {
+               "color": {
+                  "mode": "palette-classic"
+               },
+               "custom": {
+                  "drawStyle": "line",
+                  "fillOpacity": 10,
+                  "lineInterpolation": "linear",
+                  "lineWidth": 1,
+                  "pointSize": 5,
+                  "showPoints": "auto",
+                  "spanNulls": false,
+                  "stacking": {
+                     "group": "A",
+                     "mode": "normal"
+                  }
+               },
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                     {
+                        "color": "green",
+                        "value": null
+                     }
+                  ]
+               }
+            },
+            "overrides": [
+               {
+                  "matcher": {
+                     "id": "byName",
+                     "options": "Total"
+                  },
+                  "properties": [
+                     {
+                        "id": "custom.stacking",
+                        "value": {
+                           "group": "A",
+                           "mode": "none"
+                        }
+                     },
+                     {
+                        "id": "custom.fillOpacity",
+                        "value": 0
+                     },
+                     {
+                        "id": "custom.lineWidth",
+                        "value": 2
+                     }
+                  ]
+               }
+            ]
+         },
+         "gridPos": {
+            "h": 10,
+            "w": 12,
+            "x": 0,
+            "y": 6
+         },
+         "id": 7,
+         "options": {
+            "legend": {
+               "displayMode": "list",
+               "placement": "bottom",
+               "showLegend": true
+            },
+            "tooltip": {
+               "mode": "multi",
+               "sort": "none"
+            }
+         },
+         "pluginVersion": "v11.4.0",
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${DS_PROMETHEUS}"
+               },
+               "expr": "exam_instances_healthy{exam=\"$exam\", namespace=\"$namespace\"}",
+               "legendFormat": "Healthy",
+               "refId": "A"
+            },
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${DS_PROMETHEUS}"
+               },
+               "expr": "exam_instances_failed{exam=\"$exam\", namespace=\"$namespace\"}",
+               "legendFormat": "Failed",
+               "refId": "B"
+            },
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${DS_PROMETHEUS}"
+               },
+               "expr": "exam_instances_total{exam=\"$exam\", namespace=\"$namespace\"}",
+               "legendFormat": "Total",
+               "refId": "C"
+            }
+         ],
+         "title": "Instance Health Over Time",
+         "type": "timeseries"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+         },
+         "fieldConfig": {
+            "defaults": {
+               "color": {
+                  "mode": "scheme",
+                  "schemeName": "Oranges",
+                  "steps": 128
+               },
+               "custom": {
+                  "hideFrom": {
+                     "legend": false,
+                     "tooltip": false,
+                     "viz": false
+                  },
+                  "scaleDistribution": {
+                     "type": "linear"
+                  }
+               }
+            },
+            "overrides": [ ]
+         },
+         "gridPos": {
+            "h": 10,
+            "w": 6,
+            "x": 12,
+            "y": 6
+         },
+         "id": 8,
+         "options": {
+            "calculate": false,
+            "cellGap": 1,
+            "color": {
+               "exponent": 0.5,
+               "fill": "dark-orange",
+               "mode": "scheme",
+               "reverse": false,
+               "scale": "exponential",
+               "scheme": "Oranges",
+               "steps": 128
+            },
+            "exemplars": {
+               "color": "rgba(255,0,255,0.7)"
+            },
+            "filterValues": {
+               "le": 1.0000000000000001e-09
+            },
+            "legend": {
+               "show": true
+            },
+            "rowsFrame": {
+               "layout": "auto"
+            },
+            "tooltip": {
+               "show": true,
+               "yHistogram": true
+            },
+            "yAxis": {
+               "axisPlacement": "left",
+               "reverse": false,
+               "unit": "s"
+            }
+         },
+         "pluginVersion": "v11.4.0",
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${DS_PROMETHEUS}"
+               },
+               "expr": "sum(rate(exam_provision_duration_seconds_bucket{exam=\"$exam\", namespace=\"$namespace\"}[$__rate_interval])) by (le)",
+               "format": "heatmap",
+               "legendFormat": "{{le}}",
+               "refId": "A"
+            }
+         ],
+         "title": "Provisioning Latency",
+         "type": "heatmap"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+         },
+         "fieldConfig": {
+            "defaults": {
+               "color": {
+                  "mode": "continuous-GrYlRd"
+               },
+               "custom": {
+                  "fillOpacity": 80,
+                  "lineWidth": 0
+               },
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                     {
+                        "color": "green",
+                        "value": null
+                     }
+                  ]
+               }
+            }
+         },
+         "gridPos": {
+            "h": 10,
+            "w": 6,
+            "x": 18,
+            "y": 6
+         },
+         "id": 9,
+         "options": {
+            "alignValue": "left",
+            "legend": {
+               "displayMode": "list",
+               "placement": "bottom",
+               "showLegend": true
+            },
+            "mergeValues": true,
+            "rowHeight": 0.90000000000000002,
+            "showValue": "auto",
+            "tooltip": {
+               "mode": "single",
+               "sort": "none"
+            }
+         },
+         "pluginVersion": "v11.4.0",
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${DS_PROMETHEUS}"
+               },
+               "expr": "exam_phase_duration_seconds{exam=\"$exam\", namespace=\"$namespace\"} > 0",
+               "legendFormat": "{{phase}}",
+               "refId": "A"
+            }
+         ],
+         "title": "Phase Timeline",
+         "type": "state-timeline"
+      },
+      {
+         "collapsed": true,
+         "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 16
+         },
+         "id": 300,
+         "panels": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${DS_PROMETHEUS}"
+               },
+               "fieldConfig": {
+                  "defaults": {
+                     "color": {
+                        "mode": "palette-classic"
+                     },
+                     "custom": {
+                        "drawStyle": "line",
+                        "fillOpacity": 10,
+                        "lineInterpolation": "linear",
+                        "lineWidth": 1,
+                        "pointSize": 5,
+                        "showPoints": "auto",
+                        "spanNulls": false,
+                        "stacking": {
+                           "group": "A",
+                           "mode": "none"
+                        }
+                     },
+                     "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                           {
+                              "color": "green",
+                              "value": null
+                           }
+                        ]
+                     },
+                     "unit": "s"
+                  }
+               },
+               "gridPos": {
+                  "h": 8,
+                  "w": 8,
+                  "x": 0,
+                  "y": 17
+               },
+               "id": 10,
+               "options": {
+                  "legend": {
+                     "displayMode": "list",
+                     "placement": "bottom",
+                     "showLegend": true
+                  },
+                  "tooltip": {
+                     "mode": "multi",
+                     "sort": "none"
+                  }
+               },
+               "pluginVersion": "v11.4.0",
+               "targets": [
+                  {
+                     "datasource": {
+                        "type": "prometheus",
+                        "uid": "${DS_PROMETHEUS}"
+                     },
+                     "expr": "histogram_quantile(0.5, sum(rate(exam_reconcile_duration_seconds_bucket[$__rate_interval])) by (le))",
+                     "legendFormat": "p50",
+                     "refId": "A"
+                  },
+                  {
+                     "datasource": {
+                        "type": "prometheus",
+                        "uid": "${DS_PROMETHEUS}"
+                     },
+                     "expr": "histogram_quantile(0.99, sum(rate(exam_reconcile_duration_seconds_bucket[$__rate_interval])) by (le))",
+                     "legendFormat": "p99",
+                     "refId": "B"
+                  }
+               ],
+               "title": "Reconcile Latency",
+               "type": "timeseries"
+            },
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${DS_PROMETHEUS}"
+               },
+               "fieldConfig": {
+                  "defaults": {
+                     "color": {
+                        "mode": "palette-classic"
+                     },
+                     "custom": {
+                        "drawStyle": "line",
+                        "fillOpacity": 10,
+                        "lineInterpolation": "linear",
+                        "lineWidth": 1,
+                        "pointSize": 5,
+                        "showPoints": "auto",
+                        "spanNulls": false,
+                        "stacking": {
+                           "group": "A",
+                           "mode": "none"
+                        }
+                     },
+                     "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                           {
+                              "color": "green",
+                              "value": null
+                           }
+                        ]
+                     }
+                  }
+               },
+               "gridPos": {
+                  "h": 8,
+                  "w": 4,
+                  "x": 8,
+                  "y": 17
+               },
+               "id": 11,
+               "options": {
+                  "legend": {
+                     "displayMode": "list",
+                     "placement": "bottom",
+                     "showLegend": true
+                  },
+                  "tooltip": {
+                     "mode": "multi",
+                     "sort": "none"
+                  }
+               },
+               "pluginVersion": "v11.4.0",
+               "targets": [
+                  {
+                     "datasource": {
+                        "type": "prometheus",
+                        "uid": "${DS_PROMETHEUS}"
+                     },
+                     "expr": "rate(exam_reconcile_errors_total[$__rate_interval])",
+                     "legendFormat": "errors/s",
+                     "refId": "A"
+                  }
+               ],
+               "title": "Reconcile Errors",
+               "type": "timeseries"
+            },
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${DS_PROMETHEUS}"
+               },
+               "fieldConfig": {
+                  "defaults": {
+                     "color": {
+                        "mode": "thresholds"
+                     },
+                     "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                           {
+                              "color": "green",
+                              "value": null
+                           },
+                           {
+                              "color": "red",
+                              "value": 1
+                           }
+                        ]
+                     }
+                  }
+               },
+               "gridPos": {
+                  "h": 8,
+                  "w": 6,
+                  "x": 12,
+                  "y": 17
+               },
+               "id": 12,
+               "options": {
+                  "colorMode": "value",
+                  "graphMode": "none",
+                  "justifyMode": "auto",
+                  "orientation": "auto",
+                  "reduceOptions": {
+                     "calcs": [
+                        "last"
+                     ],
+                     "fields": "",
+                     "values": false
+                  },
+                  "textMode": "auto"
+               },
+               "pluginVersion": "v11.4.0",
+               "targets": [
+                  {
+                     "datasource": {
+                        "type": "prometheus",
+                        "uid": "${DS_PROMETHEUS}"
+                     },
+                     "expr": "exam_emails_failed_total{exam=\"$exam\", namespace=\"$namespace\"}",
+                     "legendFormat": "",
+                     "refId": "A"
+                  }
+               ],
+               "title": "Email Failures",
+               "type": "stat"
+            },
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${DS_PROMETHEUS}"
+               },
+               "fieldConfig": {
+                  "defaults": {
+                     "color": {
+                        "mode": "thresholds"
+                     },
+                     "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                           {
+                              "color": "green",
+                              "value": null
+                           },
+                           {
+                              "color": "yellow",
+                              "value": 1
+                           }
+                        ]
+                     }
+                  }
+               },
+               "gridPos": {
+                  "h": 8,
+                  "w": 6,
+                  "x": 18,
+                  "y": 17
+               },
+               "id": 13,
+               "options": {
+                  "colorMode": "value",
+                  "graphMode": "none",
+                  "justifyMode": "auto",
+                  "orientation": "auto",
+                  "reduceOptions": {
+                     "calcs": [
+                        "last"
+                     ],
+                     "fields": "",
+                     "values": false
+                  },
+                  "textMode": "auto"
+               },
+               "pluginVersion": "v11.4.0",
+               "targets": [
+                  {
+                     "datasource": {
+                        "type": "prometheus",
+                        "uid": "${DS_PROMETHEUS}"
+                     },
+                     "expr": "exam_spare_swaps_total{exam=\"$exam\", namespace=\"$namespace\"}",
+                     "legendFormat": "",
+                     "refId": "A"
+                  }
+               ],
+               "title": "Spare Swaps",
+               "type": "stat"
+            }
+         ],
+         "title": "Operational",
+         "type": "row"
+      }
+   ],
+   "schemaVersion": 39,
+   "tags": [
+      "exam-controller",
+      "kubernetes"
+   ],
+   "templating": {
+      "list": [
+         {
+            "current": { },
+            "datasource": {
+               "type": "prometheus",
+               "uid": "${DS_PROMETHEUS}"
+            },
+            "definition": "label_values(exam_instances_total, namespace)",
+            "includeAll": false,
+            "label": "Namespace",
+            "multi": false,
+            "name": "namespace",
+            "options": [ ],
+            "query": {
+               "qryType": 1,
+               "query": "label_values(exam_instances_total, namespace)",
+               "refId": "PrometheusVariableQueryEditor-VariableQuery"
+            },
+            "refresh": 2,
+            "regex": "",
+            "skipUrlSync": false,
+            "sort": 1,
+            "type": "query"
+         },
+         {
+            "current": { },
+            "datasource": {
+               "type": "prometheus",
+               "uid": "${DS_PROMETHEUS}"
+            },
+            "definition": "label_values(exam_instances_total{namespace=\"$namespace\"}, exam)",
+            "includeAll": false,
+            "label": "Exam",
+            "multi": false,
+            "name": "exam",
+            "options": [ ],
+            "query": {
+               "qryType": 1,
+               "query": "label_values(exam_instances_total{namespace=\"$namespace\"}, exam)",
+               "refId": "PrometheusVariableQueryEditor-VariableQuery"
+            },
+            "refresh": 2,
+            "regex": "",
+            "skipUrlSync": false,
+            "sort": 1,
+            "type": "query"
+         }
+      ]
+   },
+   "time": {
+      "from": "now-3h",
+      "to": "now"
+   },
+   "timepicker": { },
+   "timezone": "browser",
+   "title": "Exam Controller Overview",
+   "uid": "exam-controller-overview",
+   "version": 1
 }
