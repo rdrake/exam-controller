@@ -109,8 +109,8 @@ func (r *ExamReconciler) validatePlatformConfig() error {
 	}
 }
 
-func (r *ExamReconciler) instanceURL(slug string) string {
-	return fmt.Sprintf("https://%s.%s", slug, r.Platform.BaseDomain)
+func (r *ExamReconciler) instanceURL(s string) string {
+	return fmt.Sprintf("https://%s.%s", s, r.Platform.BaseDomain)
 }
 
 // resolvedSender returns a Sender configured with SMTP credentials from the
