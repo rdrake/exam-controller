@@ -39,19 +39,27 @@ spec:
         - --metrics-secure={{ .Values.metrics.secure }}
         {{- end }}
         {{- if .Values.webhook.enabled }}
+        - --enable-webhooks
         {{- if .Values.webhook.certDir }}
-        - --webhook-cert-dir={{ .Values.webhook.certDir }}
+        - --webhook-cert-path={{ .Values.webhook.certDir }}
         {{- end }}
         - --webhook-cert-name={{ .Values.webhook.certName }}
         - --webhook-key-name={{ .Values.webhook.keyName }}
         {{- end }}
         image: {{ include "exam-controller.image" . }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
-        {{- if .Values.metrics.enabled }}
+        {{- if or .Values.metrics.enabled .Values.webhook.enabled }}
         ports:
+        {{- if .Values.metrics.enabled }}
         - name: https
           containerPort: {{ .Values.metrics.port }}
           protocol: TCP
+        {{- end }}
+        {{- if .Values.webhook.enabled }}
+        - name: webhook-server
+          containerPort: 9443
+          protocol: TCP
+        {{- end }}
         {{- end }}
         securityContext:
           readOnlyRootFilesystem: true

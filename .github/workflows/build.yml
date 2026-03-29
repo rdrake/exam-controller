@@ -48,3 +48,18 @@ jobs:
           platforms: linux/amd64,linux/arm64
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Build single-platform image for scanning
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: scan-target:latest
+          cache-from: type=gha
+
+      - name: Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@0.31.0
+        with:
+          image-ref: scan-target:latest
+          exit-code: "1"
+          severity: CRITICAL,HIGH

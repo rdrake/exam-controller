@@ -6,12 +6,14 @@ import (
 	"time"
 
 	examv1alpha1 "github.com/rdrake/exam-controller/api/v1alpha1"
+	"github.com/rdrake/exam-controller/internal/provisioner"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func examWithSchedule(unlock time.Time) *examv1alpha1.Exam {
 	return &examv1alpha1.Exam{
-		ObjectMeta: metav1.ObjectMeta{Name: "test-exam"},
+		ObjectMeta: metav1.ObjectMeta{Name: "test-exam", Namespace: "exam-system"},
 		Spec: examv1alpha1.ExamSpec{
 			Schedule: examv1alpha1.ExamSchedule{
 				Unlock:          metav1.NewTime(unlock),
@@ -54,9 +56,51 @@ func TestComputeLockTime_DefaultMultiplier(t *testing.T) {
 }
 
 func TestExamNamespace(t *testing.T) {
-	ns := examNamespace("sofe4790u-midterm")
-	if ns != "exam-sofe4790u-midterm" {
-		t.Errorf("namespace = %q, want exam-sofe4790u-midterm", ns)
+	ns := examNamespace("sofe4790u-midterm", "exam-system")
+	if len(ns) > 63 {
+		t.Fatalf("namespace %q exceeds 63 characters", ns)
+	}
+	if got, want := ns[:len("exam-")], "exam-"; got != want {
+		t.Fatalf("namespace prefix = %q, want %q", got, want)
+	}
+
+	other := examNamespace("sofe4790u-midterm", "another-system")
+	if ns == other {
+		t.Fatalf("expected namespace hash to differ across Exam namespaces, both were %q", ns)
+	}
+}
+
+func TestExamNamespace_Deterministic(t *testing.T) {
+	first := examNamespace("midterm", "exam-system")
+	second := examNamespace("midterm", "exam-system")
+	if first != second {
+		t.Fatalf("namespace generation should be deterministic: %q != %q", first, second)
+	}
+}
+
+func TestRequestsForOwnedObject(t *testing.T) {
+	obj := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Labels: map[string]string{
+				provisioner.LabelExam:          "midterm",
+				provisioner.LabelExamNamespace: "exam-system",
+			},
+		},
+	}
+
+	requests := requestsForOwnedObject(obj)
+	if len(requests) != 1 {
+		t.Fatalf("requests len = %d, want 1", len(requests))
+	}
+	if requests[0].Name != "midterm" || requests[0].Namespace != "exam-system" {
+		t.Fatalf("request = %+v, want NamespacedName{Name: midterm, Namespace: exam-system}", requests[0].NamespacedName)
+	}
+}
+
+func TestRequestsForOwnedObject_MissingLabels(t *testing.T) {
+	obj := &corev1.Service{ObjectMeta: metav1.ObjectMeta{}}
+	if requests := requestsForOwnedObject(obj); requests != nil {
+		t.Fatalf("requests = %+v, want nil", requests)
 	}
 }
 

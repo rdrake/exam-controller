@@ -54,7 +54,7 @@ var _ = Describe("Metrics", func() {
 
 	AfterEach(func() {
 		cleanupExam(ctx, examName, examCRNamespace)
-		ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: examNamespace(examName)}}
+		ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: examNamespace(examName, examCRNamespace)}}
 		_ = k8sClient.Delete(ctx, ns)
 	})
 
@@ -75,7 +75,7 @@ var _ = Describe("Metrics", func() {
 		_, err := reconciler.Reconcile(ctx, reconcileRequest(nn))
 		Expect(err).NotTo(HaveOccurred())
 
-		val := testutil.ToFloat64(m.PhaseTransitions.WithLabelValues(examName, "", "Provisioning"))
+		val := testutil.ToFloat64(m.PhaseTransitions.WithLabelValues(examName, examCRNamespace, "", "Provisioning"))
 		Expect(val).To(Equal(float64(1)))
 	})
 
@@ -93,7 +93,7 @@ var _ = Describe("Metrics", func() {
 		reconciler := driveToPhase(ctx, nn, examv1alpha1.ExamPhaseReady, unlock, fakeSender, m)
 		_ = reconciler
 
-		unlockGauge := testutil.ToFloat64(m.SecondsUntilUnlock.WithLabelValues(examName))
+		unlockGauge := testutil.ToFloat64(m.SecondsUntilUnlock.WithLabelValues(examName, examCRNamespace))
 		Expect(unlockGauge).To(BeNumerically(">", 0), "SecondsUntilUnlock should be > 0 before unlock time")
 	})
 
@@ -111,13 +111,13 @@ var _ = Describe("Metrics", func() {
 		// Drive to Ready phase — all deployments patched healthy.
 		driveToPhase(ctx, nn, examv1alpha1.ExamPhaseReady, unlock, fakeSender, m)
 
-		total := testutil.ToFloat64(m.InstancesTotal.WithLabelValues(examName))
+		total := testutil.ToFloat64(m.InstancesTotal.WithLabelValues(examName, examCRNamespace))
 		Expect(total).To(Equal(float64(3)), "InstancesTotal should be 3 (2 students + 1 spare)")
 
-		healthy := testutil.ToFloat64(m.InstancesHealthy.WithLabelValues(examName))
+		healthy := testutil.ToFloat64(m.InstancesHealthy.WithLabelValues(examName, examCRNamespace))
 		Expect(healthy).To(Equal(float64(3)), "InstancesHealthy should be 3")
 
-		failed := testutil.ToFloat64(m.InstancesFailed.WithLabelValues(examName))
+		failed := testutil.ToFloat64(m.InstancesFailed.WithLabelValues(examName, examCRNamespace))
 		Expect(failed).To(Equal(float64(0)), "InstancesFailed should be 0")
 	})
 
@@ -207,7 +207,7 @@ var _ = Describe("Metrics", func() {
 
 		AfterEach(func() {
 			cleanupExam(ctx, fixedName, examCRNamespace)
-			ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: examNamespace(fixedName)}}
+			ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: examNamespace(fixedName, examCRNamespace)}}
 			_ = k8sClient.Delete(ctx, ns)
 		})
 
@@ -225,15 +225,15 @@ var _ = Describe("Metrics", func() {
 			driveToPhase(ctx, fixedNN, examv1alpha1.ExamPhaseReady, unlock, fixedSender, m)
 
 			// Verify metrics are populated after reaching Ready
-			healthy1 := testutil.ToFloat64(m.InstancesHealthy.WithLabelValues(fixedName))
+			healthy1 := testutil.ToFloat64(m.InstancesHealthy.WithLabelValues(fixedName, examCRNamespace))
 			Expect(healthy1).To(Equal(float64(2)), "InstancesHealthy should be 2 after first exam reaches Ready")
-			total1 := testutil.ToFloat64(m.InstancesTotal.WithLabelValues(fixedName))
+			total1 := testutil.ToFloat64(m.InstancesTotal.WithLabelValues(fixedName, examCRNamespace))
 			Expect(total1).To(Equal(float64(2)), "InstancesTotal should be 2 after first exam reaches Ready")
-			transitions1 := testutil.ToFloat64(m.PhaseTransitions.WithLabelValues(fixedName, "", "Provisioning"))
+			transitions1 := testutil.ToFloat64(m.PhaseTransitions.WithLabelValues(fixedName, examCRNamespace, "", "Provisioning"))
 			Expect(transitions1).To(BeNumerically(">", 0), "PhaseTransitions should record at least one transition")
 
 			// Call CleanupExam directly (simulating teardown metrics cleanup)
-			m.CleanupExam(fixedName)
+			m.CleanupExam(fixedName, examCRNamespace)
 
 			// Verify gauge metrics are reset after cleanup
 			Expect(testutil.CollectAndCount(m.InstancesTotal)).To(Equal(0),
@@ -245,20 +245,20 @@ var _ = Describe("Metrics", func() {
 
 			// --- Simulate re-creation: setting metrics for the same exam name ---
 			// After cleanup, WithLabelValues should return a fresh zero-value gauge
-			healthyAfterCleanup := testutil.ToFloat64(m.InstancesHealthy.WithLabelValues(fixedName))
+			healthyAfterCleanup := testutil.ToFloat64(m.InstancesHealthy.WithLabelValues(fixedName, examCRNamespace))
 			Expect(healthyAfterCleanup).To(Equal(float64(0)),
 				"InstancesHealthy should be 0 after cleanup, not carried over")
 
-			totalAfterCleanup := testutil.ToFloat64(m.InstancesTotal.WithLabelValues(fixedName))
+			totalAfterCleanup := testutil.ToFloat64(m.InstancesTotal.WithLabelValues(fixedName, examCRNamespace))
 			Expect(totalAfterCleanup).To(Equal(float64(0)),
 				"InstancesTotal should be 0 after cleanup, not carried over")
 
 			// Setting new values should work correctly (no stale state)
-			m.InstancesHealthy.WithLabelValues(fixedName).Set(3)
-			m.InstancesTotal.WithLabelValues(fixedName).Set(3)
-			Expect(testutil.ToFloat64(m.InstancesHealthy.WithLabelValues(fixedName))).To(Equal(float64(3)),
+			m.InstancesHealthy.WithLabelValues(fixedName, examCRNamespace).Set(3)
+			m.InstancesTotal.WithLabelValues(fixedName, examCRNamespace).Set(3)
+			Expect(testutil.ToFloat64(m.InstancesHealthy.WithLabelValues(fixedName, examCRNamespace))).To(Equal(float64(3)),
 				"InstancesHealthy should reflect newly set value, not old value of 2")
-			Expect(testutil.ToFloat64(m.InstancesTotal.WithLabelValues(fixedName))).To(Equal(float64(3)),
+			Expect(testutil.ToFloat64(m.InstancesTotal.WithLabelValues(fixedName, examCRNamespace))).To(Equal(float64(3)),
 				"InstancesTotal should reflect newly set value, not old value of 2")
 		})
 	})

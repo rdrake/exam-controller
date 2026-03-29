@@ -53,7 +53,7 @@ var _ = Describe("Finalizer and Deletion", func() {
 
 	AfterEach(func() {
 		cleanupExam(ctx, examName, examCRNamespace)
-		ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: examNamespace(examName)}}
+		ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: examNamespace(examName, examCRNamespace)}}
 		_ = k8sClient.Delete(ctx, ns)
 	})
 
@@ -87,7 +87,7 @@ var _ = Describe("Finalizer and Deletion", func() {
 
 		// Verify namespace exists before deletion.
 		ns := &corev1.Namespace{}
-		Expect(k8sClient.Get(ctx, types.NamespacedName{Name: examNamespace(examName)}, ns)).To(Succeed())
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Name: examNamespace(examName, examCRNamespace)}, ns)).To(Succeed())
 
 		// Delete the Exam object — this sets DeletionTimestamp but finalizer holds it.
 		exam := &examv1alpha1.Exam{}
@@ -104,7 +104,7 @@ var _ = Describe("Finalizer and Deletion", func() {
 
 		// Verify namespace is gone or being deleted.
 		nsCheck := &corev1.Namespace{}
-		err = k8sClient.Get(ctx, types.NamespacedName{Name: examNamespace(examName)}, nsCheck)
+		err = k8sClient.Get(ctx, types.NamespacedName{Name: examNamespace(examName, examCRNamespace)}, nsCheck)
 		if err == nil {
 			// Namespace may still exist but should be terminating.
 			Expect(nsCheck.DeletionTimestamp).NotTo(BeNil())
@@ -124,7 +124,7 @@ var _ = Describe("Finalizer and Deletion", func() {
 		reconciler := driveToPhase(ctx, nn, examv1alpha1.ExamPhaseProvisioning, unlock, fakeSender, nil)
 
 		// Manually delete the exam namespace before deleting the Exam CR.
-		ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: examNamespace(examName)}}
+		ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: examNamespace(examName, examCRNamespace)}}
 		Expect(k8sClient.Delete(ctx, ns)).To(Succeed())
 
 		// Delete the Exam object.

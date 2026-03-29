@@ -51,7 +51,7 @@ var _ = Describe("Email Sending", func() {
 
 	AfterEach(func() {
 		cleanupExam(ctx, examName, examCRNamespace)
-		ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: examNamespace(examName)}}
+		ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: examNamespace(examName, examCRNamespace)}}
 		_ = k8sClient.Delete(ctx, ns)
 	})
 

@@ -12,7 +12,7 @@ Pending --> Provisioning --> Ready --> Unlocked --> Locked --> TearingDown
 
 **Pending** -- The exam resource exists but the provisioning window has not started yet. The controller sleeps until `unlock - provisionBefore`.
 
-**Provisioning** -- The controller creates a dedicated namespace (`exam-<name>`), then provisions a Deployment, Service, and deny-all/egress-allowlist network policies for each student and spare instance. It polls every 10 seconds until all pods report ready.
+**Provisioning** -- The controller creates a dedicated per-exam namespace (`exam-<name>-<hash>`), then provisions a Deployment, Service, and deny-all/egress-allowlist network policies for each student and spare instance. It polls every 10 seconds until all pods report ready.
 
 **Ready** -- All instances are healthy. The controller sends credential emails to students (rate-limited) starting at `unlock - email.before`, optionally runs a dry-run smoke test, and enforces deny-all network policies. Spare instance URLs are emailed to the instructor.
 
@@ -166,26 +166,29 @@ The controller exposes 12 Prometheus metrics. Enable a `ServiceMonitor` via the 
 |---|---|---|---|
 | `exam_reconcile_duration_seconds` | Histogram | -- | Time spent per reconcile loop. |
 | `exam_reconcile_errors_total` | Counter | -- | Total reconcile failures. |
-| `exam_phase_transitions_total` | Counter | `exam`, `from`, `to` | Phase changes by exam and transition direction. |
-| `exam_instances_total` | Gauge | `exam` | Total instances (students + spares). |
-| `exam_instances_healthy` | Gauge | `exam` | Instances passing health checks. |
-| `exam_instances_failed` | Gauge | `exam` | Instances in failed state. |
-| `exam_emails_sent_total` | Counter | `exam` | Emails successfully sent. |
-| `exam_emails_failed_total` | Counter | `exam` | Email delivery failures. |
-| `exam_dryrun_passed` | Gauge | `exam` | Dry run pass count. |
-| `exam_dryrun_failed` | Gauge | `exam` | Dry run fail count. |
-| `exam_seconds_until_unlock` | Gauge | `exam` | Countdown to unlock (0 after unlock). |
-| `exam_seconds_until_lock` | Gauge | `exam` | Countdown to lock (0 after lock). |
+| `exam_phase_transitions_total` | Counter | `exam`, `namespace`, `from`, `to` | Phase changes by exam and transition direction. |
+| `exam_instances_total` | Gauge | `exam`, `namespace` | Total instances (students + spares). |
+| `exam_instances_healthy` | Gauge | `exam`, `namespace` | Instances passing health checks. |
+| `exam_instances_failed` | Gauge | `exam`, `namespace` | Instances in failed state. |
+| `exam_emails_sent_total` | Counter | `exam`, `namespace` | Emails successfully sent. |
+| `exam_emails_failed_total` | Counter | `exam`, `namespace` | Email delivery failures. |
+| `exam_dryrun_passed` | Gauge | `exam`, `namespace` | Dry run pass count. |
+| `exam_dryrun_failed` | Gauge | `exam`, `namespace` | Dry run fail count. |
+| `exam_seconds_until_unlock` | Gauge | `exam`, `namespace` | Countdown to unlock (0 after unlock). |
+| `exam_seconds_until_lock` | Gauge | `exam`, `namespace` | Countdown to lock (0 after lock). |
 
 Metric series for a given exam are automatically cleaned up during the TearingDown phase to prevent unbounded cardinality growth.
 
 ## Development
 
 ```sh
+# Run the fast preflight checks before pushing
+make verify-fast
+
 # Build the manager binary
 make build
 
-# Run unit tests with envtest
+# Run the envtest-backed integration suite and coverage gate
 make test
 
 # Run the linter
@@ -206,6 +209,12 @@ make manifests
 
 # Generate DeepCopy methods
 make generate
+
+# Verify generated files are committed
+make check-generated
+
+# Verify Helm linting and key chart renders
+make helm-verify
 
 # Build the container image
 make docker-build IMG=ghcr.io/rdrake/exam-controller:dev

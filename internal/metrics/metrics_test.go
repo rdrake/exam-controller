@@ -36,7 +36,7 @@ func TestRecordPhaseTransition_IncrementsCounter(t *testing.T) {
 	reg := prometheus.NewRegistry()
 	m := NewExamMetrics(reg)
 
-	counter := m.PhaseTransitions.WithLabelValues("exam1", "Pending", "Provisioning")
+	counter := m.PhaseTransitions.WithLabelValues("exam1", "exam-system", "Pending", "Provisioning")
 	counter.Inc()
 
 	val := testutil.ToFloat64(counter)
@@ -84,12 +84,12 @@ func TestCleanupExam_RemovesLabelSeries(t *testing.T) {
 	m := NewExamMetrics(reg)
 
 	// Set values for "midterm" exam across several metrics.
-	m.InstancesTotal.WithLabelValues("midterm").Set(10)
-	m.InstancesHealthy.WithLabelValues("midterm").Set(8)
-	m.InstancesFailed.WithLabelValues("midterm").Set(2)
-	m.SecondsUntilUnlock.WithLabelValues("midterm").Set(300)
-	m.SecondsUntilLock.WithLabelValues("midterm").Set(600)
-	m.PhaseTransitions.WithLabelValues("midterm", "Pending", "Provisioning").Inc()
+	m.InstancesTotal.WithLabelValues("midterm", "exam-system").Set(10)
+	m.InstancesHealthy.WithLabelValues("midterm", "exam-system").Set(8)
+	m.InstancesFailed.WithLabelValues("midterm", "exam-system").Set(2)
+	m.SecondsUntilUnlock.WithLabelValues("midterm", "exam-system").Set(300)
+	m.SecondsUntilLock.WithLabelValues("midterm", "exam-system").Set(600)
+	m.PhaseTransitions.WithLabelValues("midterm", "exam-system", "Pending", "Provisioning").Inc()
 
 	// Verify the gauge series exist before cleanup.
 	beforeTotal := testutil.CollectAndCount(m.InstancesTotal)
@@ -97,7 +97,7 @@ func TestCleanupExam_RemovesLabelSeries(t *testing.T) {
 		t.Fatal("InstancesTotal should have at least one series before cleanup")
 	}
 
-	m.CleanupExam("midterm")
+	m.CleanupExam("midterm", "exam-system")
 
 	// After cleanup the series for "midterm" should be removed.
 	afterTotal := testutil.CollectAndCount(m.InstancesTotal)
@@ -131,22 +131,22 @@ func TestCleanupExam_NoopForUnknownExam(t *testing.T) {
 	m := NewExamMetrics(reg)
 
 	// Should not panic when cleaning up an exam that was never tracked.
-	m.CleanupExam("nonexistent")
+	m.CleanupExam("nonexistent", "exam-system")
 }
 
 func TestCountdownGauges_SetAndRead(t *testing.T) {
 	reg := prometheus.NewRegistry()
 	m := NewExamMetrics(reg)
 
-	m.SecondsUntilUnlock.WithLabelValues("final").Set(120)
-	m.SecondsUntilLock.WithLabelValues("final").Set(3600)
+	m.SecondsUntilUnlock.WithLabelValues("final", "exam-system").Set(120)
+	m.SecondsUntilLock.WithLabelValues("final", "exam-system").Set(3600)
 
-	unlock := testutil.ToFloat64(m.SecondsUntilUnlock.WithLabelValues("final"))
+	unlock := testutil.ToFloat64(m.SecondsUntilUnlock.WithLabelValues("final", "exam-system"))
 	if unlock != 120 {
 		t.Errorf("SecondsUntilUnlock = %v, want 120", unlock)
 	}
 
-	lock := testutil.ToFloat64(m.SecondsUntilLock.WithLabelValues("final"))
+	lock := testutil.ToFloat64(m.SecondsUntilLock.WithLabelValues("final", "exam-system"))
 	if lock != 3600 {
 		t.Errorf("SecondsUntilLock = %v, want 3600", lock)
 	}
@@ -156,16 +156,16 @@ func TestEmailCounters(t *testing.T) {
 	reg := prometheus.NewRegistry()
 	m := NewExamMetrics(reg)
 
-	m.EmailsSent.WithLabelValues("quiz1").Inc()
-	m.EmailsSent.WithLabelValues("quiz1").Inc()
-	m.EmailsFailed.WithLabelValues("quiz1").Inc()
+	m.EmailsSent.WithLabelValues("quiz1", "exam-system").Inc()
+	m.EmailsSent.WithLabelValues("quiz1", "exam-system").Inc()
+	m.EmailsFailed.WithLabelValues("quiz1", "exam-system").Inc()
 
-	sent := testutil.ToFloat64(m.EmailsSent.WithLabelValues("quiz1"))
+	sent := testutil.ToFloat64(m.EmailsSent.WithLabelValues("quiz1", "exam-system"))
 	if sent != 2 {
 		t.Errorf("EmailsSent = %v, want 2", sent)
 	}
 
-	failed := testutil.ToFloat64(m.EmailsFailed.WithLabelValues("quiz1"))
+	failed := testutil.ToFloat64(m.EmailsFailed.WithLabelValues("quiz1", "exam-system"))
 	if failed != 1 {
 		t.Errorf("EmailsFailed = %v, want 1", failed)
 	}
@@ -175,21 +175,21 @@ func TestInstanceGauges(t *testing.T) {
 	reg := prometheus.NewRegistry()
 	m := NewExamMetrics(reg)
 
-	m.InstancesTotal.WithLabelValues("lab1").Set(25)
-	m.InstancesHealthy.WithLabelValues("lab1").Set(23)
-	m.InstancesFailed.WithLabelValues("lab1").Set(2)
+	m.InstancesTotal.WithLabelValues("lab1", "exam-system").Set(25)
+	m.InstancesHealthy.WithLabelValues("lab1", "exam-system").Set(23)
+	m.InstancesFailed.WithLabelValues("lab1", "exam-system").Set(2)
 
-	total := testutil.ToFloat64(m.InstancesTotal.WithLabelValues("lab1"))
+	total := testutil.ToFloat64(m.InstancesTotal.WithLabelValues("lab1", "exam-system"))
 	if total != 25 {
 		t.Errorf("InstancesTotal = %v, want 25", total)
 	}
 
-	healthy := testutil.ToFloat64(m.InstancesHealthy.WithLabelValues("lab1"))
+	healthy := testutil.ToFloat64(m.InstancesHealthy.WithLabelValues("lab1", "exam-system"))
 	if healthy != 23 {
 		t.Errorf("InstancesHealthy = %v, want 23", healthy)
 	}
 
-	failed := testutil.ToFloat64(m.InstancesFailed.WithLabelValues("lab1"))
+	failed := testutil.ToFloat64(m.InstancesFailed.WithLabelValues("lab1", "exam-system"))
 	if failed != 2 {
 		t.Errorf("InstancesFailed = %v, want 2", failed)
 	}

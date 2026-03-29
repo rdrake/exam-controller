@@ -38,6 +38,7 @@ import (
 	examv1alpha1 "github.com/rdrake/exam-controller/api/v1alpha1"
 	"github.com/rdrake/exam-controller/internal/metrics"
 	"github.com/rdrake/exam-controller/internal/notifier"
+	"github.com/rdrake/exam-controller/internal/provisioner"
 	"github.com/rdrake/exam-controller/internal/smoketest"
 )
 
@@ -109,7 +110,7 @@ var _ = Describe("Error Paths and Dry Run", func() {
 
 		AfterEach(func() {
 			cleanupExam(ctx, examName, examCRNamespace)
-			ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: examNamespace(examName)}}
+			ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: examNamespace(examName, examCRNamespace)}}
 			_ = k8sClient.Delete(ctx, ns)
 		})
 
@@ -121,7 +122,7 @@ var _ = Describe("Error Paths and Dry Run", func() {
 			createExamCR(ctx, examName, unlock, students, 0)
 			preseedSlugs(ctx, nn)
 
-			nsName := examNamespace(examName)
+			nsName := examNamespace(examName, examCRNamespace)
 			ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nsName}}
 			Expect(k8sClient.Create(ctx, ns)).To(Succeed())
 
@@ -177,11 +178,11 @@ var _ = Describe("Error Paths and Dry Run", func() {
 			Expect(exam.Status.Students[2].Phase).To(Equal(examv1alpha1.StudentPhaseProvisioned))
 
 			// Verify their Deployments actually exist
-			nsName := examNamespace(examName)
+			nsName := examNamespace(examName, examCRNamespace)
 			var deps appsv1.DeploymentList
 			Expect(k8sClient.List(ctx, &deps,
 				client.InNamespace(nsName),
-				client.MatchingLabels{"exam.otu.ca/exam": examName},
+				client.MatchingLabels{provisioner.LabelExam: examName},
 			)).To(Succeed())
 			// Only bob and charlie deployments should exist (alice failed)
 			Expect(deps.Items).To(HaveLen(2))
@@ -205,7 +206,7 @@ var _ = Describe("Error Paths and Dry Run", func() {
 
 		AfterEach(func() {
 			cleanupExam(ctx, examName, examCRNamespace)
-			ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: examNamespace(examName)}}
+			ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: examNamespace(examName, examCRNamespace)}}
 			_ = k8sClient.Delete(ctx, ns)
 		})
 
@@ -241,7 +242,7 @@ var _ = Describe("Error Paths and Dry Run", func() {
 			Expect(exam.Status.Students[0].EmailStatus).To(Equal(examv1alpha1.EmailStatusFailed))
 
 			// EmailsFailed metric should be incremented
-			Expect(counterValue(m.EmailsFailed, examName)).To(BeNumerically(">=", 1))
+			Expect(counterValue(m.EmailsFailed, examName, examCRNamespace)).To(BeNumerically(">=", 1))
 
 			// Exam should still be in Ready phase (not stuck)
 			Expect(exam.Status.Phase).To(Equal(examv1alpha1.ExamPhaseReady))
@@ -283,7 +284,7 @@ var _ = Describe("Error Paths and Dry Run", func() {
 
 		AfterEach(func() {
 			cleanupExam(ctx, examName, examCRNamespace)
-			ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: examNamespace(examName)}}
+			ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: examNamespace(examName, examCRNamespace)}}
 			_ = k8sClient.Delete(ctx, ns)
 		})
 
@@ -429,8 +430,8 @@ var _ = Describe("Error Paths and Dry Run", func() {
 			Expect(npCond.Reason).To(Equal("Verified"))
 
 			// Metrics should reflect dry run results
-			Expect(testutil.ToFloat64(m.DryRunPassed.WithLabelValues(examName))).To(Equal(float64(3)))
-			Expect(testutil.ToFloat64(m.DryRunFailed.WithLabelValues(examName))).To(Equal(float64(0)))
+			Expect(testutil.ToFloat64(m.DryRunPassed.WithLabelValues(examName, examCRNamespace))).To(Equal(float64(3)))
+			Expect(testutil.ToFloat64(m.DryRunFailed.WithLabelValues(examName, examCRNamespace))).To(Equal(float64(0)))
 		})
 	})
 })

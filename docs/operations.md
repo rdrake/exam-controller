@@ -17,7 +17,7 @@ This document covers deployment, monitoring, troubleshooting, and emergency proc
 
 ### Namespace Setup
 
-The controller itself runs in `exam-controller-system` (Kustomize) or whatever namespace you install the Helm release into. Each Exam CR creates a dedicated namespace named `exam-<exam-name>` containing all student resources.
+The controller itself runs in `exam-controller-system` (Kustomize) or whatever namespace you install the Helm release into. Each Exam CR creates a dedicated namespace named `exam-<exam-name>-<hash>` containing all student resources. The hash makes namespaces stable and collision-safe when two Exams share the same name in different Kubernetes namespaces.
 
 ### RBAC Overview
 
@@ -45,9 +45,10 @@ Two TLS secrets are referenced in a typical deployment:
 1. **Wildcard certificate** -- Referenced by `spec.ingressTLS.secretName` in Exam CRs. Must cover `*.exam.otu.ca` (or your domain). Can be created with cert-manager or manually:
 
    ```bash
+   EXAM_NS=$(kubectl get ns -l exam.otu.ca/exam=<name>,exam.otu.ca/exam-namespace=exam-system -o jsonpath='{.items[0].metadata.name}')
    kubectl create secret tls exam-wildcard-tls \
      --cert=wildcard.crt --key=wildcard.key \
-     -n exam-<exam-name>
+     -n "$EXAM_NS"
    ```
 
 2. **Metrics/webhook certificates** -- The controller generates self-signed certs by default. For production, use cert-manager by uncommenting the CERTMANAGER sections in `config/default/kustomization.yaml`, or pass `--metrics-cert-path` / `--webhook-cert-path` flags.
@@ -124,7 +125,7 @@ Key Helm values:
 
 ## 2. Day-2 Operations -- Prometheus Metrics
 
-The controller exposes 12 metrics on its metrics endpoint. All per-exam metrics are labeled with `exam="<exam-name>"`.
+The controller exposes 12 metrics on its metrics endpoint. All per-exam metrics are labeled with both `exam="<exam-name>"` and `namespace="<exam-cr-namespace>"`.
 
 ### Metric Reference
 
@@ -132,16 +133,16 @@ The controller exposes 12 metrics on its metrics endpoint. All per-exam metrics 
 |--------|------|--------|-------------|
 | `exam_reconcile_duration_seconds` | Histogram | (none) | Time spent per reconcile loop |
 | `exam_reconcile_errors_total` | Counter | (none) | Total reconcile failures |
-| `exam_phase_transitions_total` | Counter | `exam`, `from`, `to` | Phase changes by exam |
-| `exam_instances_total` | Gauge | `exam` | Total instances (students + spares) |
-| `exam_instances_healthy` | Gauge | `exam` | Instances passing health checks |
-| `exam_instances_failed` | Gauge | `exam` | Instances in failed state |
-| `exam_emails_sent_total` | Counter | `exam` | Emails successfully delivered |
-| `exam_emails_failed_total` | Counter | `exam` | Email delivery failures |
-| `exam_dryrun_passed` | Gauge | `exam` | Dry run checks that passed |
-| `exam_dryrun_failed` | Gauge | `exam` | Dry run checks that failed |
-| `exam_seconds_until_unlock` | Gauge | `exam` | Seconds remaining until unlock (0 after) |
-| `exam_seconds_until_lock` | Gauge | `exam` | Seconds remaining until lock (0 after) |
+| `exam_phase_transitions_total` | Counter | `exam`, `namespace`, `from`, `to` | Phase changes by exam |
+| `exam_instances_total` | Gauge | `exam`, `namespace` | Total instances (students + spares) |
+| `exam_instances_healthy` | Gauge | `exam`, `namespace` | Instances passing health checks |
+| `exam_instances_failed` | Gauge | `exam`, `namespace` | Instances in failed state |
+| `exam_emails_sent_total` | Counter | `exam`, `namespace` | Emails successfully delivered |
+| `exam_emails_failed_total` | Counter | `exam`, `namespace` | Email delivery failures |
+| `exam_dryrun_passed` | Gauge | `exam`, `namespace` | Dry run checks that passed |
+| `exam_dryrun_failed` | Gauge | `exam`, `namespace` | Dry run checks that failed |
+| `exam_seconds_until_unlock` | Gauge | `exam`, `namespace` | Seconds remaining until unlock (0 after) |
+| `exam_seconds_until_lock` | Gauge | `exam`, `namespace` | Seconds remaining until lock (0 after) |
 
 When an exam is torn down, all its label series are cleaned up via `CleanupExam()` to prevent unbounded cardinality growth.
 
@@ -234,17 +235,19 @@ rate(exam_reconcile_duration_seconds_bucket[5m])
 **Diagnosis:**
 
 ```bash
+EXAM_NS=$(kubectl get ns -l exam.otu.ca/exam=<name>,exam.otu.ca/exam-namespace=exam-system -o jsonpath='{.items[0].metadata.name}')
+
 # Check exam status
 kubectl get exam <name> -n exam-system -o yaml
 
 # Check deployments in exam namespace
-kubectl get deployments -n exam-<name>
+kubectl get deployments -n "$EXAM_NS"
 
 # Check pods
-kubectl get pods -n exam-<name>
+kubectl get pods -n "$EXAM_NS"
 
 # Look for pods not reaching Ready
-kubectl describe pod -n exam-<name> -l exam.otu.ca/exam=<name>
+kubectl describe pod -n "$EXAM_NS" -l exam.otu.ca/exam=<name>,exam.otu.ca/exam-namespace=exam-system
 
 # Check controller logs for provisioning errors
 kubectl logs -n exam-controller-system deployment/exam-controller-controller-manager \
@@ -307,6 +310,8 @@ kubectl logs -n exam-controller-system deployment/exam-controller-controller-man
 **Diagnosis:**
 
 ```bash
+EXAM_NS=$(kubectl get ns -l exam.otu.ca/exam=<name>,exam.otu.ca/exam-namespace=exam-system -o jsonpath='{.items[0].metadata.name}')
+
 # Check dry run results
 kubectl get exam <name> -n exam-system -o jsonpath='{.status.dryRun}'
 
@@ -317,11 +322,11 @@ kubectl get exam <name> -n exam-system -o jsonpath='{range .status.dryRun.failur
 kubectl get exam <name> -n exam-system -o jsonpath='{range .status.conditions[*]}{.type}: {.status} ({.reason}) {.message}{"\n"}{end}'
 
 # Verify pods are running and healthy
-kubectl get pods -n exam-<name> -o wide
+kubectl get pods -n "$EXAM_NS" -o wide
 
 # Test connectivity from within the cluster
-kubectl run -n exam-<name> --rm -it debug --image=curlimages/curl -- \
-  curl -s -o /dev/null -w '%{http_code}' http://<slug>.exam-<name>:<port>
+kubectl run -n "$EXAM_NS" --rm -it debug --image=curlimages/curl -- \
+  curl -s -o /dev/null -w '%{http_code}' http://<slug>."$EXAM_NS":<port>
 ```
 
 **Common causes and resolution:**
@@ -345,14 +350,16 @@ kubectl run -n exam-<name> --rm -it debug --image=curlimages/curl -- \
 **Diagnosis:**
 
 ```bash
+EXAM_NS=$(kubectl get ns -l exam.otu.ca/exam=<name>,exam.otu.ca/exam-namespace=exam-system -o jsonpath='{.items[0].metadata.name}')
+
 # Check if Ingress exists (only created during Unlocked phase)
-kubectl get ingress -n exam-<name>
+kubectl get ingress -n "$EXAM_NS"
 
 # Verify the exam is in Unlocked phase
 kubectl get exam <name> -n exam-system -o jsonpath='{.status.phase}'
 
 # Check TLS secret
-kubectl get secret exam-wildcard-tls -n exam-<name>
+kubectl get secret exam-wildcard-tls -n "$EXAM_NS"
 
 # Test DNS resolution
 nslookup <slug>.exam.otu.ca
@@ -361,13 +368,13 @@ nslookup <slug>.exam.otu.ca
 kubectl logs -n ingress-nginx deployment/ingress-nginx-controller | grep <slug>
 
 # Verify the ingress-allow NetworkPolicy exists
-kubectl get networkpolicy -n exam-<name> -l exam.otu.ca/slug=<slug>
+kubectl get networkpolicy -n "$EXAM_NS" -l exam.otu.ca/slug=<slug>
 ```
 
 **Common causes and resolution:**
 
 - **Exam not yet unlocked:** Ingress resources are only created when the exam transitions to the `Unlocked` phase. Before unlock, pods are isolated by deny-all NetworkPolicies.
-- **TLS secret missing:** The wildcard TLS Secret referenced by `spec.ingressTLS.secretName` must exist in the exam namespace (`exam-<name>`).
+- **TLS secret missing:** The wildcard TLS Secret referenced by `spec.ingressTLS.secretName` must exist in the per-exam namespace (`$EXAM_NS` from the lookup command above).
 - **DNS not configured:** A wildcard DNS record (e.g. `*.exam.otu.ca`) must point to the ingress controller's external IP.
 - **NetworkPolicy blocking traffic:** The ingress-allow policy permits traffic only from pods in the `ingress-nginx` namespace with label `app.kubernetes.io/name=ingress-nginx`. If your ingress controller uses different labels or a different namespace, traffic will be blocked.
 - **Ingress controller not found:** The IngressAllow NetworkPolicy expects the controller in the `ingress-nginx` namespace. Adjust if using a different ingress controller.
@@ -461,8 +468,10 @@ The next reconcile loop will detect the `Unlocked` phase, create Ingress resourc
 **Warning:** Force-unlocking skips provisioning health checks and the dry run. Verify instances are actually running before doing this.
 
 ```bash
+EXAM_NS=$(kubectl get ns -l exam.otu.ca/exam=<name>,exam.otu.ca/exam-namespace=exam-system -o jsonpath='{.items[0].metadata.name}')
+
 # Verify pods are ready before force-unlocking
-kubectl get pods -n exam-<name> -o wide
+kubectl get pods -n "$EXAM_NS" -o wide
 ```
 
 ### Force-lock an exam
@@ -481,8 +490,10 @@ The next reconcile will delete Ingress resources, remove ingress-allow NetworkPo
 If the controller is not running or teardown is stuck, manually delete the exam namespace:
 
 ```bash
+EXAM_NS=$(kubectl get ns -l exam.otu.ca/exam=<name>,exam.otu.ca/exam-namespace=exam-system -o jsonpath='{.items[0].metadata.name}')
+
 # Delete the exam namespace (destroys all student resources)
-kubectl delete namespace exam-<name>
+kubectl delete namespace "$EXAM_NS"
 
 # Remove the finalizer so the Exam CR can be deleted
 kubectl patch exam <name> -n exam-system --type=json \

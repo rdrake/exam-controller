@@ -18,14 +18,18 @@ package controller
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"errors"
 	"fmt"
+	"sort"
 	"strconv"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -128,8 +132,75 @@ func computeLockTime(unlock time.Time, duration time.Duration, multiplier float6
 	return unlock.Add(time.Duration(float64(duration) * effectiveMultiplier(multiplier)))
 }
 
-func examNamespace(examName string) string {
-	return "exam-" + examName
+func examNamespace(examName, examCRNamespace string) string {
+	const (
+		prefix      = "exam-"
+		hashLength  = 8
+		maxLength   = 63
+		minBaseName = "instance"
+	)
+
+	sum := sha256.Sum256([]byte(examCRNamespace + "/" + examName))
+	hashSuffix := hex.EncodeToString(sum[:])[:hashLength]
+
+	maxBaseLen := maxLength - len(prefix) - len(hashSuffix) - 1
+	base := examName
+	if maxBaseLen <= 0 {
+		base = minBaseName
+	} else if len(base) > maxBaseLen {
+		base = base[:maxBaseLen]
+		for len(base) > 0 && base[len(base)-1] == '-' {
+			base = base[:len(base)-1]
+		}
+		if base == "" {
+			base = minBaseName
+		}
+	}
+
+	return fmt.Sprintf("%s%s-%s", prefix, base, hashSuffix)
+}
+
+func setCondition(exam *examv1alpha1.Exam, c metav1.Condition) {
+	c.ObservedGeneration = exam.Generation
+	meta.SetStatusCondition(&exam.Status.Conditions, c)
+}
+
+func examResourceLabels(exam *examv1alpha1.Exam) map[string]string {
+	return provisioner.OwnerLabels(exam)
+}
+
+func examResourceSelector(exam *examv1alpha1.Exam) client.MatchingLabels {
+	return client.MatchingLabels(examResourceLabels(exam))
+}
+
+func examStudentSelector(exam *examv1alpha1.Exam, studentID string) client.MatchingLabels {
+	labels := examResourceLabels(exam)
+	labels[provisioner.LabelStudent] = studentID
+	return client.MatchingLabels(labels)
+}
+
+func examMetricLabelValues(exam *examv1alpha1.Exam) []string {
+	return metrics.LabelValues(exam.Name, exam.Namespace)
+}
+
+func phaseTransitionMetricLabelValues(exam *examv1alpha1.Exam, from, to examv1alpha1.ExamPhase) []string {
+	return append(examMetricLabelValues(exam), string(from), string(to))
+}
+
+func requestsForOwnedObject(obj client.Object) []reconcile.Request {
+	labels := obj.GetLabels()
+	examName := labels[provisioner.LabelExam]
+	examNamespace := labels[provisioner.LabelExamNamespace]
+	if examName == "" || examNamespace == "" {
+		return nil
+	}
+
+	return []reconcile.Request{{
+		NamespacedName: types.NamespacedName{
+			Name:      examName,
+			Namespace: examNamespace,
+		},
+	}}
 }
 
 func computeSchedule(exam *examv1alpha1.Exam) (provisionTime, emailTime, lockTime, retentionDeadline time.Time) {
@@ -197,11 +268,11 @@ func determineDesiredPhase(exam *examv1alpha1.Exam, now time.Time) examv1alpha1.
 
 func (r *ExamReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
-	start := time.Now()
+	start := r.now()
 
 	var exam examv1alpha1.Exam
 	if err := r.Get(ctx, req.NamespacedName, &exam); err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
 		return ctrl.Result{}, err
@@ -245,7 +316,9 @@ func (r *ExamReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		logger.Info("Phase transition", "from", oldPhase, "to", desiredPhase)
 		exam.Status.Phase = desiredPhase
 		if r.Metrics != nil {
-			r.Metrics.PhaseTransitions.WithLabelValues(exam.Name, string(oldPhase), string(desiredPhase)).Inc()
+			r.Metrics.PhaseTransitions.WithLabelValues(
+				phaseTransitionMetricLabelValues(&exam, oldPhase, desiredPhase)...,
+			).Inc()
 		}
 	}
 
@@ -271,19 +344,20 @@ func (r *ExamReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	if exam.Status.Phase != examv1alpha1.ExamPhaseTearingDown {
 		if r.Metrics != nil {
 			unlock := exam.Spec.Schedule.Unlock.Time
-			r.Metrics.SecondsUntilUnlock.WithLabelValues(exam.Name).Set(max(unlock.Sub(now).Seconds(), 0))
-			r.Metrics.SecondsUntilLock.WithLabelValues(exam.Name).Set(max(lockTime.Sub(now).Seconds(), 0))
+			metricLabels := examMetricLabelValues(&exam)
+			r.Metrics.SecondsUntilUnlock.WithLabelValues(metricLabels...).Set(max(unlock.Sub(now).Seconds(), 0))
+			r.Metrics.SecondsUntilLock.WithLabelValues(metricLabels...).Set(max(lockTime.Sub(now).Seconds(), 0))
 		}
 		r.updateMetricsSummary(&exam)
 	}
 	if statusErr := r.Status().Update(ctx, &exam); statusErr != nil {
 		logger.Error(statusErr, "Failed to update status")
-		return ctrl.Result{}, statusErr
+		err = errors.Join(err, statusErr)
 	}
 
 	// Record reconcile duration
 	if r.Metrics != nil {
-		r.Metrics.ReconcileDuration.Observe(time.Since(start).Seconds())
+		r.Metrics.ReconcileDuration.Observe(r.now().Sub(start).Seconds())
 		if err != nil {
 			r.Metrics.ReconcileErrors.Inc()
 		}
@@ -296,10 +370,15 @@ func (r *ExamReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 func (r *ExamReconciler) reconcileProvisioning(ctx context.Context, exam *examv1alpha1.Exam) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
-	ns := examNamespace(exam.Name)
+	ns := examNamespace(exam.Name, exam.Namespace)
 
-	namespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ns}}
-	if err := r.Create(ctx, namespace); err != nil && !errors.IsAlreadyExists(err) {
+	namespace := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   ns,
+			Labels: examResourceLabels(exam),
+		},
+	}
+	if err := r.Create(ctx, namespace); err != nil && !apierrors.IsAlreadyExists(err) {
 		return ctrl.Result{}, err
 	}
 
@@ -332,7 +411,7 @@ func (r *ExamReconciler) reconcileProvisioning(ctx context.Context, exam *examv1
 	}
 
 	if !allHealthy {
-		meta.SetStatusCondition(&exam.Status.Conditions, metav1.Condition{
+		setCondition(exam, metav1.Condition{
 			Type:    "ProvisioningDegraded",
 			Status:  metav1.ConditionTrue,
 			Reason:  "SomeInstancesFailed",
@@ -349,7 +428,7 @@ func (r *ExamReconciler) reconcileProvisioning(ctx context.Context, exam *examv1
 	}
 
 	if r.allInstancesHealthy(ctx, exam, ns) {
-		meta.SetStatusCondition(&exam.Status.Conditions, metav1.Condition{
+		setCondition(exam, metav1.Condition{
 			Type:   "Provisioned",
 			Status: metav1.ConditionTrue,
 			Reason: "AllHealthy",
@@ -388,7 +467,7 @@ func (r *ExamReconciler) reconcileReady(ctx context.Context, exam *examv1alpha1.
 		if sent {
 			return ctrl.Result{RequeueAfter: time.Second / time.Duration(rateLimit)}, nil
 		}
-		meta.SetStatusCondition(&exam.Status.Conditions, metav1.Condition{
+		setCondition(exam, metav1.Condition{
 			Type:   "AllEmailsSent",
 			Status: metav1.ConditionTrue,
 			Reason: "Complete",
@@ -399,7 +478,7 @@ func (r *ExamReconciler) reconcileReady(ctx context.Context, exam *examv1alpha1.
 		dryRunTime := unlock.Add(-exam.Spec.Schedule.DryRun.Before.Duration)
 		if !now.Before(dryRunTime) {
 			r.runDryRun(ctx, exam)
-			meta.SetStatusCondition(&exam.Status.Conditions, metav1.Condition{
+			setCondition(exam, metav1.Condition{
 				Type:   "DryRunComplete",
 				Status: metav1.ConditionTrue,
 				Reason: "Complete",
@@ -454,7 +533,7 @@ func (r *ExamReconciler) reconcileUnlock(ctx context.Context, exam *examv1alpha1
 		if err := r.sendEmail(ctx, exam, []string{exam.Spec.Email.InstructorEmail}, []byte(msg)); err != nil {
 			logger.Error(err, "Failed to send unlock notification")
 		} else {
-			meta.SetStatusCondition(&exam.Status.Conditions, metav1.Condition{
+			setCondition(exam, metav1.Condition{
 				Type: "InstructorNotifiedUnlock", Status: metav1.ConditionTrue, Reason: "Sent",
 			})
 		}
@@ -468,10 +547,10 @@ func (r *ExamReconciler) reconcileUnlock(ctx context.Context, exam *examv1alpha1
 
 func (r *ExamReconciler) reconcileLocked(ctx context.Context, exam *examv1alpha1.Exam, now time.Time) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
-	ns := examNamespace(exam.Name)
+	ns := examNamespace(exam.Name, exam.Namespace)
 
 	r.enforcePolicies(ctx, exam, false)
-	if err := r.deleteIngresses(ctx, ns, exam.Name); err != nil {
+	if err := r.deleteIngresses(ctx, exam, ns); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -501,7 +580,7 @@ func (r *ExamReconciler) reconcileLocked(ctx context.Context, exam *examv1alpha1
 		if err := r.sendEmail(ctx, exam, []string{exam.Spec.Email.InstructorEmail}, []byte(msg)); err != nil {
 			logger.Error(err, "Failed to send lock notification")
 		} else {
-			meta.SetStatusCondition(&exam.Status.Conditions, metav1.Condition{
+			setCondition(exam, metav1.Condition{
 				Type: "InstructorNotifiedLock", Status: metav1.ConditionTrue, Reason: "Sent",
 			})
 		}
@@ -512,13 +591,13 @@ func (r *ExamReconciler) reconcileLocked(ctx context.Context, exam *examv1alpha1
 }
 
 func (r *ExamReconciler) reconcileTeardown(ctx context.Context, exam *examv1alpha1.Exam) error {
-	ns := examNamespace(exam.Name)
+	ns := examNamespace(exam.Name, exam.Namespace)
 	namespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ns}}
-	if err := r.Delete(ctx, namespace); err != nil && !errors.IsNotFound(err) {
+	if err := r.Delete(ctx, namespace); err != nil && !apierrors.IsNotFound(err) {
 		return err
 	}
 	if r.Metrics != nil {
-		r.Metrics.CleanupExam(exam.Name)
+		r.Metrics.CleanupExam(exam.Name, exam.Namespace)
 	}
 	exam.Status.Phase = examv1alpha1.ExamPhaseTearingDown
 	exam.Status.Message = "Namespace deleted"
@@ -529,23 +608,23 @@ func (r *ExamReconciler) reconcileTeardown(ctx context.Context, exam *examv1alph
 
 func (r *ExamReconciler) provisionInstance(ctx context.Context, exam *examv1alpha1.Exam, ns, studentID, s string) error {
 	dep := provisioner.Deployment(exam, ns, studentID, s)
-	if err := r.Create(ctx, dep); err != nil && !errors.IsAlreadyExists(err) {
+	if err := r.Create(ctx, dep); err != nil && !apierrors.IsAlreadyExists(err) {
 		return err
 	}
 	svc := provisioner.Service(exam, ns, studentID, s)
-	if err := r.Create(ctx, svc); err != nil && !errors.IsAlreadyExists(err) {
+	if err := r.Create(ctx, svc); err != nil && !apierrors.IsAlreadyExists(err) {
 		return err
 	}
 	// Ingress is created at unlock time, not during provisioning — the route
 	// should not exist while deny-all policies are active.
-	labels := provisioner.Labels(exam.Name, studentID, s)
-	labels["exam.otu.ca/port"] = fmt.Sprintf("%d", exam.Spec.Template.Port)
+	labels := provisioner.Labels(exam, studentID, s)
+	labels[provisioner.LabelPort] = fmt.Sprintf("%d", exam.Spec.Template.Port)
 	denyAll := r.PolicyProvider.DenyAll(ns, labels)
-	if err := r.Create(ctx, denyAll); err != nil && !errors.IsAlreadyExists(err) {
+	if err := r.Create(ctx, denyAll); err != nil && !apierrors.IsAlreadyExists(err) {
 		return err
 	}
 	egressAllow := r.PolicyProvider.EgressAllowlist(ns, labels)
-	if err := r.Create(ctx, egressAllow); err != nil && !errors.IsAlreadyExists(err) {
+	if err := r.Create(ctx, egressAllow); err != nil && !apierrors.IsAlreadyExists(err) {
 		return err
 	}
 	return nil
@@ -562,8 +641,8 @@ func (r *ExamReconciler) findOrGenerateSlug(ctx context.Context, exam *examv1alp
 	if r.Client != nil {
 		var deps appsv1.DeploymentList
 		if err := r.List(ctx, &deps, client.InNamespace(ns),
-			client.MatchingLabels{"exam.otu.ca/exam": exam.Name, "exam.otu.ca/student": studentID}); err == nil && len(deps.Items) > 0 {
-			if s := deps.Items[0].Labels["exam.otu.ca/slug"]; s != "" {
+			examStudentSelector(exam, studentID)); err == nil && len(deps.Items) > 0 {
+			if s := deps.Items[0].Labels[provisioner.LabelSlug]; s != "" {
 				return s, nil
 			}
 		}
@@ -580,15 +659,16 @@ func (r *ExamReconciler) findOrGenerateSpareSlug(ctx context.Context, exam *exam
 	if r.Client != nil {
 		var deps appsv1.DeploymentList
 		if err := r.List(ctx, &deps, client.InNamespace(ns),
-			client.MatchingLabels{"exam.otu.ca/exam": exam.Name}); err == nil {
+			examResourceSelector(exam)); err == nil {
 			spareDeployments := make([]string, 0)
 			for _, d := range deps.Items {
-				if _, hasStudent := d.Labels["exam.otu.ca/student"]; !hasStudent {
-					if s := d.Labels["exam.otu.ca/slug"]; s != "" {
+				if _, hasStudent := d.Labels[provisioner.LabelStudent]; !hasStudent {
+					if s := d.Labels[provisioner.LabelSlug]; s != "" {
 						spareDeployments = append(spareDeployments, s)
 					}
 				}
 			}
+			sort.Strings(spareDeployments)
 			if index < len(spareDeployments) {
 				return spareDeployments[index], nil
 			}
@@ -624,7 +704,7 @@ func (r *ExamReconciler) setSpareStatus(exam *examv1alpha1.Exam, index int, s st
 
 func (r *ExamReconciler) allInstancesHealthy(ctx context.Context, exam *examv1alpha1.Exam, ns string) bool {
 	var deps appsv1.DeploymentList
-	if err := r.List(ctx, &deps, client.InNamespace(ns), client.MatchingLabels{"exam.otu.ca/exam": exam.Name}); err != nil {
+	if err := r.List(ctx, &deps, client.InNamespace(ns), examResourceSelector(exam)); err != nil {
 		return false
 	}
 	for _, d := range deps.Items {
@@ -655,40 +735,55 @@ func (r *ExamReconciler) cleanupOrphanedResources(ctx context.Context, exam *exa
 	slugs := r.validSlugs(exam)
 
 	var deps appsv1.DeploymentList
-	if err := r.List(ctx, &deps, client.InNamespace(ns), client.MatchingLabels{"exam.otu.ca/exam": exam.Name}); err != nil {
+	if err := r.List(ctx, &deps, client.InNamespace(ns), examResourceSelector(exam)); err != nil {
 		return err
 	}
 	for i := range deps.Items {
-		if s := deps.Items[i].Labels["exam.otu.ca/slug"]; s != "" && !slugs[s] {
+		if s := deps.Items[i].Labels[provisioner.LabelSlug]; s != "" && !slugs[s] {
 			logger.Info("Deleting orphaned deployment", "slug", s)
-			if err := r.Delete(ctx, &deps.Items[i]); err != nil && !errors.IsNotFound(err) {
+			if err := r.Delete(ctx, &deps.Items[i]); err != nil && !apierrors.IsNotFound(err) {
 				return err
 			}
 		}
 	}
 
 	var svcs corev1.ServiceList
-	if err := r.List(ctx, &svcs, client.InNamespace(ns), client.MatchingLabels{"exam.otu.ca/exam": exam.Name}); err != nil {
+	if err := r.List(ctx, &svcs, client.InNamespace(ns), examResourceSelector(exam)); err != nil {
 		return err
 	}
 	for i := range svcs.Items {
-		if s := svcs.Items[i].Labels["exam.otu.ca/slug"]; s != "" && !slugs[s] {
+		if s := svcs.Items[i].Labels[provisioner.LabelSlug]; s != "" && !slugs[s] {
 			logger.Info("Deleting orphaned service", "slug", s)
-			if err := r.Delete(ctx, &svcs.Items[i]); err != nil && !errors.IsNotFound(err) {
+			if err := r.Delete(ctx, &svcs.Items[i]); err != nil && !apierrors.IsNotFound(err) {
 				return err
 			}
 		}
 	}
 
 	var pols networkingv1.NetworkPolicyList
-	if err := r.List(ctx, &pols, client.InNamespace(ns), client.MatchingLabels{"exam.otu.ca/exam": exam.Name}); err != nil {
+	if err := r.List(ctx, &pols, client.InNamespace(ns), examResourceSelector(exam)); err != nil {
 		return err
 	}
 	for i := range pols.Items {
-		if s := pols.Items[i].Labels["exam.otu.ca/slug"]; s != "" && !slugs[s] {
+		if s := pols.Items[i].Labels[provisioner.LabelSlug]; s != "" && !slugs[s] {
 			logger.Info("Deleting orphaned network policy", "slug", s)
-			if err := r.Delete(ctx, &pols.Items[i]); err != nil && !errors.IsNotFound(err) {
+			if err := r.Delete(ctx, &pols.Items[i]); err != nil && !apierrors.IsNotFound(err) {
 				return err
+			}
+		}
+	}
+
+	if _, ok := r.PolicyProvider.(*network.CiliumPolicyProvider); ok {
+		policies := network.NewCiliumPolicyList()
+		if err := r.List(ctx, policies, client.InNamespace(ns), examResourceSelector(exam)); err != nil {
+			return err
+		}
+		for i := range policies.Items {
+			if s := policies.Items[i].GetLabels()[provisioner.LabelSlug]; s != "" && !slugs[s] {
+				logger.Info("Deleting orphaned CiliumNetworkPolicy", "slug", s)
+				if err := r.Delete(ctx, &policies.Items[i]); err != nil && !apierrors.IsNotFound(err) {
+					return err
+				}
 			}
 		}
 	}
@@ -705,13 +800,13 @@ func (r *ExamReconciler) sendNextPendingEmail(ctx context.Context, exam *examv1a
 			if err := r.sendEmail(ctx, exam, []string{student.Email}, []byte(msg)); err != nil {
 				exam.Status.Students[i].EmailStatus = examv1alpha1.EmailStatusFailed
 				if r.Metrics != nil {
-					r.Metrics.EmailsFailed.WithLabelValues(exam.Name).Inc()
+					r.Metrics.EmailsFailed.WithLabelValues(examMetricLabelValues(exam)...).Inc()
 				}
 			} else {
 				exam.Status.Students[i].EmailStatus = examv1alpha1.EmailStatusSent
 				exam.Status.Students[i].EmailSentAt = &now
 				if r.Metrics != nil {
-					r.Metrics.EmailsSent.WithLabelValues(exam.Name).Inc()
+					r.Metrics.EmailsSent.WithLabelValues(examMetricLabelValues(exam)...).Inc()
 				}
 			}
 			return true
@@ -726,7 +821,7 @@ func (r *ExamReconciler) runDryRun(ctx context.Context, exam *examv1alpha1.Exam)
 		checker = &smoketest.HTTPChecker{}
 	}
 
-	ns := examNamespace(exam.Name)
+	ns := examNamespace(exam.Name, exam.Namespace)
 	targets := make([]smoketest.Target, 0, len(exam.Status.Students)+len(exam.Status.Spares))
 	for _, s := range exam.Status.Students {
 		targets = append(targets, smoketest.Target{
@@ -767,7 +862,7 @@ func (r *ExamReconciler) runDryRun(ctx context.Context, exam *examv1alpha1.Exam)
 		status = metav1.ConditionFalse
 		reason = "NotEnforced"
 	}
-	meta.SetStatusCondition(&exam.Status.Conditions, metav1.Condition{
+	setCondition(exam, metav1.Condition{
 		Type:    "NetworkPolicyEnforced",
 		Status:  status,
 		Reason:  reason,
@@ -775,7 +870,7 @@ func (r *ExamReconciler) runDryRun(ctx context.Context, exam *examv1alpha1.Exam)
 	})
 
 	if dr.Result.Failed > 0 {
-		meta.SetStatusCondition(&exam.Status.Conditions, metav1.Condition{
+		setCondition(exam, metav1.Condition{
 			Type:    "DryRunFailed",
 			Status:  metav1.ConditionTrue,
 			Reason:  "SomeFailed",
@@ -784,39 +879,40 @@ func (r *ExamReconciler) runDryRun(ctx context.Context, exam *examv1alpha1.Exam)
 	}
 
 	if r.Metrics != nil {
-		r.Metrics.DryRunPassed.WithLabelValues(exam.Name).Set(float64(dr.Result.Passed))
-		r.Metrics.DryRunFailed.WithLabelValues(exam.Name).Set(float64(dr.Result.Failed))
+		metricLabels := examMetricLabelValues(exam)
+		r.Metrics.DryRunPassed.WithLabelValues(metricLabels...).Set(float64(dr.Result.Passed))
+		r.Metrics.DryRunFailed.WithLabelValues(metricLabels...).Set(float64(dr.Result.Failed))
 	}
 }
 
 func (r *ExamReconciler) enforcePolicies(ctx context.Context, exam *examv1alpha1.Exam, unlocked bool) {
-	ns := examNamespace(exam.Name)
+	ns := examNamespace(exam.Name, exam.Namespace)
 	allSlugs := r.collectSlugs(exam)
 
 	for _, entry := range allSlugs {
-		labels := provisioner.Labels(exam.Name, entry.studentID, entry.slug)
-		labels["exam.otu.ca/port"] = fmt.Sprintf("%d", exam.Spec.Template.Port)
+		labels := provisioner.Labels(exam, entry.studentID, entry.slug)
+		labels[provisioner.LabelPort] = fmt.Sprintf("%d", exam.Spec.Template.Port)
 
 		denyAll := r.PolicyProvider.DenyAll(ns, labels)
-		if err := r.Create(ctx, denyAll); err != nil && !errors.IsAlreadyExists(err) {
+		if err := r.Create(ctx, denyAll); err != nil && !apierrors.IsAlreadyExists(err) {
 			log.FromContext(ctx).Error(err, "drift: failed to create deny-all", "slug", entry.slug)
 		}
 		egressAllow := r.PolicyProvider.EgressAllowlist(ns, labels)
-		if err := r.Create(ctx, egressAllow); err != nil && !errors.IsAlreadyExists(err) {
+		if err := r.Create(ctx, egressAllow); err != nil && !apierrors.IsAlreadyExists(err) {
 			log.FromContext(ctx).Error(err, "drift: failed to create egress-allow", "slug", entry.slug)
 		}
 
 		ingressAllow := r.PolicyProvider.IngressAllow(ns, labels)
 		if unlocked {
 			ing := provisioner.Ingress(exam, ns, entry.studentID, entry.slug)
-			if err := r.Create(ctx, ing); err != nil && !errors.IsAlreadyExists(err) {
+			if err := r.Create(ctx, ing); err != nil && !apierrors.IsAlreadyExists(err) {
 				log.FromContext(ctx).Error(err, "drift: failed to create ingress", "slug", entry.slug)
 			}
-			if err := r.Create(ctx, ingressAllow); err != nil && !errors.IsAlreadyExists(err) {
+			if err := r.Create(ctx, ingressAllow); err != nil && !apierrors.IsAlreadyExists(err) {
 				log.FromContext(ctx).Error(err, "drift: failed to create ingress-allow", "slug", entry.slug)
 			}
 		} else {
-			if err := r.Delete(ctx, ingressAllow); err != nil && !errors.IsNotFound(err) {
+			if err := r.Delete(ctx, ingressAllow); err != nil && !apierrors.IsNotFound(err) {
 				log.FromContext(ctx).Error(err, "drift: failed to delete ingress-allow", "slug", entry.slug)
 			}
 		}
@@ -839,13 +935,13 @@ func (r *ExamReconciler) collectSlugs(exam *examv1alpha1.Exam) []slugEntry {
 	return entries
 }
 
-func (r *ExamReconciler) deleteIngresses(ctx context.Context, ns, examName string) error {
+func (r *ExamReconciler) deleteIngresses(ctx context.Context, exam *examv1alpha1.Exam, ns string) error {
 	var ingresses networkingv1.IngressList
-	if err := r.List(ctx, &ingresses, client.InNamespace(ns), client.MatchingLabels{"exam.otu.ca/exam": examName}); err != nil {
+	if err := r.List(ctx, &ingresses, client.InNamespace(ns), examResourceSelector(exam)); err != nil {
 		return err
 	}
 	for i := range ingresses.Items {
-		if err := r.Delete(ctx, &ingresses.Items[i]); err != nil && !errors.IsNotFound(err) {
+		if err := r.Delete(ctx, &ingresses.Items[i]); err != nil && !apierrors.IsNotFound(err) {
 			return err
 		}
 	}
@@ -885,10 +981,10 @@ func (r *ExamReconciler) updateMetricsSummary(exam *examv1alpha1.Exam) {
 	}
 
 	if r.Metrics != nil {
-		name := exam.Name
-		r.Metrics.InstancesTotal.WithLabelValues(name).Set(float64(len(exam.Spec.Students) + exam.Spec.Spares))
-		r.Metrics.InstancesHealthy.WithLabelValues(name).Set(float64(healthy))
-		r.Metrics.InstancesFailed.WithLabelValues(name).Set(float64(failed))
+		metricLabels := examMetricLabelValues(exam)
+		r.Metrics.InstancesTotal.WithLabelValues(metricLabels...).Set(float64(len(exam.Spec.Students) + exam.Spec.Spares))
+		r.Metrics.InstancesHealthy.WithLabelValues(metricLabels...).Set(float64(healthy))
+		r.Metrics.InstancesFailed.WithLabelValues(metricLabels...).Set(float64(failed))
 	}
 }
 
@@ -896,25 +992,20 @@ func (r *ExamReconciler) updateMetricsSummary(exam *examv1alpha1.Exam) {
 func (r *ExamReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	mapToExam := handler.EnqueueRequestsFromMapFunc(
 		func(ctx context.Context, obj client.Object) []reconcile.Request {
-			labels := obj.GetLabels()
-			examName := labels["exam.otu.ca/exam"]
-			if examName == "" {
-				return nil
-			}
-			return []reconcile.Request{{
-				NamespacedName: types.NamespacedName{
-					Name:      examName,
-					Namespace: "exam-system",
-				},
-			}}
+			return requestsForOwnedObject(obj)
 		},
 	)
 
-	return ctrl.NewControllerManagedBy(mgr).
+	builder := ctrl.NewControllerManagedBy(mgr).
 		For(&examv1alpha1.Exam{}).
 		Watches(&appsv1.Deployment{}, mapToExam).
 		Watches(&corev1.Service{}, mapToExam).
 		Watches(&networkingv1.Ingress{}, mapToExam).
-		Watches(&networkingv1.NetworkPolicy{}, mapToExam).
-		Complete(r)
+		Watches(&networkingv1.NetworkPolicy{}, mapToExam)
+
+	if _, ok := r.PolicyProvider.(*network.CiliumPolicyProvider); ok {
+		builder = builder.Watches(network.NewCiliumPolicyObject(), mapToExam)
+	}
+
+	return builder.Complete(r)
 }

@@ -36,6 +36,7 @@ import (
 	examv1alpha1 "github.com/rdrake/exam-controller/api/v1alpha1"
 	"github.com/rdrake/exam-controller/internal/metrics"
 	"github.com/rdrake/exam-controller/internal/notifier"
+	"github.com/rdrake/exam-controller/internal/provisioner"
 )
 
 var _ = Describe("Concurrent Exam Reconciliation", func() {
@@ -95,9 +96,9 @@ var _ = Describe("Concurrent Exam Reconciliation", func() {
 	AfterEach(func() {
 		cleanupExam(ctx, examNameA, examCRNamespace)
 		cleanupExam(ctx, examNameB, examCRNamespace)
-		nsA := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: examNamespace(examNameA)}}
+		nsA := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: examNamespace(examNameA, nnA.Namespace)}}
 		_ = k8sClient.Delete(ctx, nsA)
-		nsB := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: examNamespace(examNameB)}}
+		nsB := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: examNamespace(examNameB, nnB.Namespace)}}
 		_ = k8sClient.Delete(ctx, nsB)
 	})
 
@@ -112,7 +113,7 @@ var _ = Describe("Concurrent Exam Reconciliation", func() {
 		Expect(examA.Status.Phase).To(Equal(examv1alpha1.ExamPhaseProvisioning))
 
 		nsA := &corev1.Namespace{}
-		Expect(k8sClient.Get(ctx, types.NamespacedName{Name: examNamespace(examNameA)}, nsA)).To(Succeed())
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Name: examNamespace(examNameA, nnA.Namespace)}, nsA)).To(Succeed())
 
 		// ---- Step 5: Reconcile exam-b -> Provisioning ----
 		By("Reconciling exam-b into Provisioning")
@@ -124,32 +125,32 @@ var _ = Describe("Concurrent Exam Reconciliation", func() {
 		Expect(examB.Status.Phase).To(Equal(examv1alpha1.ExamPhaseProvisioning))
 
 		nsB := &corev1.Namespace{}
-		Expect(k8sClient.Get(ctx, types.NamespacedName{Name: examNamespace(examNameB)}, nsB)).To(Succeed())
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Name: examNamespace(examNameB, nnB.Namespace)}, nsB)).To(Succeed())
 
 		// ---- Step 6: Verify namespaces are different and deployment counts ----
 		By("Verifying namespaces are different")
-		Expect(examNamespace(examNameA)).NotTo(Equal(examNamespace(examNameB)))
+		Expect(examNamespace(examNameA, nnA.Namespace)).NotTo(Equal(examNamespace(examNameB, nnB.Namespace)))
 
 		By("Verifying exam-a has 2 deployments (2 students)")
 		var depsA appsv1.DeploymentList
 		Expect(k8sClient.List(ctx, &depsA,
-			client.InNamespace(examNamespace(examNameA)),
-			client.MatchingLabels{"exam.otu.ca/exam": examNameA},
+			client.InNamespace(examNamespace(examNameA, nnA.Namespace)),
+			client.MatchingLabels{provisioner.LabelExam: examNameA},
 		)).To(Succeed())
 		Expect(depsA.Items).To(HaveLen(2))
 
 		By("Verifying exam-b has 1 deployment (1 student)")
 		var depsB appsv1.DeploymentList
 		Expect(k8sClient.List(ctx, &depsB,
-			client.InNamespace(examNamespace(examNameB)),
-			client.MatchingLabels{"exam.otu.ca/exam": examNameB},
+			client.InNamespace(examNamespace(examNameB, nnB.Namespace)),
+			client.MatchingLabels{provisioner.LabelExam: examNameB},
 		)).To(Succeed())
 		Expect(depsB.Items).To(HaveLen(1))
 
 		// ---- Step 7: Patch deployments ready for both ----
 		By("Patching deployments ready for both exams")
-		patchDeploymentsReady(ctx, examNamespace(examNameA), examNameA)
-		patchDeploymentsReady(ctx, examNamespace(examNameB), examNameB)
+		patchDeploymentsReady(ctx, examNamespace(examNameA, nnA.Namespace), examNameA)
+		patchDeploymentsReady(ctx, examNamespace(examNameB, nnB.Namespace), examNameB)
 
 		// ---- Step 8: Reconcile both -> Ready ----
 		By("Reconciling exam-a into Ready")
@@ -189,16 +190,16 @@ var _ = Describe("Concurrent Exam Reconciliation", func() {
 		By("Verifying exam-a has ingresses")
 		var ingressesA networkingv1.IngressList
 		Expect(k8sClient.List(ctx, &ingressesA,
-			client.InNamespace(examNamespace(examNameA)),
-			client.MatchingLabels{"exam.otu.ca/exam": examNameA},
+			client.InNamespace(examNamespace(examNameA, nnA.Namespace)),
+			client.MatchingLabels{provisioner.LabelExam: examNameA},
 		)).To(Succeed())
 		Expect(ingressesA.Items).To(HaveLen(2), "exam-a should have 2 ingresses (2 students)")
 
 		By("Verifying exam-b has no ingresses")
 		var ingressesB networkingv1.IngressList
 		Expect(k8sClient.List(ctx, &ingressesB,
-			client.InNamespace(examNamespace(examNameB)),
-			client.MatchingLabels{"exam.otu.ca/exam": examNameB},
+			client.InNamespace(examNamespace(examNameB, nnB.Namespace)),
+			client.MatchingLabels{provisioner.LabelExam: examNameB},
 		)).To(Succeed())
 		Expect(ingressesB.Items).To(BeEmpty(), "exam-b should have no ingresses yet")
 
@@ -209,22 +210,22 @@ var _ = Describe("Concurrent Exam Reconciliation", func() {
 		// by determineDesiredPhase are counted: ""→Provisioning, Ready→Unlocked, etc.
 
 		// Both exams should have "" -> Provisioning
-		valA := testutil.ToFloat64(m.PhaseTransitions.WithLabelValues(examNameA, "", "Provisioning"))
+		valA := testutil.ToFloat64(m.PhaseTransitions.WithLabelValues(examNameA, nnA.Namespace, "", "Provisioning"))
 		Expect(valA).To(Equal(float64(1)))
-		valB := testutil.ToFloat64(m.PhaseTransitions.WithLabelValues(examNameB, "", "Provisioning"))
+		valB := testutil.ToFloat64(m.PhaseTransitions.WithLabelValues(examNameB, nnB.Namespace, "", "Provisioning"))
 		Expect(valB).To(Equal(float64(1)))
 
 		// Only exam-a should have Ready -> Unlocked
-		valA = testutil.ToFloat64(m.PhaseTransitions.WithLabelValues(examNameA, "Ready", "Unlocked"))
+		valA = testutil.ToFloat64(m.PhaseTransitions.WithLabelValues(examNameA, nnA.Namespace, "Ready", "Unlocked"))
 		Expect(valA).To(Equal(float64(1)))
-		valB = testutil.ToFloat64(m.PhaseTransitions.WithLabelValues(examNameB, "Ready", "Unlocked"))
+		valB = testutil.ToFloat64(m.PhaseTransitions.WithLabelValues(examNameB, nnB.Namespace, "Ready", "Unlocked"))
 		Expect(valB).To(Equal(float64(0)))
 
 		By("Verifying instance count metrics are per-exam")
-		totalA := testutil.ToFloat64(m.InstancesTotal.WithLabelValues(examNameA))
+		totalA := testutil.ToFloat64(m.InstancesTotal.WithLabelValues(examNameA, nnA.Namespace))
 		Expect(totalA).To(Equal(float64(2)), "exam-a should have 2 instances")
 
-		totalB := testutil.ToFloat64(m.InstancesTotal.WithLabelValues(examNameB))
+		totalB := testutil.ToFloat64(m.InstancesTotal.WithLabelValues(examNameB, nnB.Namespace))
 		Expect(totalB).To(Equal(float64(1)), "exam-b should have 1 instance")
 
 		Expect(totalA).NotTo(Equal(totalB), "per-exam instance counts should differ")

@@ -1,6 +1,7 @@
 package network
 
 import (
+	"github.com/rdrake/exam-controller/internal/provisioner"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -12,12 +13,29 @@ var ciliumGVK = schema.GroupVersionKind{
 	Kind:    "CiliumNetworkPolicy",
 }
 
+var ciliumListGVK = schema.GroupVersionKind{
+	Group:   "cilium.io",
+	Version: "v2",
+	Kind:    "CiliumNetworkPolicyList",
+}
+
 // CiliumPolicyProvider creates CiliumNetworkPolicy resources with L7 visibility.
 type CiliumPolicyProvider struct{}
 
-func ciliumPolicy(name, namespace string, labels map[string]string, spec map[string]any) *unstructured.Unstructured {
+func NewCiliumPolicyObject() *unstructured.Unstructured {
 	u := &unstructured.Unstructured{}
 	u.SetGroupVersionKind(ciliumGVK)
+	return u
+}
+
+func NewCiliumPolicyList() *unstructured.UnstructuredList {
+	l := &unstructured.UnstructuredList{}
+	l.SetGroupVersionKind(ciliumListGVK)
+	return l
+}
+
+func ciliumPolicy(name, namespace string, labels map[string]string, spec map[string]any) *unstructured.Unstructured {
+	u := NewCiliumPolicyObject()
 	u.SetName(name)
 	u.SetNamespace(namespace)
 	u.SetLabels(labels)
@@ -29,7 +47,7 @@ func (c *CiliumPolicyProvider) DenyAll(namespace string, labels map[string]strin
 	slug := slugFromLabels(labels)
 	return ciliumPolicy(slug+"-deny-all", namespace, labels, map[string]any{
 		"endpointSelector": map[string]any{
-			"matchLabels": map[string]any{"exam.otu.ca/slug": slug},
+			"matchLabels": map[string]any{provisioner.LabelSlug: slug},
 		},
 		"ingressDeny": []any{map[string]any{}},
 		"egressDeny":  []any{map[string]any{}},
@@ -40,7 +58,7 @@ func (c *CiliumPolicyProvider) EgressAllowlist(namespace string, labels map[stri
 	slug := slugFromLabels(labels)
 	return ciliumPolicy(slug+"-egress-allow", namespace, labels, map[string]any{
 		"endpointSelector": map[string]any{
-			"matchLabels": map[string]any{"exam.otu.ca/slug": slug},
+			"matchLabels": map[string]any{provisioner.LabelSlug: slug},
 		},
 		"egress": []any{
 			map[string]any{
@@ -62,13 +80,10 @@ func (c *CiliumPolicyProvider) EgressAllowlist(namespace string, labels map[stri
 
 func (c *CiliumPolicyProvider) IngressAllow(namespace string, labels map[string]string) client.Object {
 	slug := slugFromLabels(labels)
-	port := labels["exam.otu.ca/port"] // set by controller when creating labels
-	if port == "" {
-		port = "8080"
-	}
+	port := portFromLabels(labels)
 	return ciliumPolicy(slug+"-ingress-allow", namespace, labels, map[string]any{
 		"endpointSelector": map[string]any{
-			"matchLabels": map[string]any{"exam.otu.ca/slug": slug},
+			"matchLabels": map[string]any{provisioner.LabelSlug: slug},
 		},
 		"ingress": []any{
 			map[string]any{
@@ -87,7 +102,7 @@ func (c *CiliumPolicyProvider) IngressAllow(namespace string, labels map[string]
 						},
 						"rules": map[string]any{
 							"http": []any{
-								map[string]any{"method": ""},
+								map[string]any{}, // match all methods
 							},
 						},
 					},

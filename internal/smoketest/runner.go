@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 )
 
@@ -19,6 +20,8 @@ type HealthChecker interface {
 type HTTPChecker struct {
 	HealthTimeout  time.Duration // default 5s
 	BlockedTimeout time.Duration // default 3s
+	healthOnce     sync.Once
+	blockedOnce    sync.Once
 	healthClient   *http.Client
 	blockedClient  *http.Client
 }
@@ -38,16 +41,16 @@ func (h *HTTPChecker) blockedTimeout() time.Duration {
 }
 
 func (h *HTTPChecker) getHealthClient() *http.Client {
-	if h.healthClient == nil {
+	h.healthOnce.Do(func() {
 		h.healthClient = &http.Client{Timeout: h.healthTimeout()}
-	}
+	})
 	return h.healthClient
 }
 
 func (h *HTTPChecker) getBlockedClient() *http.Client {
-	if h.blockedClient == nil {
+	h.blockedOnce.Do(func() {
 		h.blockedClient = &http.Client{Timeout: h.blockedTimeout()}
-	}
+	})
 	return h.blockedClient
 }
 

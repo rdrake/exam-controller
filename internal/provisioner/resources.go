@@ -11,21 +11,35 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-// Labels returns the standard labels for a resource. If studentID is empty, the
-// resource is a spare and the student label is omitted.
-func Labels(examName, studentID, slug string) map[string]string {
-	l := map[string]string{
-		"exam.otu.ca/exam": examName,
-		"exam.otu.ca/slug": slug,
+const (
+	LabelExam          = "exam.otu.ca/exam"
+	LabelExamNamespace = "exam.otu.ca/exam-namespace"
+	LabelSlug          = "exam.otu.ca/slug"
+	LabelStudent       = "exam.otu.ca/student"
+	LabelPort          = "exam.otu.ca/port"
+)
+
+// OwnerLabels returns the labels shared by all resources owned by an Exam.
+func OwnerLabels(exam *examv1alpha1.Exam) map[string]string {
+	return map[string]string{
+		LabelExam:          exam.Name,
+		LabelExamNamespace: exam.Namespace,
 	}
+}
+
+// Labels returns the standard labels for a student or spare resource. If
+// studentID is empty, the resource is a spare and the student label is omitted.
+func Labels(exam *examv1alpha1.Exam, studentID, slug string) map[string]string {
+	l := OwnerLabels(exam)
+	l[LabelSlug] = slug
 	if studentID != "" {
-		l["exam.otu.ca/student"] = studentID
+		l[LabelStudent] = studentID
 	}
 	return l
 }
 
 func Deployment(exam *examv1alpha1.Exam, namespace, studentID, slug string) *appsv1.Deployment {
-	labels := Labels(exam.Name, studentID, slug)
+	labels := Labels(exam, studentID, slug)
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      slug,
@@ -34,7 +48,7 @@ func Deployment(exam *examv1alpha1.Exam, namespace, studentID, slug string) *app
 		},
 		Spec: appsv1.DeploymentSpec{
 			Replicas: ptr.To[int32](1),
-			Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"exam.otu.ca/slug": slug}},
+			Selector: &metav1.LabelSelector{MatchLabels: map[string]string{LabelSlug: slug}},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{Labels: labels},
 				Spec: corev1.PodSpec{
@@ -64,10 +78,10 @@ func Service(exam *examv1alpha1.Exam, namespace, studentID, slug string) *corev1
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      slug,
 			Namespace: namespace,
-			Labels:    Labels(exam.Name, studentID, slug),
+			Labels:    Labels(exam, studentID, slug),
 		},
 		Spec: corev1.ServiceSpec{
-			Selector: map[string]string{"exam.otu.ca/slug": slug},
+			Selector: map[string]string{LabelSlug: slug},
 			Ports:    []corev1.ServicePort{{Port: exam.Spec.Template.Port}},
 		},
 	}
@@ -80,7 +94,7 @@ func Ingress(exam *examv1alpha1.Exam, namespace, studentID, slug string) *networ
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      slug,
 			Namespace: namespace,
-			Labels:    Labels(exam.Name, studentID, slug),
+			Labels:    Labels(exam, studentID, slug),
 		},
 		Spec: networkingv1.IngressSpec{
 			TLS: []networkingv1.IngressTLS{

@@ -23,7 +23,7 @@ metrics:
   secure: true
   serviceMonitor:
     enabled: false
-    interval: 30s
+    interval: "30s"
 
 webhook:
   enabled: false

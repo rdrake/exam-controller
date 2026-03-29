@@ -4,6 +4,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+var examLabels = []string{"exam", "namespace"}
+
 type ExamMetrics struct {
 	ReconcileDuration  prometheus.Histogram
 	ReconcileErrors    prometheus.Counter
@@ -32,44 +34,44 @@ func NewExamMetrics(reg prometheus.Registerer) *ExamMetrics {
 		}),
 		PhaseTransitions: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: "exam_phase_transitions_total",
-			Help: "Phase changes labeled by exam, from, and to.",
-		}, []string{"exam", "from", "to"}),
+			Help: "Phase changes labeled by exam, namespace, from, and to.",
+		}, []string{"exam", "namespace", "from", "to"}),
 		InstancesTotal: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "exam_instances_total",
 			Help: "Total instances (students + spares).",
-		}, []string{"exam"}),
+		}, examLabels),
 		InstancesHealthy: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "exam_instances_healthy",
 			Help: "Instances passing health checks.",
-		}, []string{"exam"}),
+		}, examLabels),
 		InstancesFailed: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "exam_instances_failed",
 			Help: "Instances in failed state.",
-		}, []string{"exam"}),
+		}, examLabels),
 		EmailsSent: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: "exam_emails_sent_total",
 			Help: "Emails successfully sent.",
-		}, []string{"exam"}),
+		}, examLabels),
 		EmailsFailed: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: "exam_emails_failed_total",
 			Help: "Email delivery failures.",
-		}, []string{"exam"}),
+		}, examLabels),
 		DryRunPassed: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "exam_dryrun_passed",
 			Help: "Dry run pass count.",
-		}, []string{"exam"}),
+		}, examLabels),
 		DryRunFailed: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "exam_dryrun_failed",
 			Help: "Dry run fail count.",
-		}, []string{"exam"}),
+		}, examLabels),
 		SecondsUntilUnlock: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "exam_seconds_until_unlock",
 			Help: "Countdown to unlock (0 after unlock).",
-		}, []string{"exam"}),
+		}, examLabels),
 		SecondsUntilLock: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "exam_seconds_until_lock",
 			Help: "Countdown to lock (0 after lock).",
-		}, []string{"exam"}),
+		}, examLabels),
 	}
 	reg.MustRegister(
 		m.ReconcileDuration, m.ReconcileErrors, m.PhaseTransitions,
@@ -81,17 +83,22 @@ func NewExamMetrics(reg prometheus.Registerer) *ExamMetrics {
 	return m
 }
 
+func LabelValues(name, namespace string) []string {
+	return []string{name, namespace}
+}
+
 // CleanupExam removes all label series for a deleted exam to prevent
 // unbounded cardinality growth.
-func (m *ExamMetrics) CleanupExam(name string) {
-	m.PhaseTransitions.DeletePartialMatch(prometheus.Labels{"exam": name})
-	m.InstancesTotal.DeleteLabelValues(name)
-	m.InstancesHealthy.DeleteLabelValues(name)
-	m.InstancesFailed.DeleteLabelValues(name)
-	m.EmailsSent.DeleteLabelValues(name)
-	m.EmailsFailed.DeleteLabelValues(name)
-	m.DryRunPassed.DeleteLabelValues(name)
-	m.DryRunFailed.DeleteLabelValues(name)
-	m.SecondsUntilUnlock.DeleteLabelValues(name)
-	m.SecondsUntilLock.DeleteLabelValues(name)
+func (m *ExamMetrics) CleanupExam(name, namespace string) {
+	match := prometheus.Labels{"exam": name, "namespace": namespace}
+	m.PhaseTransitions.DeletePartialMatch(match)
+	m.InstancesTotal.DeleteLabelValues(name, namespace)
+	m.InstancesHealthy.DeleteLabelValues(name, namespace)
+	m.InstancesFailed.DeleteLabelValues(name, namespace)
+	m.EmailsSent.DeleteLabelValues(name, namespace)
+	m.EmailsFailed.DeleteLabelValues(name, namespace)
+	m.DryRunPassed.DeleteLabelValues(name, namespace)
+	m.DryRunFailed.DeleteLabelValues(name, namespace)
+	m.SecondsUntilUnlock.DeleteLabelValues(name, namespace)
+	m.SecondsUntilLock.DeleteLabelValues(name, namespace)
 }

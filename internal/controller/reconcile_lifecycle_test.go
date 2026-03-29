@@ -33,6 +33,7 @@ import (
 
 	examv1alpha1 "github.com/rdrake/exam-controller/api/v1alpha1"
 	"github.com/rdrake/exam-controller/internal/notifier"
+	"github.com/rdrake/exam-controller/internal/provisioner"
 )
 
 var _ = Describe("Exam Lifecycle", func() {
@@ -68,7 +69,7 @@ var _ = Describe("Exam Lifecycle", func() {
 
 		AfterEach(func() {
 			cleanupExam(ctx, examName, examCRNamespace)
-			ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: examNamespace(examName)}}
+			ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: examNamespace(examName, examCRNamespace)}}
 			_ = k8sClient.Delete(ctx, ns)
 		})
 
@@ -107,11 +108,11 @@ var _ = Describe("Exam Lifecycle", func() {
 
 			By("Verifying student namespace exists")
 			ns := &corev1.Namespace{}
-			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: examNamespace(examName)}, ns)).To(Succeed())
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: examNamespace(examName, examCRNamespace)}, ns)).To(Succeed())
 
 			// ---- Phase 2: Ready ----
 			By("Patching deployments to be ready and reconciling -> Ready")
-			patchDeploymentsReady(ctx, examNamespace(examName), examName)
+			patchDeploymentsReady(ctx, examNamespace(examName, examCRNamespace), examName)
 
 			_, err = reconciler.Reconcile(ctx, reconcileRequest(nn))
 			Expect(err).NotTo(HaveOccurred())
@@ -145,8 +146,8 @@ var _ = Describe("Exam Lifecycle", func() {
 			By("Verifying ingresses were created")
 			var ingresses networkingv1.IngressList
 			Expect(k8sClient.List(ctx, &ingresses,
-				client.InNamespace(examNamespace(examName)),
-				client.MatchingLabels{"exam.otu.ca/exam": examName},
+				client.InNamespace(examNamespace(examName, examCRNamespace)),
+				client.MatchingLabels{provisioner.LabelExam: examName},
 			)).To(Succeed())
 			// 2 students + 1 spare = 3 ingresses
 			Expect(ingresses.Items).To(HaveLen(3))
@@ -172,8 +173,8 @@ var _ = Describe("Exam Lifecycle", func() {
 
 			By("Verifying ingresses were deleted")
 			Expect(k8sClient.List(ctx, &ingresses,
-				client.InNamespace(examNamespace(examName)),
-				client.MatchingLabels{"exam.otu.ca/exam": examName},
+				client.InNamespace(examNamespace(examName, examCRNamespace)),
+				client.MatchingLabels{provisioner.LabelExam: examName},
 			)).To(Succeed())
 			Expect(ingresses.Items).To(BeEmpty())
 
@@ -215,7 +216,7 @@ var _ = Describe("Exam Lifecycle", func() {
 
 		AfterEach(func() {
 			cleanupExam(ctx, examName, examCRNamespace)
-			ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: examNamespace(examName)}}
+			ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: examNamespace(examName, examCRNamespace)}}
 			_ = k8sClient.Delete(ctx, ns)
 		})
 
@@ -279,7 +280,7 @@ var _ = Describe("Exam Lifecycle", func() {
 
 		AfterEach(func() {
 			cleanupExam(ctx, examName, examCRNamespace)
-			ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: examNamespace(examName)}}
+			ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: examNamespace(examName, examCRNamespace)}}
 			_ = k8sClient.Delete(ctx, ns)
 		})
 
@@ -290,8 +291,8 @@ var _ = Describe("Exam Lifecycle", func() {
 			By("Capturing resource versions of existing ingresses")
 			var ingressesBefore networkingv1.IngressList
 			Expect(k8sClient.List(ctx, &ingressesBefore,
-				client.InNamespace(examNamespace(examName)),
-				client.MatchingLabels{"exam.otu.ca/exam": examName},
+				client.InNamespace(examNamespace(examName, examCRNamespace)),
+				client.MatchingLabels{provisioner.LabelExam: examName},
 			)).To(Succeed())
 			Expect(ingressesBefore.Items).To(HaveLen(3))
 			rvByName := make(map[string]string, len(ingressesBefore.Items))
@@ -326,8 +327,8 @@ var _ = Describe("Exam Lifecycle", func() {
 			By("Verifying ingresses still exist and were not recreated")
 			var ingressesAfter networkingv1.IngressList
 			Expect(k8sClient.List(ctx, &ingressesAfter,
-				client.InNamespace(examNamespace(examName)),
-				client.MatchingLabels{"exam.otu.ca/exam": examName},
+				client.InNamespace(examNamespace(examName, examCRNamespace)),
+				client.MatchingLabels{provisioner.LabelExam: examName},
 			)).To(Succeed())
 			Expect(ingressesAfter.Items).To(HaveLen(3))
 			for _, ing := range ingressesAfter.Items {
@@ -373,7 +374,7 @@ var _ = Describe("Exam Lifecycle", func() {
 
 		AfterEach(func() {
 			cleanupExam(ctx, examName, examCRNamespace)
-			ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: examNamespace(examName)}}
+			ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: examNamespace(examName, examCRNamespace)}}
 			_ = k8sClient.Delete(ctx, ns)
 		})
 

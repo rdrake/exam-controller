@@ -34,6 +34,7 @@ import (
 
 	examv1alpha1 "github.com/rdrake/exam-controller/api/v1alpha1"
 	"github.com/rdrake/exam-controller/internal/notifier"
+	"github.com/rdrake/exam-controller/internal/provisioner"
 )
 
 var _ = Describe("Provisioning and Drift Correction", func() {
@@ -55,7 +56,7 @@ var _ = Describe("Provisioning and Drift Correction", func() {
 
 		AfterEach(func() {
 			cleanupExam(ctx, examName, examCRNamespace)
-			ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: examNamespace(examName)}}
+			ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: examNamespace(examName, examCRNamespace)}}
 			_ = k8sClient.Delete(ctx, ns)
 		})
 
@@ -73,7 +74,7 @@ var _ = Describe("Provisioning and Drift Correction", func() {
 			_, err := reconciler.Reconcile(ctx, reconcileRequest(nn))
 			Expect(err).NotTo(HaveOccurred())
 
-			ns := examNamespace(examName)
+			ns := examNamespace(examName, examCRNamespace)
 
 			By("Verifying exam namespace exists")
 			namespace := &corev1.Namespace{}
@@ -83,7 +84,7 @@ var _ = Describe("Provisioning and Drift Correction", func() {
 			var deps appsv1.DeploymentList
 			Expect(k8sClient.List(ctx, &deps,
 				client.InNamespace(ns),
-				client.MatchingLabels{"exam.otu.ca/exam": examName},
+				client.MatchingLabels{provisioner.LabelExam: examName},
 			)).To(Succeed())
 			Expect(deps.Items).To(HaveLen(3))
 
@@ -91,7 +92,7 @@ var _ = Describe("Provisioning and Drift Correction", func() {
 			var svcs corev1.ServiceList
 			Expect(k8sClient.List(ctx, &svcs,
 				client.InNamespace(ns),
-				client.MatchingLabels{"exam.otu.ca/exam": examName},
+				client.MatchingLabels{provisioner.LabelExam: examName},
 			)).To(Succeed())
 			Expect(svcs.Items).To(HaveLen(3))
 
@@ -99,7 +100,7 @@ var _ = Describe("Provisioning and Drift Correction", func() {
 			var netpols networkingv1.NetworkPolicyList
 			Expect(k8sClient.List(ctx, &netpols,
 				client.InNamespace(ns),
-				client.MatchingLabels{"exam.otu.ca/exam": examName},
+				client.MatchingLabels{provisioner.LabelExam: examName},
 			)).To(Succeed())
 
 			denyAllCount := 0
@@ -134,13 +135,13 @@ var _ = Describe("Provisioning and Drift Correction", func() {
 			_, err := reconciler.Reconcile(ctx, reconcileRequest(nn))
 			Expect(err).NotTo(HaveOccurred())
 
-			ns := examNamespace(examName)
+			ns := examNamespace(examName, examCRNamespace)
 
 			By("Verifying 5 deployments exist (3 students + 2 spares)")
 			var deps appsv1.DeploymentList
 			Expect(k8sClient.List(ctx, &deps,
 				client.InNamespace(ns),
-				client.MatchingLabels{"exam.otu.ca/exam": examName},
+				client.MatchingLabels{provisioner.LabelExam: examName},
 			)).To(Succeed())
 			Expect(deps.Items).To(HaveLen(5))
 
@@ -148,7 +149,7 @@ var _ = Describe("Provisioning and Drift Correction", func() {
 			var svcs corev1.ServiceList
 			Expect(k8sClient.List(ctx, &svcs,
 				client.InNamespace(ns),
-				client.MatchingLabels{"exam.otu.ca/exam": examName},
+				client.MatchingLabels{provisioner.LabelExam: examName},
 			)).To(Succeed())
 			Expect(svcs.Items).To(HaveLen(5))
 		})
@@ -171,7 +172,7 @@ var _ = Describe("Provisioning and Drift Correction", func() {
 
 		AfterEach(func() {
 			cleanupExam(ctx, examName, examCRNamespace)
-			ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: examNamespace(examName)}}
+			ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: examNamespace(examName, examCRNamespace)}}
 			_ = k8sClient.Delete(ctx, ns)
 		})
 
@@ -191,7 +192,7 @@ var _ = Describe("Provisioning and Drift Correction", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Patching deployments to be ready")
-			patchDeploymentsReady(ctx, examNamespace(examName), examName)
+			patchDeploymentsReady(ctx, examNamespace(examName, examCRNamespace), examName)
 
 			By("Reconciling again to transition to Ready and trigger spare email")
 			_, err = reconciler.Reconcile(ctx, reconcileRequest(nn))
@@ -236,7 +237,7 @@ var _ = Describe("Provisioning and Drift Correction", func() {
 
 		AfterEach(func() {
 			cleanupExam(ctx, examName, examCRNamespace)
-			ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: examNamespace(examName)}}
+			ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: examNamespace(examName, examCRNamespace)}}
 			_ = k8sClient.Delete(ctx, ns)
 		})
 
@@ -256,13 +257,13 @@ var _ = Describe("Provisioning and Drift Correction", func() {
 			_, err := reconciler.Reconcile(ctx, reconcileRequest(nn))
 			Expect(err).NotTo(HaveOccurred())
 
-			ns := examNamespace(examName)
+			ns := examNamespace(examName, examCRNamespace)
 
 			By("Listing deployments and deleting one")
 			var deps appsv1.DeploymentList
 			Expect(k8sClient.List(ctx, &deps,
 				client.InNamespace(ns),
-				client.MatchingLabels{"exam.otu.ca/exam": examName},
+				client.MatchingLabels{provisioner.LabelExam: examName},
 			)).To(Succeed())
 			Expect(deps.Items).To(HaveLen(2))
 
@@ -272,7 +273,7 @@ var _ = Describe("Provisioning and Drift Correction", func() {
 			By("Verifying the deployment is gone")
 			Expect(k8sClient.List(ctx, &deps,
 				client.InNamespace(ns),
-				client.MatchingLabels{"exam.otu.ca/exam": examName},
+				client.MatchingLabels{provisioner.LabelExam: examName},
 			)).To(Succeed())
 			Expect(deps.Items).To(HaveLen(1))
 
@@ -283,7 +284,7 @@ var _ = Describe("Provisioning and Drift Correction", func() {
 			By("Verifying the deployment is recreated")
 			Expect(k8sClient.List(ctx, &deps,
 				client.InNamespace(ns),
-				client.MatchingLabels{"exam.otu.ca/exam": examName},
+				client.MatchingLabels{provisioner.LabelExam: examName},
 			)).To(Succeed())
 			Expect(deps.Items).To(HaveLen(2))
 
@@ -312,13 +313,13 @@ var _ = Describe("Provisioning and Drift Correction", func() {
 			_, err := reconciler.Reconcile(ctx, reconcileRequest(nn))
 			Expect(err).NotTo(HaveOccurred())
 
-			ns := examNamespace(examName)
+			ns := examNamespace(examName, examCRNamespace)
 
 			By("Listing all network policies")
 			var netpols networkingv1.NetworkPolicyList
 			Expect(k8sClient.List(ctx, &netpols,
 				client.InNamespace(ns),
-				client.MatchingLabels{"exam.otu.ca/exam": examName},
+				client.MatchingLabels{provisioner.LabelExam: examName},
 			)).To(Succeed())
 			Expect(netpols.Items).NotTo(BeEmpty(), "expected network policies after provisioning")
 
@@ -455,7 +456,7 @@ var _ = Describe("Provisioning and Drift Correction", func() {
 
 		AfterEach(func() {
 			cleanupExam(ctx, examName, examCRNamespace)
-			ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: examNamespace(examName)}}
+			ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: examNamespace(examName, examCRNamespace)}}
 			_ = k8sClient.Delete(ctx, ns)
 		})
 
@@ -470,7 +471,7 @@ var _ = Describe("Provisioning and Drift Correction", func() {
 			fakeSender := &notifier.FakeSender{}
 			reconciler := driveToPhase(ctx, nn, examv1alpha1.ExamPhaseUnlocked, unlock, fakeSender, nil)
 
-			ns := examNamespace(examName)
+			ns := examNamespace(examName, examCRNamespace)
 
 			By("Verifying exam is in Unlocked phase")
 			exam := &examv1alpha1.Exam{}
@@ -481,7 +482,7 @@ var _ = Describe("Provisioning and Drift Correction", func() {
 			var netpols networkingv1.NetworkPolicyList
 			Expect(k8sClient.List(ctx, &netpols,
 				client.InNamespace(ns),
-				client.MatchingLabels{"exam.otu.ca/exam": examName},
+				client.MatchingLabels{provisioner.LabelExam: examName},
 			)).To(Succeed())
 
 			By("Finding an ingress-allow network policy")
@@ -515,7 +516,7 @@ var _ = Describe("Provisioning and Drift Correction", func() {
 			var ingresses networkingv1.IngressList
 			Expect(k8sClient.List(ctx, &ingresses,
 				client.InNamespace(ns),
-				client.MatchingLabels{"exam.otu.ca/exam": examName},
+				client.MatchingLabels{provisioner.LabelExam: examName},
 			)).To(Succeed())
 			Expect(ingresses.Items).NotTo(BeEmpty(), "ingress resources should still exist after drift correction")
 		})

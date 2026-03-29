@@ -156,6 +156,10 @@ var _ = Describe("Manager", Ordered, func() {
 		cmd := exec.Command("kubectl", "delete", "pod", "curl-metrics", "-n", namespace, "--ignore-not-found")
 		_, _ = utils.Run(cmd)
 
+		By("removing the metrics ClusterRoleBinding")
+		cmd = exec.Command("kubectl", "delete", "clusterrolebinding", metricsRoleBindingName, "--ignore-not-found")
+		_, _ = utils.Run(cmd)
+
 		By("undeploying the controller-manager")
 		cmd = exec.Command("make", "undeploy")
 		_, _ = utils.Run(cmd)
@@ -251,7 +255,9 @@ var _ = Describe("Manager", Ordered, func() {
 			_, err := utils.Run(cmd)
 			Expect(err).NotTo(HaveOccurred(), "CRD exams.exam.otu.ca should be registered")
 
-			By("creating a ClusterRoleBinding for metrics access")
+			By("ensuring a ClusterRoleBinding for metrics access")
+			cmd = exec.Command("kubectl", "delete", "clusterrolebinding", metricsRoleBindingName, "--ignore-not-found")
+			_, _ = utils.Run(cmd)
 			cmd = exec.Command("kubectl", "create", "clusterrolebinding", metricsRoleBindingName,
 				"--clusterrole=exam-controller-metrics-reader",
 				fmt.Sprintf("--serviceaccount=%s:%s", namespace, serviceAccountName),
@@ -316,7 +322,7 @@ var _ = Describe("Manager", Ordered, func() {
 		// Scenario 2: Full exam lifecycle
 		It("exam completes full lifecycle", func() {
 			const examName = "e2e-lifecycle"
-			examNS := "exam-" + examName
+			var examNS string
 
 			unlock := time.Now().UTC().Add(5 * time.Minute).Format(time.RFC3339)
 
@@ -390,10 +396,13 @@ spec:
 				g.Expect(output).To(Equal("Ready"))
 			}, 5*time.Minute, 5*time.Second).Should(Succeed())
 
-			By("verifying student namespace exists")
-			cmd = exec.Command("kubectl", "get", "ns", examNS)
-			_, err = utils.Run(cmd)
-			Expect(err).NotTo(HaveOccurred(), "exam namespace %s should exist during Ready phase", examNS)
+			By("discovering the per-exam namespace")
+			Eventually(func(g Gomega) {
+				var err error
+				examNS, err = lookupExamNamespace(examName)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(examNS).NotTo(BeEmpty(), "expected a namespace labeled for exam %s", examName)
+			}, 2*time.Minute, 5*time.Second).Should(Succeed())
 
 			By("cleaning up the Exam CR")
 			cmd = exec.Command("kubectl", "delete", "exam", examName,
@@ -537,7 +546,7 @@ spec:
 		// Scenario 4: Unlock and lock transitions
 		It("unlock and lock transitions create and remove ingresses", func() {
 			const examName = "e2e-phases"
-			examNS := "exam-" + examName
+			var examNS string
 
 			unlock := time.Now().UTC().Add(30 * time.Second).Format(time.RFC3339)
 
@@ -600,6 +609,14 @@ spec:
 				g.Expect(output).To(Equal("Unlocked"))
 			}, 3*time.Minute, 5*time.Second).Should(Succeed())
 
+			By("discovering the per-exam namespace")
+			Eventually(func(g Gomega) {
+				var err error
+				examNS, err = lookupExamNamespace(examName)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(examNS).NotTo(BeEmpty(), "expected a namespace labeled for exam %s", examName)
+			}, 2*time.Minute, 5*time.Second).Should(Succeed())
+
 			By("verifying at least one Ingress exists in exam namespace")
 			cmd = exec.Command("kubectl", "get", "ingress", "-n", examNS,
 				"-o", "jsonpath={.items[*].metadata.name}")
@@ -648,7 +665,7 @@ spec:
 		// Scenario 5: Full 6-phase lifecycle with compressed timeline
 		It("exercises the full 6-phase lifecycle with compressed timeline", func() {
 			const examName = "e2e-full-lifecycle"
-			examNS := "exam-" + examName
+			var examNS string
 
 			unlock := time.Now().UTC().Add(60 * time.Second).Format(time.RFC3339)
 
@@ -716,10 +733,13 @@ spec:
 					"expected phase to be at least Provisioning")
 			}, 2*time.Minute, 5*time.Second).Should(Succeed())
 
-			By("verifying exam namespace exists")
-			cmd = exec.Command("kubectl", "get", "ns", examNS)
-			_, err = utils.Run(cmd)
-			Expect(err).NotTo(HaveOccurred(), "exam namespace %s should exist", examNS)
+			By("discovering the per-exam namespace")
+			Eventually(func(g Gomega) {
+				var err error
+				examNS, err = lookupExamNamespace(examName)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(examNS).NotTo(BeEmpty(), "expected a namespace labeled for exam %s", examName)
+			}, 2*time.Minute, 5*time.Second).Should(Succeed())
 
 			By("verifying 3 deployments exist (2 students + 1 spare)")
 			Eventually(func(g Gomega) {
@@ -923,6 +943,21 @@ spec:
 		})
 	})
 })
+
+func examNamespaceSelector(examName string) string {
+	return fmt.Sprintf("exam.otu.ca/exam=%s,exam.otu.ca/exam-namespace=%s", examName, examCRNamespace)
+}
+
+func lookupExamNamespace(examName string) (string, error) {
+	cmd := exec.Command("kubectl", "get", "ns",
+		"-l", examNamespaceSelector(examName),
+		"-o", "jsonpath={.items[0].metadata.name}")
+	output, err := utils.Run(cmd)
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(output), nil
+}
 
 // serviceAccountToken returns a token for the specified service account in the given namespace.
 // It uses the Kubernetes TokenRequest API to generate a token by directly sending a request

@@ -1,0 +1,27 @@
+name: Preflight
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  preflight:
+    name: Run fast verification
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Clone the code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+
+      - name: Run fast verification
+        run: make verify-fast

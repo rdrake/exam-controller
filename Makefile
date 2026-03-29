@@ -54,9 +54,26 @@ generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and
 fmt: ## Run go fmt against code.
 	go fmt ./...
 
+.PHONY: fmt-check
+fmt-check: ## Verify Go files are formatted.
+	@unformatted="$$(gofmt -l $$(git ls-files '*.go'))"; \
+	if [ -n "$$unformatted" ]; then \
+		echo "FAIL: gofmt required for:"; \
+		echo "$$unformatted"; \
+		exit 1; \
+	fi
+
 .PHONY: vet
 vet: ## Run go vet against code.
 	go vet ./...
+
+.PHONY: check-generated
+check-generated: manifests generate ## Verify generated files are up to date.
+	@git diff --exit-code -- config/crd/bases config/rbac/role.yaml config/webhook/manifests.yaml ':(glob)api/**/zz_generated.*.go' >/dev/null || { \
+		echo "FAIL: generated files are out of date. Run 'make manifests generate' and commit the result."; \
+		git diff -- config/crd/bases config/rbac/role.yaml config/webhook/manifests.yaml ':(glob)api/**/zz_generated.*.go'; \
+		exit 1; \
+	}
 
 .PHONY: test
 test: manifests generate fmt vet setup-envtest ## Run all tests (unit + integration) with coverage.
@@ -79,6 +96,22 @@ test-unit: ## Run unit tests only (no envtest, no e2e).
 .PHONY: test-integration
 test-integration: manifests generate fmt vet setup-envtest ## Run integration tests only (envtest).
 	KUBEBUILDER_ASSETS="$(shell "$(ENVTEST)" use $(ENVTEST_K8S_VERSION) --bin-dir "$(LOCALBIN)" -p path)" go test -tags=integration ./internal/controller/ -v -count=1
+
+.PHONY: helm-verify
+helm-verify: ## Verify Helm chart linting and rendering in key configurations.
+	"$(HELM)" lint charts/exam-controller/
+	"$(HELM)" template exam-controller charts/exam-controller --namespace exam-system >/dev/null
+	"$(HELM)" template exam-controller charts/exam-controller --namespace exam-system \
+		--set webhook.enabled=true \
+		--set metrics.serviceMonitor.enabled=true \
+		--set networkPolicy.enabled=true >/dev/null
+
+.PHONY: vulncheck
+vulncheck: govulncheck ## Run govulncheck against code and dependencies.
+	"$(GOVULNCHECK)" ./...
+
+.PHONY: verify-fast
+verify-fast: check-generated fmt-check vet lint-config lint vulncheck test-unit helm-verify ## Run fast checks before slower integration/e2e suites.
 
 .PHONY: coverage
 coverage: manifests generate fmt vet setup-envtest ## Generate HTML coverage report.
@@ -126,6 +159,14 @@ lint-fix: golangci-lint ## Run golangci-lint linter and perform fixes
 .PHONY: lint-config
 lint-config: golangci-lint ## Verify golangci-lint linter configuration
 	"$(GOLANGCI_LINT)" config verify
+
+.PHONY: install-hooks
+install-hooks: ## Install git pre-commit and pre-push hooks.
+	@printf '#!/usr/bin/env bash\nset -e\nmake fmt-check vet\n' > .git/hooks/pre-commit
+	@chmod +x .git/hooks/pre-commit
+	@printf '#!/usr/bin/env bash\nset -e\nmake verify-fast\n' > .git/hooks/pre-push
+	@chmod +x .git/hooks/pre-push
+	@echo "Installed .git/hooks/pre-commit and .git/hooks/pre-push"
 
 ##@ Build
 
@@ -206,10 +247,12 @@ $(LOCALBIN):
 ## Tool Binaries
 KUBECTL ?= kubectl
 KIND ?= kind
+HELM ?= helm
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
+GOVULNCHECK = $(LOCALBIN)/govulncheck
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v5.8.1
@@ -226,6 +269,7 @@ ENVTEST_K8S_VERSION ?= $(shell v='$(call gomodver,k8s.io/api)'; \
   printf '%s\n' "$$v" | sed -E 's/^v?[0-9]+\.([0-9]+).*/1.\1/')
 
 GOLANGCI_LINT_VERSION ?= v2.8.0
+GOVULNCHECK_VERSION ?= v1.1.4
 .PHONY: kustomize
 kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
 $(KUSTOMIZE): $(LOCALBIN)
@@ -258,6 +302,11 @@ $(GOLANGCI_LINT): $(LOCALBIN)
 		$(GOLANGCI_LINT) custom --destination $(LOCALBIN) --name golangci-lint-custom && \
 		mv -f $(LOCALBIN)/golangci-lint-custom $(GOLANGCI_LINT); \
 	} || true
+
+.PHONY: govulncheck
+govulncheck: $(GOVULNCHECK) ## Download govulncheck locally if necessary.
+$(GOVULNCHECK): $(LOCALBIN)
+	$(call go-install-tool,$(GOVULNCHECK),golang.org/x/vuln/cmd/govulncheck,$(GOVULNCHECK_VERSION))
 
 # go-install-tool will 'go install' any package with custom target and name of binary, if it doesn't exist
 # $1 - target path with name of binary

@@ -39,25 +39,25 @@ func SetupExamWebhookWithManager(mgr ctrl.Manager) error {
 
 type examValidator struct{}
 
-func (v *examValidator) ValidateCreate(_ context.Context, exam *Exam) (admission.Warnings, error) {
+func (v *examValidator) validateFields(exam *Exam) error {
 	if len(exam.Spec.Students) == 0 {
-		return nil, fmt.Errorf("spec.students must have at least one entry")
+		return fmt.Errorf("spec.students must have at least one entry")
 	}
 	if exam.Spec.Schedule.Duration.Duration <= 0 {
-		return nil, fmt.Errorf("spec.schedule.duration must be > 0")
+		return fmt.Errorf("spec.schedule.duration must be > 0")
 	}
 	mult := exam.Spec.Schedule.TimeMultiplier
 	if mult == 0 {
 		mult = 1.5
 	}
 	if mult < 1.0 {
-		return nil, fmt.Errorf("spec.schedule.timeMultiplier must be >= 1.0")
+		return fmt.Errorf("spec.schedule.timeMultiplier must be >= 1.0")
 	}
 	if exam.Spec.Email.InstructorEmail == "" {
-		return nil, fmt.Errorf("spec.email.instructorEmail is required")
+		return fmt.Errorf("spec.email.instructorEmail is required")
 	}
 	if exam.Spec.Spares < 0 {
-		return nil, fmt.Errorf("spec.spares must be >= 0")
+		return fmt.Errorf("spec.spares must be >= 0")
 	}
 
 	rateLimit := exam.Spec.Email.RateLimit
@@ -70,7 +70,7 @@ func (v *examValidator) ValidateCreate(_ context.Context, exam *Exam) (admission
 	}
 	minEmailTime := math.Ceil(float64(len(exam.Spec.Students))/float64(rateLimit)) * 1.5
 	if emailBefore.Seconds() < minEmailTime {
-		return nil, fmt.Errorf("spec.email.before (%v) is too short to send %d emails at %d/s (need %.0fs with retry buffer)",
+		return fmt.Errorf("spec.email.before (%v) is too short to send %d emails at %d/s (need %.0fs with retry buffer)",
 			emailBefore, len(exam.Spec.Students), rateLimit, minEmailTime)
 	}
 
@@ -79,23 +79,31 @@ func (v *examValidator) ValidateCreate(_ context.Context, exam *Exam) (admission
 		provisionBefore = 1 * time.Hour
 	}
 	if provisionBefore <= emailBefore {
-		return nil, fmt.Errorf("spec.schedule.provisionBefore (%v) must be greater than spec.email.before (%v)",
+		return fmt.Errorf("spec.schedule.provisionBefore (%v) must be greater than spec.email.before (%v)",
 			provisionBefore, emailBefore)
 	}
 
 	if errs := validation.IsDNS1123Subdomain(exam.Spec.Domain); len(errs) > 0 {
-		return nil, fmt.Errorf("spec.domain %q is not a valid DNS domain: %s", exam.Spec.Domain, errs[0])
+		return fmt.Errorf("spec.domain %q is not a valid DNS domain: %s", exam.Spec.Domain, errs[0])
 	}
 	for i, s := range exam.Spec.Students {
 		if errs := validation.IsValidLabelValue(s.ID); len(errs) > 0 {
-			return nil, fmt.Errorf("spec.students[%d].id %q is not a valid label value: %s", i, s.ID, errs[0])
+			return fmt.Errorf("spec.students[%d].id %q is not a valid label value: %s", i, s.ID, errs[0])
 		}
 	}
 
-	return nil, nil
+	return nil
+}
+
+func (v *examValidator) ValidateCreate(_ context.Context, exam *Exam) (admission.Warnings, error) {
+	return nil, v.validateFields(exam)
 }
 
 func (v *examValidator) ValidateUpdate(_ context.Context, oldExam, newExam *Exam) (admission.Warnings, error) {
+	if err := v.validateFields(newExam); err != nil {
+		return nil, err
+	}
+
 	phase := oldExam.Status.Phase
 	if phase == ExamPhasePending || phase == "" {
 		return nil, nil

@@ -188,9 +188,10 @@ func TestCiliumIngressAllow_Fields(t *testing.T) {
 	if len(httpRules) == 0 {
 		t.Error("expected http rules for L7 visibility")
 	}
+	// Rule should be an empty map (match all methods)
 	httpRule := httpRules[0].(map[string]any)
-	if _, exists := httpRule["method"]; !exists {
-		t.Error("expected method key in http rule")
+	if len(httpRule) != 0 {
+		t.Errorf("expected empty http rule (match all), got %v", httpRule)
 	}
 }
 

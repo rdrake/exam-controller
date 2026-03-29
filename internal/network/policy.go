@@ -3,6 +3,7 @@ package network
 import (
 	"strconv"
 
+	"github.com/rdrake/exam-controller/internal/provisioner"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,7 +22,14 @@ type PolicyProvider interface {
 type VanillaPolicyProvider struct{}
 
 func slugFromLabels(labels map[string]string) string {
-	return labels["exam.otu.ca/slug"]
+	return labels[provisioner.LabelSlug]
+}
+
+func portFromLabels(labels map[string]string) string {
+	if p := labels[provisioner.LabelPort]; p != "" {
+		return p
+	}
+	return "8080"
 }
 
 func (v *VanillaPolicyProvider) DenyAll(namespace string, labels map[string]string) client.Object {
@@ -34,7 +42,7 @@ func (v *VanillaPolicyProvider) DenyAll(namespace string, labels map[string]stri
 		},
 		Spec: networkingv1.NetworkPolicySpec{
 			PodSelector: metav1.LabelSelector{
-				MatchLabels: map[string]string{"exam.otu.ca/slug": slug},
+				MatchLabels: map[string]string{provisioner.LabelSlug: slug},
 			},
 			PolicyTypes: []networkingv1.PolicyType{
 				networkingv1.PolicyTypeIngress,
@@ -57,7 +65,7 @@ func (v *VanillaPolicyProvider) EgressAllowlist(namespace string, labels map[str
 		},
 		Spec: networkingv1.NetworkPolicySpec{
 			PodSelector: metav1.LabelSelector{
-				MatchLabels: map[string]string{"exam.otu.ca/slug": slug},
+				MatchLabels: map[string]string{provisioner.LabelSlug: slug},
 			},
 			PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeEgress},
 			Egress: []networkingv1.NetworkPolicyEgressRule{
@@ -84,11 +92,7 @@ func (v *VanillaPolicyProvider) EgressAllowlist(namespace string, labels map[str
 
 func (v *VanillaPolicyProvider) IngressAllow(namespace string, labels map[string]string) client.Object {
 	slug := slugFromLabels(labels)
-	portStr := labels["exam.otu.ca/port"]
-	if portStr == "" {
-		portStr = "8080"
-	}
-	portNum, _ := strconv.Atoi(portStr)
+	portNum, _ := strconv.Atoi(portFromLabels(labels))
 	portVal := intstr.FromInt32(int32(portNum))
 	tcp := corev1.ProtocolTCP
 	return &networkingv1.NetworkPolicy{
@@ -99,7 +103,7 @@ func (v *VanillaPolicyProvider) IngressAllow(namespace string, labels map[string
 		},
 		Spec: networkingv1.NetworkPolicySpec{
 			PodSelector: metav1.LabelSelector{
-				MatchLabels: map[string]string{"exam.otu.ca/slug": slug},
+				MatchLabels: map[string]string{provisioner.LabelSlug: slug},
 			},
 			PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeIngress},
 			Ingress: []networkingv1.NetworkPolicyIngressRule{

@@ -40,10 +40,10 @@ import (
 	"github.com/rdrake/exam-controller/internal/metrics"
 	"github.com/rdrake/exam-controller/internal/network"
 	"github.com/rdrake/exam-controller/internal/notifier"
+	"github.com/rdrake/exam-controller/internal/provisioner"
 )
 
-// examNamespace is the namespace where Exam CRs live (matches mapToExam in
-// SetupWithManager which hard-codes "exam-system").
+// examCRNamespace is the namespace where Exam CRs live in integration tests.
 const examCRNamespace = "exam-system"
 
 var testCounter atomic.Int64
@@ -150,7 +150,10 @@ func patchDeploymentsReady(ctx context.Context, namespace, examName string) {
 	var deps appsv1.DeploymentList
 	Expect(k8sClient.List(ctx, &deps,
 		client.InNamespace(namespace),
-		client.MatchingLabels{"exam.otu.ca/exam": examName},
+		client.MatchingLabels{
+			provisioner.LabelExam:          examName,
+			provisioner.LabelExamNamespace: examCRNamespace,
+		},
 	)).To(Succeed())
 	for i := range deps.Items {
 		deps.Items[i].Status.Replicas = 1
@@ -205,6 +208,10 @@ func counterValue(cv *prometheus.CounterVec, labels ...string) float64 {
 	return testutil.ToFloat64(cv.WithLabelValues(labels...))
 }
 
+func metricLabelValuesForNN(nn types.NamespacedName) []string {
+	return metrics.LabelValues(nn.Name, nn.Namespace)
+}
+
 // driveToPhase drives the reconciler through the lifecycle until the exam
 // reaches the given phase. It returns the reconciler so callers can continue
 // using it with the same injectable clock.
@@ -231,7 +238,7 @@ func driveToPhase(
 	}
 
 	// Ready
-	patchDeploymentsReady(ctx, examNamespace(nn.Name), nn.Name)
+	patchDeploymentsReady(ctx, examNamespace(nn.Name, nn.Namespace), nn.Name)
 	_, err = reconciler.Reconcile(ctx, reconcileRequest(nn))
 	Expect(err).NotTo(HaveOccurred())
 	if target == examv1alpha1.ExamPhaseReady {

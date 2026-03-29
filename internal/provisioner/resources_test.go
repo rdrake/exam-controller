@@ -17,7 +17,7 @@ const (
 
 func testExam() *examv1alpha1.Exam {
 	return &examv1alpha1.Exam{
-		ObjectMeta: metav1.ObjectMeta{Name: "test-exam"},
+		ObjectMeta: metav1.ObjectMeta{Name: "test-exam", Namespace: "exam-system"},
 		Spec: examv1alpha1.ExamSpec{
 			Template: examv1alpha1.ExamTemplate{
 				Image: "vuln-app:v1",
@@ -292,38 +292,41 @@ func TestIngress_Rules(t *testing.T) {
 }
 
 func TestLabels_WithStudentID(t *testing.T) {
-	l := Labels("test-exam", "alice", testSlug)
+	l := Labels(testExam(), "alice", testSlug)
 
-	// Verify all three keys are present
-	if l["exam.otu.ca/exam"] != "test-exam" {
-		t.Errorf("exam label = %q, want %q", l["exam.otu.ca/exam"], "test-exam")
+	if l[LabelExam] != "test-exam" {
+		t.Errorf("exam label = %q, want %q", l[LabelExam], "test-exam")
 	}
-	if l["exam.otu.ca/slug"] != testSlug {
-		t.Errorf("slug label = %q, want %q", l["exam.otu.ca/slug"], testSlug)
+	if l[LabelExamNamespace] != "exam-system" {
+		t.Errorf("exam namespace label = %q, want %q", l[LabelExamNamespace], "exam-system")
 	}
-	if l["exam.otu.ca/student"] != "alice" {
-		t.Errorf("student label = %q, want %q", l["exam.otu.ca/student"], "alice")
+	if l[LabelSlug] != testSlug {
+		t.Errorf("slug label = %q, want %q", l[LabelSlug], testSlug)
+	}
+	if l[LabelStudent] != "alice" {
+		t.Errorf("student label = %q, want %q", l[LabelStudent], "alice")
 	}
 }
 
 func TestLabels_WithoutStudentID(t *testing.T) {
-	l := Labels("test-exam", "", testSlug)
+	l := Labels(testExam(), "", testSlug)
 
-	// Verify exam and slug keys are present
-	if l["exam.otu.ca/exam"] != "test-exam" {
-		t.Errorf("exam label = %q, want %q", l["exam.otu.ca/exam"], "test-exam")
+	if l[LabelExam] != "test-exam" {
+		t.Errorf("exam label = %q, want %q", l[LabelExam], "test-exam")
 	}
-	if l["exam.otu.ca/slug"] != testSlug {
-		t.Errorf("slug label = %q, want %q", l["exam.otu.ca/slug"], testSlug)
+	if l[LabelExamNamespace] != "exam-system" {
+		t.Errorf("exam namespace label = %q, want %q", l[LabelExamNamespace], "exam-system")
+	}
+	if l[LabelSlug] != testSlug {
+		t.Errorf("slug label = %q, want %q", l[LabelSlug], testSlug)
 	}
 
 	// Verify student key is ABSENT (not just empty)
-	if _, ok := l["exam.otu.ca/student"]; ok {
-		t.Error("expected exam.otu.ca/student key to be absent when studentID is empty")
+	if _, ok := l[LabelStudent]; ok {
+		t.Error("expected student label to be absent when studentID is empty")
 	}
 
-	// Verify only 2 keys exist
-	if len(l) != 2 {
-		t.Errorf("expected 2 labels, got %d: %v", len(l), l)
+	if len(l) != 3 {
+		t.Errorf("expected 3 labels, got %d: %v", len(l), l)
 	}
 }
