@@ -87,12 +87,12 @@ jobs:
           path: bin/
           merge-multiple: true
 
-      - name: Verify downloaded binaries
+      - name: Prepare binaries
         run: |
+          chmod +x bin/manager-linux-*
+          ls -la bin/
           file bin/manager-linux-amd64
           file bin/manager-linux-arm64
-          test -x bin/manager-linux-amd64
-          test -x bin/manager-linux-arm64
 
       - uses: docker/setup-buildx-action@v3
 
@@ -156,7 +156,11 @@ jobs:
           name: manager-linux-amd64
           path: bin/
 
-      - run: chmod +x bin/manager-linux-amd64
+      - name: Prepare binary
+        run: |
+          chmod +x bin/manager-linux-amd64
+          ls -la bin/
+          file bin/manager-linux-amd64
 
       - name: Install kind
         run: |
