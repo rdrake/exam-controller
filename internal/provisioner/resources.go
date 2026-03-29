@@ -52,7 +52,7 @@ func Deployment(exam *examv1alpha1.Exam, namespace, studentID, slug string) *app
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{Labels: labels},
 				Spec: corev1.PodSpec{
-					AutomountServiceAccountToken: ptr.To(false),
+					AutomountServiceAccountToken: new(false),
 					Containers: []corev1.Container{
 						{
 							Name:      "app",
@@ -60,8 +60,8 @@ func Deployment(exam *examv1alpha1.Exam, namespace, studentID, slug string) *app
 							Ports:     []corev1.ContainerPort{{ContainerPort: exam.Spec.Template.Port}},
 							Resources: exam.Spec.Template.Resources,
 							SecurityContext: &corev1.SecurityContext{
-								RunAsNonRoot:             ptr.To(true),
-								AllowPrivilegeEscalation: ptr.To(false),
+								RunAsNonRoot:             new(true),
+								AllowPrivilegeEscalation: new(false),
 								Capabilities:             &corev1.Capabilities{Drop: []corev1.Capability{"ALL"}},
 								SeccompProfile:           &corev1.SeccompProfile{Type: corev1.SeccompProfileTypeRuntimeDefault},
 							},
