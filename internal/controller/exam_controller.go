@@ -437,8 +437,9 @@ func (r *ExamReconciler) reconcileProvisioning(ctx context.Context, exam *examv1
 			allHealthy = false
 			continue
 		}
+		wasProvisioned := i < len(exam.Status.Students) && exam.Status.Students[i].Phase == examv1alpha1.StudentPhaseProvisioned
 		r.setStudentStatus(exam, i, s, examv1alpha1.StudentPhaseProvisioned)
-		if r.Metrics != nil && exam.Status.ProvisionTime != nil {
+		if !wasProvisioned && r.Metrics != nil && exam.Status.ProvisionTime != nil {
 			r.Metrics.ProvisionDuration.WithLabelValues(
 				exam.Name, exam.Namespace, student.ID,
 			).Observe(r.now().Sub(exam.Status.ProvisionTime.Time).Seconds())
@@ -455,8 +456,9 @@ func (r *ExamReconciler) reconcileProvisioning(ctx context.Context, exam *examv1
 			allHealthy = false
 			continue
 		}
+		wasProvisioned := i < len(exam.Status.Spares) && exam.Status.Spares[i].Phase == examv1alpha1.StudentPhaseProvisioned
 		r.setSpareStatus(exam, i, s, examv1alpha1.StudentPhaseProvisioned)
-		if r.Metrics != nil && exam.Status.ProvisionTime != nil {
+		if !wasProvisioned && r.Metrics != nil && exam.Status.ProvisionTime != nil {
 			r.Metrics.ProvisionDuration.WithLabelValues(
 				exam.Name, exam.Namespace, s,
 			).Observe(r.now().Sub(exam.Status.ProvisionTime.Time).Seconds())
