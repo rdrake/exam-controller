@@ -58,7 +58,7 @@ jobs:
           cache-from: type=gha
 
       - name: Trivy vulnerability scan
-        uses: aquasecurity/trivy-action@0.31.0
+        uses: aquasecurity/trivy-action@v0.35.0
         with:
           image-ref: scan-target:latest
           exit-code: "1"
