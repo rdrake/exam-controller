@@ -1,7 +1,6 @@
 local g = import 'github.com/grafana/grafonnet/gen/grafonnet-latest/main.libsonnet';
 
 local ds = '${DS_PROMETHEUS}';
-local dsRef = { type: 'prometheus', uid: ds };
 local filters = 'exam="$exam", namespace="$namespace"';
 
 // --- Helper: Prometheus query target ---
