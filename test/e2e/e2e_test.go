@@ -42,7 +42,7 @@ const namespace = "exam-controller-system"
 const examCRNamespace = "exam-system"
 
 const platformSMTPSecretName = "exam-smtp-credentials"
-const platformTLSSecretName = "exam-wildcard-tls"
+const platformTLSSecretName = ""
 
 // serviceAccountName created for the project
 const serviceAccountName = "exam-controller-controller-manager"

@@ -10,7 +10,7 @@ This document covers deployment, monitoring, troubleshooting, and supported oper
 
 - Kubernetes 1.28+
 - An Ingress controller (ingress-nginx expected by default NetworkPolicy rules)
-- A wildcard TLS certificate for your exam domain (e.g. `*.exam.otu.ca`)
+- (Optional) A wildcard TLS certificate for your exam domain (e.g. `*.science.ontariotechu.ca`) -- only needed when not using cert-manager or Cilium for TLS
 - An SMTP server for email delivery
 - (Optional) Prometheus + Grafana for monitoring
 - (Optional) Cilium CNI for CiliumNetworkPolicy support (auto-detected at startup)
@@ -38,22 +38,31 @@ The default install ships only the RBAC required by the controller and its metri
 
 The controller reads two platform-managed secrets from its configured secret namespace:
 
-1. **Wildcard certificate** -- `--ingress-tls-secret-name` points to a TLS secret covering `*.exam.otu.ca` (or your chosen base domain). The controller copies this secret into each exam namespace before creating ingresses.
-2. **SMTP credentials** -- `--smtp-secret-name` points to a secret with `host`, `port`, `username`, and `password` keys. The `port` defaults to 587 if missing.
+1. **Wildcard certificate** (optional) -- `--ingress-tls-secret-name` points to a TLS secret covering `*.science.ontariotechu.ca` (or your chosen base domain). The controller copies this secret into each exam namespace before creating ingresses. When left empty (the default), TLS secret management is disabled -- use this when cert-manager or Cilium handles TLS automatically.
+2. **SMTP credentials** -- `--smtp-secret-name` points to a secret with `host`, `port`, and optionally `username` and `password` keys. The `port` defaults to 587 if missing. For unauthenticated SMTP relays, the `username` and `password` keys may be omitted.
 
 Example:
 
 ```bash
+# Optional: only needed when NOT using cert-manager or Cilium for TLS.
+# If using cert-manager, skip this step and leave --ingress-tls-secret-name empty.
 kubectl create secret tls exam-wildcard-tls \
   --cert=wildcard.crt --key=wildcard.key \
   -n exam-controller-system
 
+# For authenticated SMTP relays, include username and password:
 kubectl create secret generic exam-smtp-credentials \
   --from-literal=host=smtp.example.com \
   --from-literal=port=587 \
   --from-literal=username=noreply@example.com \
   --from-literal=password=changeme \
   -n exam-controller-system
+
+# For unauthenticated SMTP relays, username and password can be omitted:
+# kubectl create secret generic exam-smtp-credentials \
+#   --from-literal=host=smtp-relay.internal \
+#   --from-literal=port=25 \
+#   -n exam-controller-system
 ```
 
 Metrics and webhook certificates remain separate. The controller can generate self-signed certs by default; for production, use cert-manager or pass `--metrics-cert-path` / `--webhook-cert-path`.
@@ -78,8 +87,8 @@ Key startup flags (configured in `config/default/manager_metrics_patch.yaml`):
 | `--metrics-bind-address`     | `0`        | Metrics listen address (`:8443` for HTTPS, `:8080` for HTTP) |
 | `--health-probe-bind-address`| `:8081`    | Liveness/readiness probe address       |
 | `--leader-elect`             | `false`    | Enable leader election for HA          |
-| `--base-domain`              | `exam.otu.ca` | Base domain for student URLs and Ingress hosts |
-| `--ingress-tls-secret-name`  | `exam-wildcard-tls` | Wildcard TLS secret copied into exam namespaces |
+| `--base-domain`              | `science.ontariotechu.ca` | Base domain for student URLs and Ingress hosts |
+| `--ingress-tls-secret-name`  | `""` (empty)  | Wildcard TLS secret copied into exam namespaces (optional; leave empty when cert-manager/Cilium handles TLS) |
 | `--smtp-secret-name`         | `exam-smtp-credentials` | SMTP credentials secret name |
 | `--platform-secret-namespace`| `POD_NAMESPACE` or `exam-system` | Namespace holding platform secrets |
 | `--metrics-secure`           | `true`     | Serve metrics over HTTPS               |
@@ -108,8 +117,8 @@ Key Helm values:
 | `metrics.serviceMonitor.enabled` | `false`                              | Create Prometheus ServiceMonitor   |
 | `metrics.serviceMonitor.interval`| `30s`                                | Scrape interval                    |
 | `webhook.enabled`                | `false`                              | Enable admission webhooks          |
-| `platform.baseDomain`            | `exam.otu.ca`                        | Base domain for student URLs       |
-| `platform.ingressTLSSecretName`  | `exam-wildcard-tls`                  | Wildcard TLS secret name           |
+| `platform.baseDomain`            | `science.ontariotechu.ca`            | Base domain for student URLs       |
+| `platform.ingressTLSSecretName`  | `""` (empty)                         | Wildcard TLS secret name (optional; leave empty when cert-manager/Cilium handles TLS) |
 | `platform.smtpSecretName`        | `exam-smtp-credentials`              | SMTP credentials secret name       |
 | `platform.secretNamespace`       | `""`                                 | Namespace holding platform secrets |
 | `healthProbe.port`               | `8081`                               | Health probe port                  |
@@ -288,7 +297,7 @@ kubectl logs -n exam-controller-system deployment/exam-controller-controller-man
 **Common causes and resolution:**
 
 - **Secret not found:** Verify the controller's `--smtp-secret-name` and `--platform-secret-namespace` settings point to an existing Secret.
-- **Wrong credentials:** Check the `username` and `password` keys in the Secret. The controller uses PLAIN auth.
+- **Wrong credentials:** If the SMTP server requires authentication, check the `username` and `password` keys in the Secret. The controller uses PLAIN auth. For unauthenticated relays, these keys may be omitted.
 - **Port mismatch:** The Secret `port` defaults to 587 if omitted. Ensure your SMTP server listens on that port.
 - **Network connectivity:** The controller pod must be able to reach the SMTP host. Check NetworkPolicies on the controller namespace.
 - **Retry exhaustion:** The RetrySender retries up to 3 times with exponential backoff (100ms, 200ms, 400ms). Persistent failures indicate an infrastructure problem, not a transient issue.
@@ -356,11 +365,11 @@ kubectl get ingress -n "$EXAM_NS"
 # Verify the exam is in Unlocked phase
 kubectl get exam <name> -n exam-system -o jsonpath='{.status.phase}'
 
-# Check TLS secret
-kubectl get secret exam-wildcard-tls -n "$EXAM_NS"
+# Check TLS secret (only applies when --ingress-tls-secret-name is set)
+kubectl get secret <tls-secret-name> -n "$EXAM_NS"
 
 # Test DNS resolution
-nslookup <slug>.exam.otu.ca
+nslookup <slug>.science.ontariotechu.ca
 
 # Check ingress controller logs
 kubectl logs -n ingress-nginx deployment/ingress-nginx-controller | grep <slug>
@@ -372,8 +381,8 @@ kubectl get networkpolicy -n "$EXAM_NS" -l exam.otu.ca/slug=<slug>
 **Common causes and resolution:**
 
 - **Exam not yet unlocked:** Ingress resources are only created when the exam transitions to the `Unlocked` phase. Before unlock, pods are isolated by deny-all NetworkPolicies.
-- **TLS secret missing:** Verify the controller's platform wildcard TLS secret exists in the configured secret namespace and that the controller successfully copied it into `$EXAM_NS`.
-- **DNS not configured:** A wildcard DNS record (e.g. `*.exam.otu.ca`) must point to the ingress controller's external IP.
+- **TLS secret missing:** If `--ingress-tls-secret-name` is set, verify the controller's platform wildcard TLS secret exists in the configured secret namespace and that the controller successfully copied it into `$EXAM_NS`. If using cert-manager or Cilium for TLS, this does not apply.
+- **DNS not configured:** A wildcard DNS record (e.g. `*.science.ontariotechu.ca`) must point to the ingress controller's external IP.
 - **NetworkPolicy blocking traffic:** The ingress-allow policy permits traffic only from pods in the `ingress-nginx` namespace with label `app.kubernetes.io/name=ingress-nginx`. If your ingress controller uses different labels or a different namespace, traffic will be blocked.
 - **Ingress controller not found:** The IngressAllow NetworkPolicy expects the controller in the `ingress-nginx` namespace. Adjust if using a different ingress controller.
 

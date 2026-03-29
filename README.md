@@ -91,8 +91,7 @@ This operator is intended for infra-owned workflows. Instructors are inputs to t
 helm install exam-controller \
   oci://ghcr.io/rdrake/charts/exam-controller \
   --namespace exam-controller-system --create-namespace \
-  --set platform.baseDomain=exam.otu.ca \
-  --set platform.ingressTLSSecretName=exam-wildcard-tls \
+  --set platform.baseDomain=science.ontariotechu.ca \
   --set platform.smtpSecretName=exam-smtp-credentials \
   --version 0.1.0
 ```

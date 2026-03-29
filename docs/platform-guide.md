@@ -31,9 +31,9 @@ Platform prerequisites are configured once on the controller deployment:
 
 | Setting | Example | Source |
 |---|---|---|
-| Base domain | `exam.otu.ca` | Platform |
+| Base domain | `science.ontariotechu.ca` | Platform |
 | SMTP secret name | `exam-smtp-credentials` | Platform |
-| Wildcard TLS secret name | `exam-wildcard-tls` | Platform |
+| Wildcard TLS secret name (optional) | `exam-wildcard-tls` | Platform (only if not using cert-manager/Cilium for TLS) |
 | Platform secret namespace | `exam-controller-system` | Platform |
 
 ## Example manifest
@@ -77,7 +77,7 @@ spec:
   spares: 2
 ```
 
-The controller supplies the base domain, wildcard TLS certificate, and SMTP credentials from its own deployment configuration.
+The controller supplies the base domain and SMTP credentials from its own deployment configuration. A wildcard TLS secret is optional; by default, TLS is handled by cert-manager or Cilium.
 
 Apply it with:
 

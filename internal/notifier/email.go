@@ -22,7 +22,10 @@ type SMTPSender struct {
 
 func (s *SMTPSender) Send(from string, to []string, msg []byte) error {
 	addr := fmt.Sprintf("%s:%d", s.Host, s.Port)
-	auth := smtp.PlainAuth("", s.Username, s.Password, s.Host)
+	var auth smtp.Auth
+	if s.Username != "" || s.Password != "" {
+		auth = smtp.PlainAuth("", s.Username, s.Password, s.Host)
+	}
 	return smtp.SendMail(addr, auth, from, to, msg)
 }
 

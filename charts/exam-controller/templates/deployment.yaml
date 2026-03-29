@@ -35,7 +35,9 @@ spec:
         {{- end }}
         - --health-probe-bind-address=:{{ .Values.healthProbe.port }}
         - --base-domain={{ .Values.platform.baseDomain }}
+        {{- if .Values.platform.ingressTLSSecretName }}
         - --ingress-tls-secret-name={{ .Values.platform.ingressTLSSecretName }}
+        {{- end }}
         - --smtp-secret-name={{ .Values.platform.smtpSecretName }}
         {{- if .Values.platform.secretNamespace }}
         - --platform-secret-namespace={{ .Values.platform.secretNamespace }}

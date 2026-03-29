@@ -32,8 +32,8 @@ webhook:
   keyName: tls.key
 
 platform:
-  baseDomain: exam.otu.ca
-  ingressTLSSecretName: exam-wildcard-tls
+  baseDomain: science.ontariotechu.ca
+  ingressTLSSecretName: ""  # empty disables TLS secret management (cert-manager/service mesh handles TLS)
   smtpSecretName: exam-smtp-credentials
   secretNamespace: ""
 

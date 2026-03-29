@@ -241,6 +241,21 @@ func TestIngress_TLS(t *testing.T) {
 	}
 }
 
+func TestIngress_NoTLS(t *testing.T) {
+	ing := Ingress(testExam(), "exam-ns", "alice", testSlug, testDomain, "")
+
+	if len(ing.Spec.TLS) != 0 {
+		t.Fatalf("expected no TLS entries when secret name is empty, got %d", len(ing.Spec.TLS))
+	}
+	// Rules should still be present
+	if len(ing.Spec.Rules) != 1 {
+		t.Fatalf("expected 1 ingress rule, got %d", len(ing.Spec.Rules))
+	}
+	if ing.Spec.Rules[0].Host != testHost {
+		t.Errorf("host = %q, want %q", ing.Spec.Rules[0].Host, testHost)
+	}
+}
+
 func TestIngress_Rules(t *testing.T) {
 	ing := Ingress(testExam(), "exam-ns", "alice", testSlug, testDomain, testTLSSecret)
 

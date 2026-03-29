@@ -88,12 +88,13 @@ func main() {
 		"The directory that contains the metrics server certificate.")
 	flag.StringVar(&metricsCertName, "metrics-cert-name", "tls.crt", "The name of the metrics server certificate file.")
 	flag.StringVar(&metricsCertKey, "metrics-cert-key", "tls.key", "The name of the metrics server key file.")
-	flag.StringVar(&baseDomain, "base-domain", "exam.otu.ca",
+	flag.StringVar(&baseDomain, "base-domain", "science.ontariotechu.ca",
 		"Base domain used for student URLs and Ingress hosts.")
-	flag.StringVar(&ingressTLSSecretName, "ingress-tls-secret-name", "exam-wildcard-tls",
-		"Name of the platform-managed wildcard TLS Secret copied into per-exam namespaces.")
+	flag.StringVar(&ingressTLSSecretName, "ingress-tls-secret-name", "",
+		"Name of the wildcard TLS Secret to copy into per-exam namespaces. "+
+			"Empty disables TLS secret management (cert-manager or service mesh handles TLS).")
 	flag.StringVar(&smtpSecretName, "smtp-secret-name", "exam-smtp-credentials",
-		"Name of the platform-managed SMTP Secret used for outbound mail.")
+		"Name of the SMTP Secret (host/port required, username/password optional for relays).")
 	flag.StringVar(&platformSecretNamespace, "platform-secret-namespace", "",
 		"Namespace containing the platform-managed SMTP and wildcard TLS Secrets. Defaults to POD_NAMESPACE when set.")
 	flag.BoolVar(&enableHTTP2, "enable-http2", false,

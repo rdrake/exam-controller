@@ -93,16 +93,13 @@ func Ingress(
 ) *networkingv1.Ingress {
 	pathType := networkingv1.PathTypePrefix
 	host := fmt.Sprintf("%s.%s", slug, baseDomain)
-	return &networkingv1.Ingress{
+	ing := &networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      slug,
 			Namespace: namespace,
 			Labels:    Labels(exam, studentID, slug),
 		},
 		Spec: networkingv1.IngressSpec{
-			TLS: []networkingv1.IngressTLS{
-				{Hosts: []string{host}, SecretName: tlsSecretName},
-			},
 			Rules: []networkingv1.IngressRule{
 				{
 					Host: host,
@@ -126,4 +123,10 @@ func Ingress(
 			},
 		},
 	}
+	if tlsSecretName != "" {
+		ing.Spec.TLS = []networkingv1.IngressTLS{
+			{Hosts: []string{host}, SecretName: tlsSecretName},
+		}
+	}
+	return ing
 }

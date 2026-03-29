@@ -97,16 +97,10 @@ func (r *ExamReconciler) platformSecretNamespace(exam *examv1alpha1.Exam) string
 }
 
 func (r *ExamReconciler) validatePlatformConfig() error {
-	switch {
-	case r.Platform.BaseDomain == "":
+	if r.Platform.BaseDomain == "" {
 		return fmt.Errorf("platform config missing base domain")
-	case r.Platform.IngressTLSSecretName == "":
-		return fmt.Errorf("platform config missing ingress TLS secret name")
-	case r.Platform.SMTPSecretName == "":
-		return fmt.Errorf("platform config missing SMTP secret name")
-	default:
-		return nil
 	}
+	return nil
 }
 
 func (r *ExamReconciler) instanceURL(s string) string {
@@ -122,6 +116,10 @@ func (r *ExamReconciler) resolvedSender(ctx context.Context, exam *examv1alpha1.
 			// Non-RetrySender (e.g., FakeSender) — use directly for testing
 			return r.Sender, nil
 		}
+	}
+
+	if r.Platform.SMTPSecretName == "" {
+		return nil, fmt.Errorf("SMTP secret name not configured; set --smtp-secret-name")
 	}
 
 	var secret corev1.Secret
@@ -668,6 +666,9 @@ func (r *ExamReconciler) provisionInstance(ctx context.Context, exam *examv1alph
 }
 
 func (r *ExamReconciler) reconcilePlatformTLSSecret(ctx context.Context, exam *examv1alpha1.Exam, examNS string) error {
+	if r.Platform.IngressTLSSecretName == "" {
+		return nil
+	}
 	var source corev1.Secret
 	sourceNN := types.NamespacedName{
 		Name:      r.Platform.IngressTLSSecretName,
