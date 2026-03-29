@@ -28,6 +28,11 @@ jobs:
         with:
           go-version-file: go.mod
       - uses: azure/setup-helm@v5
+      - name: Cache tool binaries
+        uses: actions/cache@v4
+        with:
+          path: bin/
+          key: tools-${{ runner.os }}-go${{ hashFiles('go.mod') }}-${{ hashFiles('Makefile') }}
       - name: Run fast verification
         run: make verify-fast
 
@@ -41,6 +46,11 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
+      - name: Cache tool binaries
+        uses: actions/cache@v4
+        with:
+          path: bin/
+          key: tools-${{ runner.os }}-go${{ hashFiles('go.mod') }}-${{ hashFiles('Makefile') }}
       - name: Run tests
         run: |
           go mod tidy
