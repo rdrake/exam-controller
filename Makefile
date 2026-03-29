@@ -109,12 +109,30 @@ helm-verify: ## Verify Helm chart linting and rendering in key configurations.
 		--set grafana.dashboard.enabled=true \
 		--set grafana.dashboard.folder=test-folder >/dev/null
 
+DASHBOARD_DIR = charts/exam-controller/dashboards
+
+.PHONY: dashboard
+dashboard: ## Compile Grafana dashboard Jsonnet to JSON.
+	cd "$(DASHBOARD_DIR)" && "$(JSONNET)" -J vendor exam-overview.jsonnet > exam-overview.json
+
+.PHONY: dashboard-vendor
+dashboard-vendor: ## Install Jsonnet dependencies for the Grafana dashboard.
+	cd "$(DASHBOARD_DIR)" && "$(JB)" install
+
+.PHONY: check-dashboard
+check-dashboard: dashboard ## Verify compiled dashboard JSON is up to date.
+	@git diff --exit-code -- "$(DASHBOARD_DIR)/exam-overview.json" >/dev/null || { \
+		echo "FAIL: dashboard JSON is out of date. Run 'make dashboard' and commit the result."; \
+		git diff -- "$(DASHBOARD_DIR)/exam-overview.json"; \
+		exit 1; \
+	}
+
 .PHONY: vulncheck
 vulncheck: govulncheck ## Run govulncheck against code and dependencies.
 	"$(GOVULNCHECK)" ./...
 
 .PHONY: verify-fast
-verify-fast: check-generated fmt-check vet lint-config lint vulncheck test-unit helm-verify ## Run fast checks before slower integration/e2e suites.
+verify-fast: check-generated check-dashboard fmt-check vet lint-config lint vulncheck test-unit helm-verify ## Run fast checks before slower integration/e2e suites.
 
 .PHONY: coverage
 coverage: manifests generate fmt vet setup-envtest ## Generate HTML coverage report.
@@ -265,6 +283,9 @@ $(LOCALBIN):
 KUBECTL ?= kubectl
 KIND ?= kind
 HELM ?= helm
+JSONNET ?= jsonnet
+JSONNETFMT ?= jsonnetfmt
+JB ?= jb
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
