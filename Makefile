@@ -105,6 +105,9 @@ helm-verify: ## Verify Helm chart linting and rendering in key configurations.
 		--set webhook.enabled=true \
 		--set metrics.serviceMonitor.enabled=true \
 		--set networkPolicy.enabled=true >/dev/null
+	"$(HELM)" template exam-controller charts/exam-controller --namespace exam-system \
+		--set grafana.dashboard.enabled=true \
+		--set grafana.dashboard.folder=test-folder >/dev/null
 
 .PHONY: vulncheck
 vulncheck: govulncheck ## Run govulncheck against code and dependencies.
