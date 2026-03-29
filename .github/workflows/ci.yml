@@ -28,6 +28,13 @@ jobs:
         with:
           go-version-file: go.mod
       - uses: azure/setup-helm@v5
+      - name: Install Jsonnet toolchain
+        run: |
+          go install github.com/google/go-jsonnet/cmd/jsonnet@latest
+          go install github.com/google/go-jsonnet/cmd/jsonnetfmt@latest
+          go install github.com/jsonnet-bundler/jsonnet-bundler/cmd/jb@latest
+      - name: Install Jsonnet dependencies
+        run: cd charts/exam-controller/dashboards && jb install
       - name: Cache tool binaries
         uses: actions/cache@v4
         with:
