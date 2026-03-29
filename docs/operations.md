@@ -1,6 +1,6 @@
 # Operational Runbook
 
-This document covers deployment, monitoring, troubleshooting, and emergency procedures for the exam-controller.
+This document covers deployment, monitoring, troubleshooting, and supported operational procedures for the exam-controller.
 
 ---
 
@@ -26,47 +26,37 @@ The controller requires a ClusterRole with the following permissions:
 | API Group          | Resources                             | Verbs                                     |
 |--------------------|---------------------------------------|--------------------------------------------|
 | `""`               | namespaces, services                  | get, list, watch, create, update, patch, delete |
-| `""`               | secrets                               | get, list, watch                           |
+| `""`               | secrets                               | get, list, watch, create, update, patch    |
 | `apps`             | deployments                           | get, list, watch, create, update, patch, delete |
 | `networking.k8s.io`| ingresses, networkpolicies            | get, list, watch, create, update, patch, delete |
 | `cilium.io`        | ciliumnetworkpolicies                 | get, list, watch, create, update, patch, delete |
 | `exam.otu.ca`      | exams, exams/status, exams/finalizers | full CRUD                                  |
 
-Three helper ClusterRoles are included for user-facing RBAC:
+The default install ships only the RBAC required by the controller and its metrics endpoint. Bind any additional read or write access to `Exam` resources explicitly for your own platform team workflows.
 
-- `exam-admin-role` -- full access to Exam CRs
-- `exam-editor-role` -- create/update/patch/delete Exam CRs
-- `exam-viewer-role` -- read-only access to Exam CRs
+### Platform Secrets
 
-### TLS Certificates
+The controller reads two platform-managed secrets from its configured secret namespace:
 
-Two TLS secrets are referenced in a typical deployment:
+1. **Wildcard certificate** -- `--ingress-tls-secret-name` points to a TLS secret covering `*.exam.otu.ca` (or your chosen base domain). The controller copies this secret into each exam namespace before creating ingresses.
+2. **SMTP credentials** -- `--smtp-secret-name` points to a secret with `host`, `port`, `username`, and `password` keys. The `port` defaults to 587 if missing.
 
-1. **Wildcard certificate** -- Referenced by `spec.ingressTLS.secretName` in Exam CRs. Must cover `*.exam.otu.ca` (or your domain). Can be created with cert-manager or manually:
-
-   ```bash
-   EXAM_NS=$(kubectl get ns -l exam.otu.ca/exam=<name>,exam.otu.ca/exam-namespace=exam-system -o jsonpath='{.items[0].metadata.name}')
-   kubectl create secret tls exam-wildcard-tls \
-     --cert=wildcard.crt --key=wildcard.key \
-     -n "$EXAM_NS"
-   ```
-
-2. **Metrics/webhook certificates** -- The controller generates self-signed certs by default. For production, use cert-manager by uncommenting the CERTMANAGER sections in `config/default/kustomization.yaml`, or pass `--metrics-cert-path` / `--webhook-cert-path` flags.
-
-### SMTP Secret
-
-Create a Secret in the same namespace as your Exam CR:
+Example:
 
 ```bash
+kubectl create secret tls exam-wildcard-tls \
+  --cert=wildcard.crt --key=wildcard.key \
+  -n exam-controller-system
+
 kubectl create secret generic exam-smtp-credentials \
   --from-literal=host=smtp.example.com \
   --from-literal=port=587 \
   --from-literal=username=noreply@example.com \
   --from-literal=password=changeme \
-  -n exam-system
+  -n exam-controller-system
 ```
 
-The controller reads `host`, `port`, `username`, and `password` keys at send time. The `port` defaults to 587 if missing.
+Metrics and webhook certificates remain separate. The controller can generate self-signed certs by default; for production, use cert-manager or pass `--metrics-cert-path` / `--webhook-cert-path`.
 
 ### Kustomize Deployment
 
@@ -88,6 +78,10 @@ Key startup flags (configured in `config/default/manager_metrics_patch.yaml`):
 | `--metrics-bind-address`     | `0`        | Metrics listen address (`:8443` for HTTPS, `:8080` for HTTP) |
 | `--health-probe-bind-address`| `:8081`    | Liveness/readiness probe address       |
 | `--leader-elect`             | `false`    | Enable leader election for HA          |
+| `--base-domain`              | `exam.otu.ca` | Base domain for student URLs and Ingress hosts |
+| `--ingress-tls-secret-name`  | `exam-wildcard-tls` | Wildcard TLS secret copied into exam namespaces |
+| `--smtp-secret-name`         | `exam-smtp-credentials` | SMTP credentials secret name |
+| `--platform-secret-namespace`| `POD_NAMESPACE` or `exam-system` | Namespace holding platform secrets |
 | `--metrics-secure`           | `true`     | Serve metrics over HTTPS               |
 | `--enable-http2`             | `false`    | Enable HTTP/2 (disabled by default for CVE mitigation) |
 
@@ -114,6 +108,10 @@ Key Helm values:
 | `metrics.serviceMonitor.enabled` | `false`                              | Create Prometheus ServiceMonitor   |
 | `metrics.serviceMonitor.interval`| `30s`                                | Scrape interval                    |
 | `webhook.enabled`                | `false`                              | Enable admission webhooks          |
+| `platform.baseDomain`            | `exam.otu.ca`                        | Base domain for student URLs       |
+| `platform.ingressTLSSecretName`  | `exam-wildcard-tls`                  | Wildcard TLS secret name           |
+| `platform.smtpSecretName`        | `exam-smtp-credentials`              | SMTP credentials secret name       |
+| `platform.secretNamespace`       | `""`                                 | Namespace holding platform secrets |
 | `healthProbe.port`               | `8081`                               | Health probe port                  |
 | `resources.requests.cpu`         | `10m`                                | CPU request                        |
 | `resources.requests.memory`      | `64Mi`                               | Memory request                     |
@@ -279,8 +277,8 @@ kubectl logs -n exam-controller-system deployment/exam-controller-controller-man
 # Check student email statuses
 kubectl get exam <name> -n exam-system -o jsonpath='{range .status.students[*]}{.id} {.emailStatus}{"\n"}{end}'
 
-# Verify SMTP secret exists and has correct keys
-kubectl get secret exam-smtp-credentials -n exam-system -o jsonpath='{.data}' | base64 -d
+# Verify SMTP secret exists in the controller's platform secret namespace
+kubectl get secret exam-smtp-credentials -n exam-controller-system -o yaml
 
 # Check controller logs for SMTP errors
 kubectl logs -n exam-controller-system deployment/exam-controller-controller-manager \
@@ -289,7 +287,7 @@ kubectl logs -n exam-controller-system deployment/exam-controller-controller-man
 
 **Common causes and resolution:**
 
-- **Secret not found:** Verify `spec.email.secretRef` matches an existing Secret in the Exam CR's namespace.
+- **Secret not found:** Verify the controller's `--smtp-secret-name` and `--platform-secret-namespace` settings point to an existing Secret.
 - **Wrong credentials:** Check the `username` and `password` keys in the Secret. The controller uses PLAIN auth.
 - **Port mismatch:** The Secret `port` defaults to 587 if omitted. Ensure your SMTP server listens on that port.
 - **Network connectivity:** The controller pod must be able to reach the SMTP host. Check NetworkPolicies on the controller namespace.
@@ -374,7 +372,7 @@ kubectl get networkpolicy -n "$EXAM_NS" -l exam.otu.ca/slug=<slug>
 **Common causes and resolution:**
 
 - **Exam not yet unlocked:** Ingress resources are only created when the exam transitions to the `Unlocked` phase. Before unlock, pods are isolated by deny-all NetworkPolicies.
-- **TLS secret missing:** The wildcard TLS Secret referenced by `spec.ingressTLS.secretName` must exist in the per-exam namespace (`$EXAM_NS` from the lookup command above).
+- **TLS secret missing:** Verify the controller's platform wildcard TLS secret exists in the configured secret namespace and that the controller successfully copied it into `$EXAM_NS`.
 - **DNS not configured:** A wildcard DNS record (e.g. `*.exam.otu.ca`) must point to the ingress controller's external IP.
 - **NetworkPolicy blocking traffic:** The ingress-allow policy permits traffic only from pods in the `ingress-nginx` namespace with label `app.kubernetes.io/name=ingress-nginx`. If your ingress controller uses different labels or a different namespace, traffic will be blocked.
 - **Ingress controller not found:** The IngressAllow NetworkPolicy expects the controller in the `ingress-nginx` namespace. Adjust if using a different ingress controller.
@@ -451,39 +449,40 @@ kubectl get clusterrolebinding | grep metrics
 
 ---
 
-## 4. Emergency Procedures
+## 4. Operational Procedures
 
-### Force-unlock an exam
+### Supported manual changes
 
-If the exam is stuck in `Ready` or `Provisioning` and you need to unlock it immediately:
+The operator intentionally exposes a narrow control surface. Supported interventions are:
 
-```bash
-# Patch the status phase directly
-kubectl patch exam <name> -n exam-system --type=merge --subresource=status \
-  -p '{"status":{"phase":"Unlocked"}}'
-```
+- Updating student email addresses before provisioning starts
+- Extending an active exam by adjusting `spec.schedule.duration` or `spec.schedule.timeMultiplier`
+- Extending retention by increasing `spec.schedule.retention`
+- Cancelling an exam by deleting the `Exam` resource
 
-The next reconcile loop will detect the `Unlocked` phase, create Ingress resources, apply ingress-allow NetworkPolicies, and send the unlock notification email.
+Avoid patching `.status.phase` or other status fields directly. The controller treats status as its own reconciliation output, not as an operator-facing control API.
 
-**Warning:** Force-unlocking skips provisioning health checks and the dry run. Verify instances are actually running before doing this.
+### Extend an active exam
 
-```bash
-EXAM_NS=$(kubectl get ns -l exam.otu.ca/exam=<name>,exam.otu.ca/exam-namespace=exam-system -o jsonpath='{.items[0].metadata.name}')
-
-# Verify pods are ready before force-unlocking
-kubectl get pods -n "$EXAM_NS" -o wide
-```
-
-### Force-lock an exam
-
-To end an exam early:
+While an exam is in `Unlocked`, you can extend the lock time by increasing `duration` or `timeMultiplier`:
 
 ```bash
-kubectl patch exam <name> -n exam-system --type=merge --subresource=status \
-  -p '{"status":{"phase":"Locked"}}'
+kubectl patch exam <name> -n exam-system --type=merge \
+  -p '{"spec":{"schedule":{"duration":"3h","timeMultiplier":1.5}}}'
 ```
 
-The next reconcile will delete Ingress resources, remove ingress-allow NetworkPolicies, mark students as `Locked`, and send the lock notification email.
+The validating webhook allows this only while the resulting computed lock time remains in the future.
+
+### Extend retention for an investigation
+
+If course staff report an academic issue and the environment must be preserved longer:
+
+```bash
+kubectl patch exam <name> -n exam-system --type=merge \
+  -p '{"spec":{"schedule":{"retention":"72h"}}}'
+```
+
+On the next reconcile, the controller recomputes `status.retentionDeadline` from the new retention value.
 
 ### Manual teardown
 
@@ -503,24 +502,15 @@ kubectl patch exam <name> -n exam-system --type=json \
 kubectl delete exam <name> -n exam-system
 ```
 
-### Skip retention period
+### Cancel an exam before teardown
 
-To tear down resources before the retention deadline expires:
-
-```bash
-# Set the retention deadline to now
-kubectl patch exam <name> -n exam-system --type=merge --subresource=status \
-  -p "{\"status\":{\"retentionDeadline\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}}"
-```
-
-The next reconcile will see the deadline has passed and transition to `TearingDown`.
-
-Alternatively, force the phase directly:
+To stop managing an exam and remove its resources:
 
 ```bash
-kubectl patch exam <name> -n exam-system --type=merge --subresource=status \
-  -p '{"status":{"phase":"TearingDown"}}'
+kubectl delete exam <name> -n exam-system
 ```
+
+The finalizer deletes the per-exam namespace before the `Exam` resource disappears.
 
 ### Recover from controller crash
 
@@ -556,7 +546,7 @@ If a student's instance fails and you need to give them a spare:
 kubectl get exam <name> -n exam-system -o jsonpath='{range .status.spares[*]}{.slug} {.url} {.phase}{"\n"}{end}'
 
 # Manually share the spare URL with the student
-# The instructor is also emailed spare URLs when provisioning completes
+# The configured course contact is also emailed spare URLs when provisioning completes
 ```
 
 ---
@@ -621,7 +611,7 @@ With `rateLimit: 1` and 100 students, email delivery takes approximately 100 sec
 
 - Most SMTP providers have rate limits (e.g. 10--30 messages/second for institutional relays). Set `rateLimit` below your provider's limit.
 - Failed emails are retried 3 times with exponential backoff (100ms, 200ms, 400ms) before being marked as `Failed`. They are not retried again automatically.
-- Students with `Failed` email status must be notified manually. The instructor receives a list of failed deliveries in the unlock notification email.
+- Students with `Failed` email status must be notified manually. The configured course contact receives a list of failed deliveries in the unlock notification email.
 - For large classes (200+ students), consider setting `email.before` to `1h` or more to allow time for all emails to be sent before unlock.
 
 ### Node capacity planning

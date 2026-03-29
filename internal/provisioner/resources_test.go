@@ -11,8 +11,10 @@ import (
 )
 
 const (
-	testSlug = "a1b2c3d4"
-	testHost = testSlug + ".exam.test.com"
+	testSlug      = "a1b2c3d4"
+	testHost      = testSlug + ".exam.test.com"
+	testDomain    = "exam.test.com"
+	testTLSSecret = "tls-secret"
 )
 
 func testExam() *examv1alpha1.Exam {
@@ -29,8 +31,6 @@ func testExam() *examv1alpha1.Exam {
 					},
 				},
 			},
-			IngressTLS: examv1alpha1.ExamIngressTLS{SecretName: "tls-secret"},
-			Domain:     "exam.test.com",
 		},
 	}
 }
@@ -205,7 +205,7 @@ func TestService_Selector(t *testing.T) {
 }
 
 func TestIngressHost(t *testing.T) {
-	ing := Ingress(testExam(), "exam-ns", "alice", testSlug)
+	ing := Ingress(testExam(), "exam-ns", "alice", testSlug, testDomain, testTLSSecret)
 	if ing.Name != testSlug {
 		t.Errorf("name = %q, want slug", ing.Name)
 	}
@@ -213,13 +213,13 @@ func TestIngressHost(t *testing.T) {
 	if host != testHost {
 		t.Errorf("host = %q, want a1b2c3d4.exam.test.com", host)
 	}
-	if ing.Spec.TLS[0].SecretName != "tls-secret" {
+	if ing.Spec.TLS[0].SecretName != testTLSSecret {
 		t.Error("expected TLS secret reference")
 	}
 }
 
 func TestIngress_TLS(t *testing.T) {
-	ing := Ingress(testExam(), "exam-ns", "alice", testSlug)
+	ing := Ingress(testExam(), "exam-ns", "alice", testSlug, testDomain, testTLSSecret)
 
 	if len(ing.Spec.TLS) != 1 {
 		t.Fatalf("expected 1 TLS entry, got %d", len(ing.Spec.TLS))
@@ -236,13 +236,13 @@ func TestIngress_TLS(t *testing.T) {
 	}
 
 	// Verify secretName
-	if tls.SecretName != "tls-secret" {
-		t.Errorf("TLS secretName = %q, want %q", tls.SecretName, "tls-secret")
+	if tls.SecretName != testTLSSecret {
+		t.Errorf("TLS secretName = %q, want %q", tls.SecretName, testTLSSecret)
 	}
 }
 
 func TestIngress_Rules(t *testing.T) {
-	ing := Ingress(testExam(), "exam-ns", "alice", testSlug)
+	ing := Ingress(testExam(), "exam-ns", "alice", testSlug, testDomain, testTLSSecret)
 
 	if len(ing.Spec.Rules) != 1 {
 		t.Fatalf("expected 1 ingress rule, got %d", len(ing.Spec.Rules))

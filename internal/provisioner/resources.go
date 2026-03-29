@@ -87,9 +87,12 @@ func Service(exam *examv1alpha1.Exam, namespace, studentID, slug string) *corev1
 	}
 }
 
-func Ingress(exam *examv1alpha1.Exam, namespace, studentID, slug string) *networkingv1.Ingress {
+func Ingress(
+	exam *examv1alpha1.Exam,
+	namespace, studentID, slug, baseDomain, tlsSecretName string,
+) *networkingv1.Ingress {
 	pathType := networkingv1.PathTypePrefix
-	host := fmt.Sprintf("%s.%s", slug, exam.Spec.Domain)
+	host := fmt.Sprintf("%s.%s", slug, baseDomain)
 	return &networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      slug,
@@ -98,7 +101,7 @@ func Ingress(exam *examv1alpha1.Exam, namespace, studentID, slug string) *networ
 		},
 		Spec: networkingv1.IngressSpec{
 			TLS: []networkingv1.IngressTLS{
-				{Hosts: []string{host}, SecretName: exam.Spec.IngressTLS.SecretName},
+				{Hosts: []string{host}, SecretName: tlsSecretName},
 			},
 			Rules: []networkingv1.IngressRule{
 				{

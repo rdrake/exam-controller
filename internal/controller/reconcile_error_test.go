@@ -50,7 +50,7 @@ func (e *errorSender) Send(from string, to []string, msg []byte) error {
 }
 
 // createExamCRWithDryRun creates an Exam CR with DryRun spec set on the schedule.
-func createExamCRWithDryRun(ctx context.Context, name string, unlock time.Time, students []examv1alpha1.ExamStudent, spares int, dryRunBefore, dryRunDuration time.Duration) {
+func createExamCRWithDryRun(ctx context.Context, name string, unlock time.Time, students []examv1alpha1.ExamStudent, spares int, dryRunBefore time.Duration) {
 	resource := &examv1alpha1.Exam{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -69,8 +69,7 @@ func createExamCRWithDryRun(ctx context.Context, name string, unlock time.Time, 
 				ProvisionBefore: metav1.Duration{Duration: 1 * time.Hour},
 				Retention:       metav1.Duration{Duration: 24 * time.Hour},
 				DryRun: &examv1alpha1.ExamDryRunSpec{
-					Before:   metav1.Duration{Duration: dryRunBefore},
-					Duration: metav1.Duration{Duration: dryRunDuration},
+					Before: metav1.Duration{Duration: dryRunBefore},
 				},
 			},
 			Students: students,
@@ -79,12 +78,9 @@ func createExamCRWithDryRun(ctx context.Context, name string, unlock time.Time, 
 				Before:          metav1.Duration{Duration: 30 * time.Minute},
 				RateLimit:       10,
 				InstructorEmail: "prof@test.com",
-				SecretRef:       "smtp-secret",
 				From:            "test@test.com",
 				Subject:         "Test Exam",
 			},
-			IngressTLS: examv1alpha1.ExamIngressTLS{SecretName: "test-tls"},
-			Domain:     "exam.test.com",
 		},
 	}
 	Expect(k8sClient.Create(ctx, resource)).To(Succeed())
@@ -293,8 +289,8 @@ var _ = Describe("Error Paths and Dry Run", func() {
 				{ID: "alice", Email: "alice@test.com"},
 				{ID: "bob", Email: "bob@test.com"},
 			}
-			// DryRun: before=20m, duration=5m
-			createExamCRWithDryRun(ctx, examName, unlock, students, 1, 20*time.Minute, 5*time.Minute)
+			// DryRun: before=20m
+			createExamCRWithDryRun(ctx, examName, unlock, students, 1, 20*time.Minute)
 			preseedSlugs(ctx, nn)
 
 			reg := prometheus.NewRegistry()
@@ -346,7 +342,7 @@ var _ = Describe("Error Paths and Dry Run", func() {
 			students := []examv1alpha1.ExamStudent{
 				{ID: "alice", Email: "alice@test.com"},
 			}
-			createExamCRWithDryRun(ctx, examName, unlock, students, 0, 20*time.Minute, 5*time.Minute)
+			createExamCRWithDryRun(ctx, examName, unlock, students, 0, 20*time.Minute)
 			preseedSlugs(ctx, nn)
 
 			fakeSender := &notifier.FakeSender{}
@@ -382,7 +378,7 @@ var _ = Describe("Error Paths and Dry Run", func() {
 				{ID: "alice", Email: "alice@test.com"},
 				{ID: "bob", Email: "bob@test.com"},
 			}
-			createExamCRWithDryRun(ctx, examName, unlock, students, 1, 20*time.Minute, 5*time.Minute)
+			createExamCRWithDryRun(ctx, examName, unlock, students, 1, 20*time.Minute)
 			preseedSlugs(ctx, nn)
 
 			reg := prometheus.NewRegistry()

@@ -83,9 +83,6 @@ func (v *examValidator) validateFields(exam *Exam) error {
 			provisionBefore, emailBefore)
 	}
 
-	if errs := validation.IsDNS1123Subdomain(exam.Spec.Domain); len(errs) > 0 {
-		return fmt.Errorf("spec.domain %q is not a valid DNS domain: %s", exam.Spec.Domain, errs[0])
-	}
 	for i, s := range exam.Spec.Students {
 		if errs := validation.IsValidLabelValue(s.ID); len(errs) > 0 {
 			return fmt.Errorf("spec.students[%d].id %q is not a valid label value: %s", i, s.ID, errs[0])
@@ -124,9 +121,6 @@ func (v *examValidator) ValidateUpdate(_ context.Context, oldExam, newExam *Exam
 	}
 	if oldExam.Spec.Spares != newExam.Spec.Spares {
 		return nil, fmt.Errorf("spec.spares is immutable after provisioning (current phase: %s)", phase)
-	}
-	if oldExam.Spec.Domain != newExam.Spec.Domain {
-		return nil, fmt.Errorf("spec.domain is immutable after provisioning (current phase: %s)", phase)
 	}
 	if len(oldExam.Spec.Students) != len(newExam.Spec.Students) {
 		return nil, fmt.Errorf("spec.students list length is immutable after provisioning")

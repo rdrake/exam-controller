@@ -26,7 +26,6 @@ func examWithSchedule(unlock time.Time) *examv1alpha1.Exam {
 				Before:          metav1.Duration{Duration: 30 * time.Minute},
 				RateLimit:       1,
 				InstructorEmail: "prof@test.com",
-				SecretRef:       "smtp",
 				From:            "noreply@test.com",
 				Subject:         "Test",
 			},
@@ -389,7 +388,7 @@ func TestFindOrGenerateSpareSlug_NewSlug(t *testing.T) {
 // --- setStudentStatus / setSpareStatus slice growth ---
 
 func TestSetStudentStatus_GrowsSlice(t *testing.T) {
-	r := &ExamReconciler{}
+	r := &ExamReconciler{Platform: PlatformConfig{BaseDomain: "exam.test.com"}}
 	exam := examWithSchedule(time.Now().Add(2 * time.Hour))
 	exam.Status.Students = nil // empty slice
 	r.setStudentStatus(exam, 0, "abcd1234", examv1alpha1.StudentPhaseProvisioned)
@@ -405,9 +404,8 @@ func TestSetStudentStatus_GrowsSlice(t *testing.T) {
 }
 
 func TestSetSpareStatus_GrowsSlice(t *testing.T) {
-	r := &ExamReconciler{}
+	r := &ExamReconciler{Platform: PlatformConfig{BaseDomain: "exam.test.com"}}
 	exam := examWithSchedule(time.Now().Add(2 * time.Hour))
-	exam.Spec.Domain = "exam.test.com"
 	exam.Status.Spares = nil // empty slice
 	r.setSpareStatus(exam, 0, "xyzw5678", examv1alpha1.StudentPhaseProvisioned)
 	if len(exam.Status.Spares) != 1 {

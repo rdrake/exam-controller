@@ -92,6 +92,10 @@ var _ = BeforeSuite(func() {
 	By("creating the exam-system namespace")
 	ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "exam-system"}}
 	Expect(k8sClient.Create(ctx, ns)).To(Succeed())
+
+	By("creating shared platform secrets for controller tests")
+	createSMTPSecret(ctx, testPlatformSMTPSecretName, testPlatformSecretNamespace)
+	createTLSSecret(ctx, testPlatformTLSSecretName, testPlatformSecretNamespace)
 })
 
 var _ = AfterSuite(func() {

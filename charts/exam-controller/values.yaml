@@ -31,6 +31,12 @@ webhook:
   certName: tls.crt
   keyName: tls.key
 
+platform:
+  baseDomain: exam.otu.ca
+  ingressTLSSecretName: exam-wildcard-tls
+  smtpSecretName: exam-smtp-credentials
+  secretNamespace: ""
+
 healthProbe:
   port: 8081
 

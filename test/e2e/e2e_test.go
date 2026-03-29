@@ -41,6 +41,9 @@ const namespace = "exam-controller-system"
 // examCRNamespace is where Exam CRs are created (controller watches this namespace)
 const examCRNamespace = "exam-system"
 
+const platformSMTPSecretName = "exam-smtp-credentials"
+const platformTLSSecretName = "exam-wildcard-tls"
+
 // serviceAccountName created for the project
 const serviceAccountName = "exam-controller-controller-manager"
 
@@ -75,6 +78,27 @@ var _ = Describe("Manager", Ordered, func() {
 
 		By("creating the exam CR namespace")
 		cmd = exec.Command("kubectl", "create", "ns", examCRNamespace)
+		_, _ = utils.Run(cmd) // ignore if already exists
+
+		By("creating the platform SMTP secret")
+		cmd = exec.Command("kubectl", "create", "secret", "generic",
+			platformSMTPSecretName,
+			"--namespace", namespace,
+			"--from-literal=host=smtp.invalid",
+			"--from-literal=port=587",
+			"--from-literal=username=dummy",
+			"--from-literal=password=dummy",
+		)
+		_, _ = utils.Run(cmd) // ignore if already exists
+
+		By("creating the platform wildcard TLS secret")
+		cmd = exec.Command("kubectl", "create", "secret", "generic",
+			platformTLSSecretName,
+			"--namespace", namespace,
+			"--type=kubernetes.io/tls",
+			"--from-literal=tls.crt=dummy-cert",
+			"--from-literal=tls.key=dummy-key",
+		)
 		_, _ = utils.Run(cmd) // ignore if already exists
 
 		By("generating self-signed webhook TLS certificates")
@@ -326,18 +350,8 @@ var _ = Describe("Manager", Ordered, func() {
 
 			unlock := time.Now().UTC().Add(5 * time.Minute).Format(time.RFC3339)
 
-			By("creating the SMTP secret")
-			cmd := exec.Command("kubectl", "create", "secret", "generic",
-				"exam-smtp-credentials",
-				"--namespace", examCRNamespace,
-				"--from-literal=host=smtp.example.com",
-				"--from-literal=port=587",
-				"--from-literal=username=user",
-				"--from-literal=password=pass",
-			)
-			_, _ = utils.Run(cmd) // ignore if already exists
-
 			By("creating the Exam CR")
+			var cmd *exec.Cmd
 			examYAML := fmt.Sprintf(`apiVersion: exam.otu.ca/v1alpha1
 kind: Exam
 metadata:
@@ -360,12 +374,8 @@ spec:
     before: "3m"
     rateLimit: 10
     instructorEmail: "instructor@example.com"
-    secretRef: exam-smtp-credentials
     from: "noreply@example.com"
-    subject: "E2E Lifecycle Test"
-  ingressTLS:
-    secretName: test-tls
-  domain: exam.test.local`, examName, examCRNamespace, unlock)
+    subject: "E2E Lifecycle Test"`, examName, examCRNamespace, unlock)
 
 			tmpFile := filepath.Join(os.TempDir(), "exam-lifecycle.yaml")
 			Expect(os.WriteFile(tmpFile, []byte(examYAML), 0644)).To(Succeed())
@@ -445,12 +455,8 @@ spec:
     before: "30m"
     rateLimit: 1
     instructorEmail: "instructor@example.com"
-    secretRef: exam-smtp-credentials
     from: "noreply@example.com"
-    subject: "Webhook Test"
-  ingressTLS:
-    secretName: test-tls
-  domain: exam.test.local`, examCRNamespace, unlock)
+    subject: "Webhook Test"`, examCRNamespace, unlock)
 
 			tmpFile := filepath.Join(os.TempDir(), "exam-webhook-no-students.yaml")
 			Expect(os.WriteFile(tmpFile, []byte(zeroStudentsYAML), 0644)).To(Succeed())
@@ -485,12 +491,8 @@ spec:
     before: "30m"
     rateLimit: 10
     instructorEmail: "instructor@example.com"
-    secretRef: exam-smtp-credentials
     from: "noreply@example.com"
-    subject: "Webhook Test"
-  ingressTLS:
-    secretName: test-tls
-  domain: exam.test.local`, examCRNamespace, unlock)
+    subject: "Webhook Test"`, examCRNamespace, unlock)
 
 			tmpFile2 := filepath.Join(os.TempDir(), "exam-webhook-zero-duration.yaml")
 			Expect(os.WriteFile(tmpFile2, []byte(zeroDurationYAML), 0644)).To(Succeed())
@@ -525,12 +527,8 @@ spec:
     before: "30m"
     rateLimit: 10
     instructorEmail: "instructor@example.com"
-    secretRef: exam-smtp-credentials
     from: "noreply@example.com"
-    subject: "Webhook Test"
-  ingressTLS:
-    secretName: test-tls
-  domain: exam.test.local`, examCRNamespace, unlock)
+    subject: "Webhook Test"`, examCRNamespace, unlock)
 
 			tmpFile3 := filepath.Join(os.TempDir(), "exam-webhook-low-multiplier.yaml")
 			Expect(os.WriteFile(tmpFile3, []byte(lowMultiplierYAML), 0644)).To(Succeed())
@@ -550,18 +548,8 @@ spec:
 
 			unlock := time.Now().UTC().Add(30 * time.Second).Format(time.RFC3339)
 
-			By("creating the SMTP secret")
-			cmd := exec.Command("kubectl", "create", "secret", "generic",
-				"exam-smtp-phases",
-				"--namespace", examCRNamespace,
-				"--from-literal=host=smtp.invalid.example.com",
-				"--from-literal=port=587",
-				"--from-literal=username=dummy",
-				"--from-literal=password=dummy",
-			)
-			_, _ = utils.Run(cmd) // ignore if already exists
-
 			By("creating the Exam CR with short timings")
+			var cmd *exec.Cmd
 			examYAML := fmt.Sprintf(`apiVersion: exam.otu.ca/v1alpha1
 kind: Exam
 metadata:
@@ -584,12 +572,8 @@ spec:
     before: "1m30s"
     rateLimit: 10
     instructorEmail: "instructor@example.com"
-    secretRef: exam-smtp-phases
     from: "noreply@example.com"
-    subject: "E2E Phase Test"
-  ingressTLS:
-    secretName: test-tls
-  domain: exam.test.local`, examName, examCRNamespace, unlock)
+    subject: "E2E Phase Test"`, examName, examCRNamespace, unlock)
 
 			tmpFile := filepath.Join(os.TempDir(), "exam-phases.yaml")
 			Expect(os.WriteFile(tmpFile, []byte(examYAML), 0644)).To(Succeed())
@@ -656,10 +640,6 @@ spec:
 				g.Expect("namespace still exists").To(BeEmpty())
 			}, 3*time.Minute, 5*time.Second).Should(Succeed())
 
-			By("cleaning up the SMTP secret")
-			cmd = exec.Command("kubectl", "delete", "secret", "exam-smtp-phases",
-				"-n", examCRNamespace, "--ignore-not-found")
-			_, _ = utils.Run(cmd)
 		})
 
 		// Scenario 5: Full 6-phase lifecycle with compressed timeline
@@ -669,18 +649,8 @@ spec:
 
 			unlock := time.Now().UTC().Add(60 * time.Second).Format(time.RFC3339)
 
-			By("creating the SMTP secret with non-routable host for fast failure")
-			cmd := exec.Command("kubectl", "create", "secret", "generic",
-				"exam-smtp-lifecycle",
-				"--namespace", examCRNamespace,
-				"--from-literal=host=smtp.invalid",
-				"--from-literal=port=587",
-				"--from-literal=username=dummy",
-				"--from-literal=password=dummy",
-			)
-			_, _ = utils.Run(cmd) // ignore if already exists
-
 			By("creating the Exam CR with compressed timings")
+			var cmd *exec.Cmd
 			examYAML := fmt.Sprintf(`apiVersion: exam.otu.ca/v1alpha1
 kind: Exam
 metadata:
@@ -706,12 +676,8 @@ spec:
     before: "15s"
     rateLimit: 10
     instructorEmail: "instructor@example.com"
-    secretRef: exam-smtp-lifecycle
     from: "noreply@example.com"
-    subject: "E2E Full Lifecycle Test"
-  ingressTLS:
-    secretName: test-tls
-  domain: exam.test.local`, examName, examCRNamespace, unlock)
+    subject: "E2E Full Lifecycle Test"`, examName, examCRNamespace, unlock)
 
 			tmpFile := filepath.Join(os.TempDir(), "exam-full-lifecycle.yaml")
 			Expect(os.WriteFile(tmpFile, []byte(examYAML), 0644)).To(Succeed())
@@ -936,10 +902,6 @@ spec:
 				"-n", examCRNamespace, "--ignore-not-found", "--timeout=60s")
 			_, _ = utils.Run(cmd)
 
-			By("cleaning up the SMTP secret")
-			cmd = exec.Command("kubectl", "delete", "secret", "exam-smtp-lifecycle",
-				"-n", examCRNamespace, "--ignore-not-found")
-			_, _ = utils.Run(cmd)
 		})
 	})
 })

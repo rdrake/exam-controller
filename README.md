@@ -1,6 +1,6 @@
 # exam-controller
 
-A Kubernetes operator that automates pen-testing exams for university courses. Define your exam once -- students, schedule, container image -- and the controller handles provisioning, email delivery, network isolation, and teardown. No manual intervention required on exam day.
+A Kubernetes operator that automates scheduled exam environments for university courses. A platform team defines one `Exam` resource per exam event, and the controller handles provisioning, email delivery, access gating, retention, and teardown.
 
 ## The problem
 
@@ -18,7 +18,7 @@ The exam-controller does all of this on a schedule you define.
 
 ## What it does
 
-You write a YAML file listing your students, pick a container image, and set the exam times. The controller takes it from there:
+The platform team writes a YAML file listing the student roster, exam schedule, image, and spare capacity. The controller takes it from there:
 
 ```
 Pending --> Provisioning --> Ready --> Unlocked --> Locked --> TearingDown
@@ -56,7 +56,6 @@ spec:
   email:
     before: "30m"
     instructorEmail: instructor@ontariotechu.net
-    secretRef: exam-smtp-credentials
     from: "noreply@otu.ca"
     subject: "SOFE4790U Midterm - Your Exam Instance"
   students:
@@ -65,12 +64,11 @@ spec:
     - id: jane.doe
       email: jane.doe@ontariotechu.net
   spares: 2
-  domain: exam.otu.ca
-  ingressTLS:
-    secretName: exam-wildcard-tls
 ```
 
 For a 2:00 PM exam, this provisions instances at 1:00 PM, emails students at 1:30 PM, smoke-tests at 1:55 PM, unlocks at 2:00 PM, locks at 5:00 PM, and tears down the next day. You don't need to be online for any of it.
+
+`baseDomain`, wildcard TLS, and SMTP credentials are controller-level platform settings. Configure them through Helm values or manager flags, not on individual `Exam` resources.
 
 ## Key features
 
@@ -85,7 +83,7 @@ For a 2:00 PM exam, this provisions instances at 1:00 PM, emails students at 1:3
 
 ## Installation
 
-Your platform team handles this. Instructors only need to write the exam YAML.
+This operator is intended for infra-owned workflows. Instructors are inputs to the process, not direct API users.
 
 ### Helm
 
@@ -93,6 +91,9 @@ Your platform team handles this. Instructors only need to write the exam YAML.
 helm install exam-controller \
   oci://ghcr.io/rdrake/charts/exam-controller \
   --namespace exam-controller-system --create-namespace \
+  --set platform.baseDomain=exam.otu.ca \
+  --set platform.ingressTLSSecretName=exam-wildcard-tls \
+  --set platform.smtpSecretName=exam-smtp-credentials \
   --version 0.1.0
 ```
 
@@ -115,9 +116,9 @@ make deploy IMG=ghcr.io/rdrake/exam-controller:v0.1.0
 
 | Document | Audience | What it covers |
 |---|---|---|
-| [User Guide](docs/user-guide.md) | Instructors | Step-by-step: creating exams, checking status, handling common situations, emergency overrides |
-| [Operations Runbook](docs/operations.md) | Platform teams | Deployment, monitoring, troubleshooting, emergency procedures, scaling |
-| [CRD Reference](docs/crd-reference.md) | Both | Full spec field reference with types, defaults, and immutability rules |
+| [Platform Guide](docs/platform-guide.md) | Platform teams | Creating and managing `Exam` resources from instructor-provided requirements |
+| [Operations Runbook](docs/operations.md) | Platform teams | Deployment, monitoring, troubleshooting, supported operational procedures |
+| [CRD Reference](docs/crd-reference.md) | Platform teams | Full spec field reference with types, defaults, and immutability rules |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Developers | Setup, workflow, make targets, CI pipeline, releasing |
 
 ## Development

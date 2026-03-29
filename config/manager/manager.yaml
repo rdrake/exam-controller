@@ -63,6 +63,9 @@ spec:
         args:
           - --leader-elect
           - --health-probe-bind-address=:8081
+          - --base-domain=exam.otu.ca
+          - --ingress-tls-secret-name=exam-wildcard-tls
+          - --smtp-secret-name=exam-smtp-credentials
         image: controller:latest
         name: manager
         ports: []
@@ -93,6 +96,11 @@ spec:
           requests:
             cpu: 10m
             memory: 64Mi
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
         volumeMounts: []
       volumes: []
       serviceAccountName: controller-manager

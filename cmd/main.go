@@ -61,6 +61,10 @@ func main() {
 	var metricsAddr string
 	var metricsCertPath, metricsCertName, metricsCertKey string
 	var webhookCertPath, webhookCertName, webhookCertKey string
+	var baseDomain string
+	var ingressTLSSecretName string
+	var smtpSecretName string
+	var platformSecretNamespace string
 	var enableLeaderElection bool
 	var enableWebhooks bool
 	var probeAddr string
@@ -84,6 +88,14 @@ func main() {
 		"The directory that contains the metrics server certificate.")
 	flag.StringVar(&metricsCertName, "metrics-cert-name", "tls.crt", "The name of the metrics server certificate file.")
 	flag.StringVar(&metricsCertKey, "metrics-cert-key", "tls.key", "The name of the metrics server key file.")
+	flag.StringVar(&baseDomain, "base-domain", "exam.otu.ca",
+		"Base domain used for student URLs and Ingress hosts.")
+	flag.StringVar(&ingressTLSSecretName, "ingress-tls-secret-name", "exam-wildcard-tls",
+		"Name of the platform-managed wildcard TLS Secret copied into per-exam namespaces.")
+	flag.StringVar(&smtpSecretName, "smtp-secret-name", "exam-smtp-credentials",
+		"Name of the platform-managed SMTP Secret used for outbound mail.")
+	flag.StringVar(&platformSecretNamespace, "platform-secret-namespace", "",
+		"Namespace containing the platform-managed SMTP and wildcard TLS Secrets. Defaults to POD_NAMESPACE when set.")
 	flag.BoolVar(&enableHTTP2, "enable-http2", false,
 		"If set, HTTP/2 will be enabled for the metrics and webhook servers")
 	opts := zap.Options{
@@ -93,6 +105,13 @@ func main() {
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+
+	if platformSecretNamespace == "" {
+		platformSecretNamespace = os.Getenv("POD_NAMESPACE")
+		if platformSecretNamespace == "" {
+			platformSecretNamespace = "exam-system"
+		}
+	}
 
 	// if the enable-http2 flag is false (the default), http/2 should be disabled
 	// due to its vulnerabilities. More specifically, disabling http/2 will
@@ -189,8 +208,14 @@ func main() {
 	examMetrics := metrics.NewExamMetrics(crmmetrics.Registry)
 
 	if err := (&controller.ExamReconciler{
-		Client:         mgr.GetClient(),
-		Scheme:         mgr.GetScheme(),
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+		Platform: controller.PlatformConfig{
+			BaseDomain:           baseDomain,
+			IngressTLSSecretName: ingressTLSSecretName,
+			SMTPSecretName:       smtpSecretName,
+			SecretNamespace:      platformSecretNamespace,
+		},
 		PolicyProvider: policyProvider,
 		Metrics:        examMetrics,
 	}).SetupWithManager(mgr); err != nil {

@@ -24,12 +24,10 @@ spec:
     retention: "24h"
     dryRun:
       before: "5m"
-      duration: "2m"
   email:
     before: "30m"
     rateLimit: 1
     instructorEmail: "instructor@ontariotechu.net"
-    secretRef: exam-smtp-credentials
     from: "noreply@otu.ca"
     subject: "SOFE4790U - Your Exam Instance"
   students:
@@ -38,6 +36,3 @@ spec:
     - id: jane.doe
       email: jane.doe@ontariotechu.net
   spares: 2
-  ingressTLS:
-    secretName: exam-wildcard-tls
-  domain: exam.otu.ca

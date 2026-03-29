@@ -28,12 +28,9 @@ func baseExam() *Exam {
 				Before:          metav1.Duration{Duration: 30 * time.Minute},
 				RateLimit:       1,
 				InstructorEmail: "prof@test.com",
-				SecretRef:       "smtp",
 				From:            "noreply@test.com",
 				Subject:         "Test",
 			},
-			IngressTLS: ExamIngressTLS{SecretName: "tls"},
-			Domain:     "exam.test.com",
 		},
 	}
 }
@@ -189,18 +186,6 @@ func TestValidateUpdate_ResourcesImmutableAfterPending(t *testing.T) {
 	}
 }
 
-func TestValidateUpdate_DomainImmutableAfterPending(t *testing.T) {
-	v := &examValidator{}
-	old := baseExam()
-	old.Status.Phase = ExamPhaseReady
-	updated := old.DeepCopy()
-	updated.Spec.Domain = "other.com"
-	_, err := v.ValidateUpdate(context.Background(), old, updated)
-	if err == nil {
-		t.Error("expected error for domain change after Pending")
-	}
-}
-
 func TestValidateUpdate_LockTimeGuardWhenUnlocked(t *testing.T) {
 	v := &examValidator{}
 	old := baseExam()
@@ -212,29 +197,6 @@ func TestValidateUpdate_LockTimeGuardWhenUnlocked(t *testing.T) {
 	_, err := v.ValidateUpdate(context.Background(), old, updated)
 	if err == nil {
 		t.Error("expected error: computed lockTime would be in the past")
-	}
-}
-
-// --- ValidateCreate edge cases ---
-
-func TestValidateCreate_InvalidDomain(t *testing.T) {
-	v := &examValidator{}
-	tests := []struct {
-		name   string
-		domain string
-	}{
-		{"domain with spaces", "exam test.com"},
-		{"domain with underscores", "exam_test.com"},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			e := baseExam()
-			e.Spec.Domain = tc.domain
-			_, err := v.ValidateCreate(context.Background(), e)
-			if err == nil {
-				t.Errorf("expected error for invalid domain %q", tc.domain)
-			}
-		})
 	}
 }
 

@@ -80,6 +80,11 @@ var _ = Describe("Provisioning and Drift Correction", func() {
 			namespace := &corev1.Namespace{}
 			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: ns}, namespace)).To(Succeed())
 
+			By("Verifying wildcard TLS secret was copied into the exam namespace")
+			tlsSecret := &corev1.Secret{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: testPlatformTLSSecretName, Namespace: ns}, tlsSecret)).To(Succeed())
+			Expect(tlsSecret.Type).To(Equal(corev1.SecretTypeTLS))
+
 			By("Verifying 3 deployments exist (2 students + 1 spare)")
 			var deps appsv1.DeploymentList
 			Expect(k8sClient.List(ctx, &deps,
@@ -370,11 +375,6 @@ var _ = Describe("Provisioning and Drift Correction", func() {
 					Name:      examName,
 					Namespace: examCRNamespace,
 				},
-				Spec: examv1alpha1.ExamSpec{
-					Email: examv1alpha1.ExamEmail{
-						SecretRef: "smtp-secret",
-					},
-				},
 			}
 
 			reconciler := newReconciler(nil, nil, nil) // Sender is nil
@@ -406,14 +406,10 @@ var _ = Describe("Provisioning and Drift Correction", func() {
 					Name:      examName,
 					Namespace: examCRNamespace,
 				},
-				Spec: examv1alpha1.ExamSpec{
-					Email: examv1alpha1.ExamEmail{
-						SecretRef: "smtp-noport",
-					},
-				},
 			}
 
 			reconciler := newReconciler(nil, nil, nil)
+			reconciler.Platform.SMTPSecretName = "smtp-noport"
 			sender, err := reconciler.resolvedSender(ctx, exam)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(sender).NotTo(BeNil())
@@ -425,14 +421,10 @@ var _ = Describe("Provisioning and Drift Correction", func() {
 					Name:      examName,
 					Namespace: examCRNamespace,
 				},
-				Spec: examv1alpha1.ExamSpec{
-					Email: examv1alpha1.ExamEmail{
-						SecretRef: "nonexistent-secret",
-					},
-				},
 			}
 
 			reconciler := newReconciler(nil, nil, nil)
+			reconciler.Platform.SMTPSecretName = "nonexistent-secret"
 			_, err := reconciler.resolvedSender(ctx, exam)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("nonexistent-secret"))

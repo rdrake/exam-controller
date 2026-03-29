@@ -38,7 +38,6 @@ type StudentPhase string
 
 const (
 	StudentPhaseProvisioned StudentPhase = "Provisioned"
-	StudentPhaseHealthy     StudentPhase = "Healthy"
 	StudentPhaseUnlocked    StudentPhase = "Unlocked"
 	StudentPhaseLocked      StudentPhase = "Locked"
 	StudentPhaseFailed      StudentPhase = "Failed"
@@ -62,8 +61,7 @@ type ExamTemplate struct {
 
 // ExamDryRunSpec configures the pre-exam smoke test window.
 type ExamDryRunSpec struct {
-	Before   metav1.Duration `json:"before"`
-	Duration metav1.Duration `json:"duration"`
+	Before metav1.Duration `json:"before"`
 }
 
 // ExamSchedule defines the timing for the exam lifecycle.
@@ -92,25 +90,17 @@ type ExamEmail struct {
 	// +kubebuilder:default=1
 	RateLimit       int    `json:"rateLimit,omitempty"`
 	InstructorEmail string `json:"instructorEmail"`
-	SecretRef       string `json:"secretRef"`
 	From            string `json:"from"`
 	Subject         string `json:"subject"`
 }
 
-// ExamIngressTLS configures TLS for student Ingress resources.
-type ExamIngressTLS struct {
-	SecretName string `json:"secretName"`
-}
-
 // ExamSpec defines the desired state of Exam.
 type ExamSpec struct {
-	Template   ExamTemplate   `json:"template"`
-	Schedule   ExamSchedule   `json:"schedule"`
-	Students   []ExamStudent  `json:"students"`
-	Email      ExamEmail      `json:"email"`
-	Spares     int            `json:"spares,omitempty"`
-	IngressTLS ExamIngressTLS `json:"ingressTLS"`
-	Domain     string         `json:"domain"`
+	Template ExamTemplate  `json:"template"`
+	Schedule ExamSchedule  `json:"schedule"`
+	Students []ExamStudent `json:"students"`
+	Email    ExamEmail     `json:"email"`
+	Spares   int           `json:"spares,omitempty"`
 }
 
 // DryRunFailure records a smoke test failure for a student.

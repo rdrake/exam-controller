@@ -52,19 +52,29 @@ import (
 
 const finalizerName = "exam.otu.ca/cleanup"
 
+// PlatformConfig carries cluster-level settings shared by all exams managed by
+// this controller instance.
+type PlatformConfig struct {
+	BaseDomain           string
+	IngressTLSSecretName string
+	SMTPSecretName       string
+	SecretNamespace      string
+}
+
 // +kubebuilder:rbac:groups=exam.otu.ca,resources=exams,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=exam.otu.ca,resources=exams/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=exam.otu.ca,resources=exams/finalizers,verbs=update
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=services;namespaces,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=networking.k8s.io,resources=ingresses;networkpolicies,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch
 // +kubebuilder:rbac:groups=cilium.io,resources=ciliumnetworkpolicies,verbs=get;list;watch;create;update;patch;delete
 
 // ExamReconciler reconciles an Exam object.
 type ExamReconciler struct {
 	client.Client
 	Scheme         *runtime.Scheme
+	Platform       PlatformConfig
 	PolicyProvider network.PolicyProvider
 	Sender         notifier.Sender
 	Now            func() time.Time
@@ -79,8 +89,32 @@ func (r *ExamReconciler) now() time.Time {
 	return time.Now()
 }
 
+func (r *ExamReconciler) platformSecretNamespace(exam *examv1alpha1.Exam) string {
+	if r.Platform.SecretNamespace != "" {
+		return r.Platform.SecretNamespace
+	}
+	return exam.Namespace
+}
+
+func (r *ExamReconciler) validatePlatformConfig() error {
+	switch {
+	case r.Platform.BaseDomain == "":
+		return fmt.Errorf("platform config missing base domain")
+	case r.Platform.IngressTLSSecretName == "":
+		return fmt.Errorf("platform config missing ingress TLS secret name")
+	case r.Platform.SMTPSecretName == "":
+		return fmt.Errorf("platform config missing SMTP secret name")
+	default:
+		return nil
+	}
+}
+
+func (r *ExamReconciler) instanceURL(slug string) string {
+	return fmt.Sprintf("https://%s.%s", slug, r.Platform.BaseDomain)
+}
+
 // resolvedSender returns a Sender configured with SMTP credentials from the
-// Exam's referenced Secret. If r.Sender is already set to a non-SMTPSender
+// controller's platform Secret. If r.Sender is already set to a non-SMTPSender
 // (e.g., FakeSender for tests), it is returned directly.
 func (r *ExamReconciler) resolvedSender(ctx context.Context, exam *examv1alpha1.Exam) (notifier.Sender, error) {
 	if r.Sender != nil {
@@ -92,10 +126,11 @@ func (r *ExamReconciler) resolvedSender(ctx context.Context, exam *examv1alpha1.
 
 	var secret corev1.Secret
 	if err := r.Get(ctx, types.NamespacedName{
-		Name:      exam.Spec.Email.SecretRef,
-		Namespace: exam.Namespace,
+		Name:      r.Platform.SMTPSecretName,
+		Namespace: r.platformSecretNamespace(exam),
 	}, &secret); err != nil {
-		return nil, fmt.Errorf("reading SMTP secret %q: %w", exam.Spec.Email.SecretRef, err)
+		return nil, fmt.Errorf("reading SMTP secret %q from namespace %q: %w",
+			r.Platform.SMTPSecretName, r.platformSecretNamespace(exam), err)
 	}
 
 	port, _ := strconv.Atoi(string(secret.Data["port"]))
@@ -277,7 +312,6 @@ func (r *ExamReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		}
 		return ctrl.Result{}, err
 	}
-
 	// Finalizer: handle deletion
 	if !exam.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(&exam, finalizerName) {
@@ -379,6 +413,9 @@ func (r *ExamReconciler) reconcileProvisioning(ctx context.Context, exam *examv1
 		},
 	}
 	if err := r.Create(ctx, namespace); err != nil && !apierrors.IsAlreadyExists(err) {
+		return ctrl.Result{}, err
+	}
+	if err := r.reconcilePlatformTLSSecret(ctx, exam, ns); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -630,6 +667,39 @@ func (r *ExamReconciler) provisionInstance(ctx context.Context, exam *examv1alph
 	return nil
 }
 
+func (r *ExamReconciler) reconcilePlatformTLSSecret(ctx context.Context, exam *examv1alpha1.Exam, examNS string) error {
+	var source corev1.Secret
+	sourceNN := types.NamespacedName{
+		Name:      r.Platform.IngressTLSSecretName,
+		Namespace: r.platformSecretNamespace(exam),
+	}
+	if err := r.Get(ctx, sourceNN, &source); err != nil {
+		return fmt.Errorf("reading ingress TLS secret %q from namespace %q: %w",
+			sourceNN.Name, sourceNN.Namespace, err)
+	}
+
+	target := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      r.Platform.IngressTLSSecretName,
+			Namespace: examNS,
+		},
+	}
+	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, target, func() error {
+		target.Labels = examResourceLabels(exam)
+		target.Type = source.Type
+		target.Data = make(map[string][]byte, len(source.Data))
+		for k, v := range source.Data {
+			target.Data[k] = append([]byte(nil), v...)
+		}
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("copying ingress TLS secret %q into namespace %q: %w",
+			r.Platform.IngressTLSSecretName, examNS, err)
+	}
+	return nil
+}
+
 func (r *ExamReconciler) findOrGenerateSlug(ctx context.Context, exam *examv1alpha1.Exam, ns, studentID string) (string, error) {
 	for _, s := range exam.Status.Students {
 		if s.ID == studentID && s.Slug != "" {
@@ -685,7 +755,7 @@ func (r *ExamReconciler) setStudentStatus(exam *examv1alpha1.Exam, index int, s 
 	exam.Status.Students[index] = examv1alpha1.StudentStatus{
 		ID:          student.ID,
 		Slug:        s,
-		URL:         fmt.Sprintf("https://%s.%s", s, exam.Spec.Domain),
+		URL:         r.instanceURL(s),
 		Phase:       phase,
 		EmailStatus: examv1alpha1.EmailStatusPending,
 	}
@@ -697,7 +767,7 @@ func (r *ExamReconciler) setSpareStatus(exam *examv1alpha1.Exam, index int, s st
 	}
 	exam.Status.Spares[index] = examv1alpha1.SpareStatus{
 		Slug:  s,
-		URL:   fmt.Sprintf("https://%s.%s", s, exam.Spec.Domain),
+		URL:   r.instanceURL(s),
 		Phase: phase,
 	}
 }
@@ -889,6 +959,10 @@ func (r *ExamReconciler) enforcePolicies(ctx context.Context, exam *examv1alpha1
 	ns := examNamespace(exam.Name, exam.Namespace)
 	allSlugs := r.collectSlugs(exam)
 
+	if err := r.reconcilePlatformTLSSecret(ctx, exam, ns); err != nil {
+		log.FromContext(ctx).Error(err, "drift: failed to reconcile ingress TLS secret", "namespace", ns)
+	}
+
 	for _, entry := range allSlugs {
 		labels := provisioner.Labels(exam, entry.studentID, entry.slug)
 		labels[provisioner.LabelPort] = fmt.Sprintf("%d", exam.Spec.Template.Port)
@@ -904,7 +978,14 @@ func (r *ExamReconciler) enforcePolicies(ctx context.Context, exam *examv1alpha1
 
 		ingressAllow := r.PolicyProvider.IngressAllow(ns, labels)
 		if unlocked {
-			ing := provisioner.Ingress(exam, ns, entry.studentID, entry.slug)
+			ing := provisioner.Ingress(
+				exam,
+				ns,
+				entry.studentID,
+				entry.slug,
+				r.Platform.BaseDomain,
+				r.Platform.IngressTLSSecretName,
+			)
 			if err := r.Create(ctx, ing); err != nil && !apierrors.IsAlreadyExists(err) {
 				log.FromContext(ctx).Error(err, "drift: failed to create ingress", "slug", entry.slug)
 			}
@@ -990,6 +1071,10 @@ func (r *ExamReconciler) updateMetricsSummary(exam *examv1alpha1.Exam) {
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *ExamReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	if err := r.validatePlatformConfig(); err != nil {
+		return err
+	}
+
 	mapToExam := handler.EnqueueRequestsFromMapFunc(
 		func(ctx context.Context, obj client.Object) []reconcile.Request {
 			return requestsForOwnedObject(obj)

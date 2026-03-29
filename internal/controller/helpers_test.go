@@ -46,6 +46,13 @@ import (
 // examCRNamespace is the namespace where Exam CRs live in integration tests.
 const examCRNamespace = "exam-system"
 
+const (
+	testPlatformDomain          = "exam.test.com"
+	testPlatformTLSSecretName   = "test-tls"
+	testPlatformSMTPSecretName  = "smtp-secret"
+	testPlatformSecretNamespace = examCRNamespace
+)
+
 var testCounter atomic.Int64
 
 // uniqueExamName returns a unique exam name with the given prefix, safe for
@@ -92,12 +99,9 @@ func createExamCR(ctx context.Context, name string, unlock time.Time, students [
 				Before:          metav1.Duration{Duration: 30 * time.Minute},
 				RateLimit:       10,
 				InstructorEmail: "prof@test.com",
-				SecretRef:       "smtp-secret",
 				From:            "test@test.com",
 				Subject:         "Test Exam",
 			},
-			IngressTLS: examv1alpha1.ExamIngressTLS{SecretName: "test-tls"},
-			Domain:     "exam.test.com",
 		},
 	}
 	Expect(k8sClient.Create(ctx, resource)).To(Succeed())
@@ -106,12 +110,36 @@ func createExamCR(ctx context.Context, name string, unlock time.Time, students [
 // newReconciler creates an ExamReconciler with the given clock, sender, and metrics.
 func newReconciler(nowFn func() time.Time, sender notifier.Sender, m *metrics.ExamMetrics) *ExamReconciler {
 	return &ExamReconciler{
-		Client:         k8sClient,
-		Scheme:         k8sClient.Scheme(),
+		Client: k8sClient,
+		Scheme: k8sClient.Scheme(),
+		Platform: PlatformConfig{
+			BaseDomain:           testPlatformDomain,
+			IngressTLSSecretName: testPlatformTLSSecretName,
+			SMTPSecretName:       testPlatformSMTPSecretName,
+			SecretNamespace:      testPlatformSecretNamespace,
+		},
 		PolicyProvider: &network.VanillaPolicyProvider{},
 		Sender:         sender,
 		Now:            nowFn,
 		Metrics:        m,
+	}
+}
+
+func createTLSSecret(ctx context.Context, name, namespace string) {
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Type: corev1.SecretTypeTLS,
+		Data: map[string][]byte{
+			corev1.TLSCertKey:       []byte("dummy-cert"),
+			corev1.TLSPrivateKeyKey: []byte("dummy-key"),
+		},
+	}
+	err := k8sClient.Create(ctx, secret)
+	if err != nil && !errors.IsAlreadyExists(err) {
+		Expect(err).NotTo(HaveOccurred())
 	}
 }
 

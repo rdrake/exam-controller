@@ -52,8 +52,6 @@ spec:
           spec:
             description: ExamSpec defines the desired state of Exam.
             properties:
-              domain:
-                type: string
               email:
                 description: ExamEmail configures email delivery.
                 properties:
@@ -67,23 +65,12 @@ spec:
                   rateLimit:
                     default: 1
                     type: integer
-                  secretRef:
-                    type: string
                   subject:
                     type: string
                 required:
                 - from
                 - instructorEmail
-                - secretRef
                 - subject
-                type: object
-              ingressTLS:
-                description: ExamIngressTLS configures TLS for student Ingress resources.
-                properties:
-                  secretName:
-                    type: string
-                required:
-                - secretName
                 type: object
               schedule:
                 description: ExamSchedule defines the timing for the exam lifecycle.
@@ -94,11 +81,8 @@ spec:
                     properties:
                       before:
                         type: string
-                      duration:
-                        type: string
                     required:
                     - before
-                    - duration
                     type: object
                   duration:
                     type: string
@@ -207,9 +191,7 @@ spec:
                 - port
                 type: object
             required:
-            - domain
             - email
-            - ingressTLS
             - schedule
             - students
             - template

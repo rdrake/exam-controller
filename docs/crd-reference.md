@@ -1,11 +1,11 @@
 # Exam CRD Reference
 
-The `Exam` custom resource defines the complete lifecycle of a penetration-testing exam: instance provisioning, network policy enforcement, email notifications, dry-run smoke tests, timed unlock/lock transitions, and teardown. This document covers every field in `ExamSpec` and `ExamStatus`.
+The `Exam` custom resource defines the complete lifecycle of a scheduled exam environment: instance provisioning, network policy enforcement, email notifications, dry-run smoke tests, timed unlock/lock transitions, retention, and teardown. This document covers every field in `ExamSpec` and `ExamStatus`.
 
 **API group:** `exam.otu.ca`
 **Version:** `v1alpha1`
 **Kind:** `Exam`
-**Scope:** Cluster (the controller creates a dedicated namespace per Exam)
+**Scope:** Namespaced (`Exam` objects typically live in a control namespace such as `exam-system`; the controller creates a dedicated namespace per exam)
 
 ---
 
@@ -39,7 +39,7 @@ Controls the exam timeline: when provisioning starts, when the exam unlocks/lock
 | `spec.schedule.duration` | `string` (duration, e.g. `"2h"`) | Yes | -- | Base exam duration. Must be greater than 0. |
 | `spec.schedule.timeMultiplier` | `float64` | No | `1.5` | Multiplier applied to `duration` to compute the lock time. `lockTime = unlock + (duration * timeMultiplier)`. Must be >= 1.0. |
 | `spec.schedule.provisionBefore` | `string` (duration) | No | `"1h"` | How far before `unlock` to begin provisioning instances. Must be greater than `spec.email.before`. |
-| `spec.schedule.retention` | `string` (duration) | No | `"24h"` | How long after lock time to retain pods before teardown. |
+| `spec.schedule.retention` | `string` (duration) | No | `"24h"` | How long after lock time to retain pods before teardown. Platform teams can increase this later to preserve an exam environment for investigation. |
 | `spec.schedule.dryRun` | `object` | No | -- | If set, configures a pre-exam smoke test. See [Dry Run](#dry-run-specscheduledryrun) below. |
 
 **Validation rules:**
@@ -61,20 +61,18 @@ Optional pre-exam smoke test that verifies all student instances are reachable a
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
 | `spec.schedule.dryRun.before` | `string` (duration) | Yes | -- | How far before `unlock` to start the dry run. |
-| `spec.schedule.dryRun.duration` | `string` (duration) | Yes | -- | Maximum time the dry-run probe is allowed to run. |
 
 ---
 
 ### Email (`spec.email`)
 
-Configures email delivery to students and the instructor.
+Configures email delivery to students and the designated course contact.
 
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
 | `spec.email.before` | `string` (duration) | No | `"30m"` | How far before `unlock` to begin sending student emails. Must allow enough time to send all emails at the configured rate. |
 | `spec.email.rateLimit` | `int` | No | `1` | Maximum emails sent per second. |
-| `spec.email.instructorEmail` | `string` | Yes | -- | Email address for instructor notifications (spare URLs, unlock summary, lock summary). |
-| `spec.email.secretRef` | `string` | Yes | -- | Name of a Kubernetes Secret (in the controller's namespace) containing SMTP credentials. The Secret must include keys for the SMTP connection. |
+| `spec.email.instructorEmail` | `string` | Yes | -- | Email address for course-staff notifications (spare URLs, unlock summary, lock summary). |
 | `spec.email.from` | `string` | Yes | -- | Sender address for all outgoing emails. |
 | `spec.email.subject` | `string` | Yes | -- | Subject line for student credential emails. |
 
@@ -108,16 +106,14 @@ List of students participating in the exam. Each student gets a dedicated pod, s
 
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
-| `spec.spares` | `int` | No | `0` | Number of spare instances to provision. Spare URLs are emailed to the instructor once all instances are healthy. |
-| `spec.ingressTLS.secretName` | `string` | Yes | -- | Name of a Kubernetes TLS Secret used for Ingress TLS termination (typically a wildcard certificate). |
-| `spec.domain` | `string` | Yes | -- | Base domain for student Ingress hostnames. Must be a valid DNS subdomain. Each student instance is reachable at `<slug>.<domain>`. |
+| `spec.spares` | `int` | No | `0` | Number of spare instances to provision. Spare URLs are emailed to the course contact once all instances are healthy. |
 
 **Validation rules:**
 
 - `spec.spares` must be >= 0.
 - `spec.spares` is immutable after provisioning.
-- `spec.domain` must be a valid DNS1123 subdomain.
-- `spec.domain` is immutable after provisioning.
+
+Routing and SMTP settings are controller-level platform configuration, not `ExamSpec` fields. Set them with deployment flags or Helm values such as `platform.baseDomain`, `platform.ingressTLSSecretName`, `platform.smtpSecretName`, and `platform.secretNamespace`.
 
 ---
 
@@ -163,7 +159,7 @@ One entry per student, tracking instance and email state.
 | `status.students[].id` | `string` | Student ID matching `spec.students[].id`. |
 | `status.students[].slug` | `string` | Generated slug used for the pod, service, and ingress hostname. |
 | `status.students[].url` | `string` | Full URL for the student's exam instance (e.g., `https://<slug>.<domain>`). |
-| `status.students[].phase` | `string` | Instance phase: `Provisioned`, `Healthy`, `Unlocked`, `Locked`, or `Failed`. |
+| `status.students[].phase` | `string` | Instance phase: `Provisioned`, `Unlocked`, `Locked`, or `Failed`. |
 | `status.students[].emailStatus` | `string` | Email delivery state: `Pending`, `Sent`, or `Failed`. |
 | `status.students[].emailSentAt` | `string` (RFC 3339) | Timestamp when the credential email was sent. |
 
@@ -177,7 +173,7 @@ One entry per spare instance.
 |-------|------|-------------|
 | `status.spares[].slug` | `string` | Generated slug for the spare instance. |
 | `status.spares[].url` | `string` | Full URL for the spare instance. |
-| `status.spares[].phase` | `string` | Instance phase: `Provisioned`, `Healthy`, `Unlocked`, `Locked`, or `Failed`. |
+| `status.spares[].phase` | `string` | Instance phase: `Provisioned`, `Unlocked`, `Locked`, or `Failed`. |
 
 ---
 
@@ -208,8 +204,8 @@ The controller sets the following conditions on `status.conditions`. Each condit
 | `DryRunComplete` | The dry-run smoke test has finished executing. | `Complete` | Set regardless of whether all checks passed or some failed. |
 | `DryRunFailed` | One or more dry-run checks failed. | `SomeFailed` | Message includes the count of failures (e.g., `"3 of 30 checks failed"`). |
 | `NetworkPolicyEnforced` | The dry run has tested network policy enforcement. | `Verified` / `NotEnforced` | `True` if the negative connectivity test confirmed policies block traffic; `False` otherwise. |
-| `InstructorNotifiedUnlock` | The unlock notification email was sent to the instructor. | `Sent` | Includes a summary of student count, spare count, and any failed emails. |
-| `InstructorNotifiedLock` | The lock notification email was sent to the instructor. | `Sent` | Includes a summary of healthy vs. failed instances at lock time. |
+| `InstructorNotifiedUnlock` | The unlock notification email was sent to the course contact. | `Sent` | Includes a summary of student count, spare count, and any failed emails. |
+| `InstructorNotifiedLock` | The lock notification email was sent to the course contact. | `Sent` | Includes a summary of healthy vs. failed instances at lock time. |
 
 ---
 
@@ -258,14 +254,12 @@ spec:
     retention: "24h"                              # Keep pods 24h after lock for investigation
     dryRun:                                       # Optional pre-exam smoke test
       before: "5m"                                #   Run 5 minutes before unlock
-      duration: "2m"                              #   Allow up to 2 minutes for probes
 
   # --- Email settings ---
   email:
     before: "30m"                                 # Start sending emails 30m before unlock
     rateLimit: 1                                  # Max 1 email per second
     instructorEmail: "instructor@ontariotechu.net" # Receives spare URLs + unlock/lock summaries
-    secretRef: exam-smtp-credentials              # Secret with SMTP credentials
     from: "noreply@otu.ca"                        # Sender address
     subject: "SOFE4790U - Your Exam Instance"     # Email subject line
 
@@ -278,14 +272,9 @@ spec:
 
   # --- Spare instances ---
   spares: 2                                       # Number of hot-spare instances
-
-  # --- Ingress TLS ---
-  ingressTLS:
-    secretName: exam-wildcard-tls                 # TLS secret (wildcard cert)
-
-  # --- Domain ---
-  domain: exam.otu.ca                             # Each instance gets <slug>.exam.otu.ca
 ```
+
+`Exam` resources do not carry platform-wide routing or SMTP configuration. The controller provides the base domain, wildcard TLS secret, SMTP secret name, and secret namespace via deployment flags or Helm values.
 
 ### Resulting Timeline
 
