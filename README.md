@@ -1,57 +1,100 @@
 # exam-controller
 
-A Kubernetes operator that automates the full lifecycle of pen-testing exam instances for university courses. It provisions isolated, network-locked containers for each student, sends credential emails on a schedule, enforces network policies per phase, and tears everything down after a configurable retention window. Built with Kubebuilder for instructors who need hands-off exam orchestration on any Kubernetes cluster.
+A Kubernetes operator that automates pen-testing exams for university courses. Define your exam once -- students, schedule, container image -- and the controller handles provisioning, email delivery, network isolation, and teardown. No manual intervention required on exam day.
 
-## How It Works
+## The problem
 
-The controller manages each `Exam` custom resource through a six-phase state machine. Phase transitions are time-driven, computed from the `spec.schedule` fields.
+Running a hands-on penetration testing exam means giving each student their own isolated instance of a vulnerable application. Without automation, this involves:
+
+- Manually spinning up dozens of containers
+- Configuring network policies so students can't interfere with each other
+- Sending each student their unique URL
+- Opening access at the right time
+- Cutting access when time is up
+- Keeping instances around for grading
+- Cleaning everything up afterward
+
+The exam-controller does all of this on a schedule you define.
+
+## What it does
+
+You write a YAML file listing your students, pick a container image, and set the exam times. The controller takes it from there:
 
 ```
 Pending --> Provisioning --> Ready --> Unlocked --> Locked --> TearingDown
 ```
 
-**Pending** -- The exam resource exists but the provisioning window has not started yet. The controller sleeps until `unlock - provisionBefore`.
+| Phase | What happens |
+|---|---|
+| **Pending** | Waiting for the provisioning window to open. |
+| **Provisioning** | Creates an isolated container, service, and network policies for each student. Provisions spare instances for replacements. |
+| **Ready** | All instances healthy. Sends each student their unique URL by email. Runs a smoke test to verify network isolation. |
+| **Unlocked** | Exam is live. Students can access their instances at `https://<slug>.<domain>`. You receive a notification. |
+| **Locked** | Time's up. Student access is cut off. Instances stay running so you can review their work. |
+| **TearingDown** | Retention window expired. Everything is cleaned up automatically. |
 
-**Provisioning** -- The controller creates a dedicated per-exam namespace (`exam-<name>-<hash>`), then provisions a Deployment, Service, and deny-all/egress-allowlist network policies for each student and spare instance. It polls every 10 seconds until all pods report ready.
+You receive email notifications at each major transition. If a student's email bounces, you get the list of failures so you can follow up.
 
-**Ready** -- All instances are healthy. The controller sends credential emails to students (rate-limited) starting at `unlock - email.before`, optionally runs a dry-run smoke test, and enforces deny-all network policies. Spare instance URLs are emailed to the instructor.
+## Example
 
-**Unlocked** -- The exam is in progress. Ingress resources and ingress-allow network policies are created so students can reach their instances via `https://<slug>.<domain>`. The instructor receives an unlock notification. The controller sleeps until the computed lock time (`unlock + duration * timeMultiplier`).
-
-**Locked** -- The exam has ended. Ingress resources and ingress-allow policies are removed, cutting off student access. Instances are retained for investigation. The instructor receives a lock notification with pass/fail counts. The controller sleeps until the retention deadline.
-
-**TearingDown** -- The retention window has expired. The controller deletes the exam namespace (and all resources within it) and cleans up Prometheus metric series.
-
-## Quick Start
-
-### Prerequisites
-
-- Go 1.25.3+
-- Docker 17.03+
-- kubectl 1.11.3+
-- Access to a Kubernetes cluster
-
-### Install CRDs
-
-```sh
-make install
+```yaml
+apiVersion: exam.otu.ca/v1alpha1
+kind: Exam
+metadata:
+  name: sofe4790u-midterm
+  namespace: exam-system
+spec:
+  template:
+    image: registry.example.com/vuln-app:v2.1
+    port: 8080
+  schedule:
+    unlock: "2026-04-10T14:00:00-04:00"
+    duration: "2h"
+    timeMultiplier: 1.5
+    provisionBefore: "1h"
+    retention: "24h"
+  email:
+    before: "30m"
+    instructorEmail: instructor@ontariotechu.net
+    secretRef: exam-smtp-credentials
+    from: "noreply@otu.ca"
+    subject: "SOFE4790U Midterm - Your Exam Instance"
+  students:
+    - id: john.smith
+      email: john.smith@ontariotechu.net
+    - id: jane.doe
+      email: jane.doe@ontariotechu.net
+  spares: 2
+  domain: exam.otu.ca
+  ingressTLS:
+    secretName: exam-wildcard-tls
 ```
 
-### Deploy the controller
+For a 2:00 PM exam, this provisions instances at 1:00 PM, emails students at 1:30 PM, smoke-tests at 1:55 PM, unlocks at 2:00 PM, locks at 5:00 PM, and tears down the next day. You don't need to be online for any of it.
 
-```sh
-make deploy IMG=ghcr.io/rdrake/exam-controller:v0.1.0
-```
+## Key features
 
-### Create your first exam
-
-```sh
-kubectl apply -f config/samples/exam_v1alpha1_exam.yaml
-```
-
-See the [sample manifest](config/samples/exam_v1alpha1_exam.yaml) for all available fields.
+- **Per-student isolation** -- Each student gets their own container, service, and network policies in a dedicated namespace.
+- **Automatic network enforcement** -- Deny-all policies block all traffic by default. Ingress is opened only during the exam window and only from the ingress controller.
+- **Cilium auto-detection** -- Uses CiliumNetworkPolicy with L7 visibility when available, falls back to vanilla NetworkPolicy otherwise.
+- **Smoke testing** -- Optional dry-run checks verify instance health and network policy enforcement before the exam starts.
+- **Spare instances** -- Pre-provisioned replacements ready to hand out if a student's instance fails.
+- **Rate-limited email** -- Sends student credentials on a schedule with retry, respecting SMTP rate limits.
+- **Prometheus metrics** -- 12 metrics covering reconcile performance, instance health, email delivery, and countdown timers. Metric series are cleaned up on teardown.
+- **Crash-safe** -- The controller resumes from the current phase on restart. It won't re-send emails or re-provision instances that already exist.
 
 ## Installation
+
+Your platform team handles this. Instructors only need to write the exam YAML.
+
+### Helm
+
+```sh
+helm install exam-controller \
+  oci://ghcr.io/rdrake/charts/exam-controller \
+  --namespace exam-controller-system --create-namespace \
+  --version 0.1.0
+```
 
 ### Kustomize
 
@@ -59,125 +102,23 @@ See the [sample manifest](config/samples/exam_v1alpha1_exam.yaml) for all availa
 make deploy IMG=ghcr.io/rdrake/exam-controller:v0.1.0
 ```
 
-Or generate a standalone installer YAML:
+### Prerequisites
 
-```sh
-make build-installer IMG=ghcr.io/rdrake/exam-controller:v0.1.0
-kubectl apply -f dist/install.yaml
-```
+- Kubernetes 1.28+
+- An ingress controller (ingress-nginx expected by default)
+- A wildcard TLS certificate for your exam domain
+- An SMTP server for email delivery
+- (Optional) Prometheus for monitoring
+- (Optional) Cilium CNI for L7 network policy support
 
-### Helm
+## Documentation
 
-```sh
-helm install exam-controller \
-  oci://ghcr.io/rdrake/charts/exam-controller \
-  --version 0.1.0
-```
-
-See [`charts/exam-controller/values.yaml`](charts/exam-controller/values.yaml) for all configurable Helm values.
-
-## Configuration
-
-### Exam CR Spec Fields
-
-| Field | Type | Default | Description |
-|---|---|---|---|
-| `spec.template.image` | `string` | (required) | Container image for student instances. Immutable after provisioning. |
-| `spec.template.port` | `int32` | (required) | Port the container listens on. Immutable after provisioning. |
-| `spec.template.resources` | `ResourceRequirements` | none | CPU/memory requests and limits for each instance. Immutable after provisioning. |
-| `spec.schedule.unlock` | `Time` | (required) | When the exam unlocks (ISO 8601). Immutable after provisioning. |
-| `spec.schedule.duration` | `Duration` | (required) | Base exam duration (e.g. `"2h"`). Immutable after locking. |
-| `spec.schedule.timeMultiplier` | `float64` | `1.5` | Multiplied with duration to compute lock time. Must be >= 1.0. Immutable after locking. |
-| `spec.schedule.provisionBefore` | `Duration` | `"1h"` | How long before unlock to start provisioning. Must be greater than `email.before`. |
-| `spec.schedule.retention` | `Duration` | `"24h"` | How long to keep instances after locking before teardown. |
-| `spec.schedule.dryRun.before` | `Duration` | -- | How long before unlock to run the smoke test. |
-| `spec.schedule.dryRun.duration` | `Duration` | -- | Timeout for the smoke test HTTP checks. |
-| `spec.students` | `[]Student` | (required) | List of `{id, email}` entries. At least one required. IDs must be valid label values. Immutable after provisioning. |
-| `spec.email.before` | `Duration` | `"30m"` | How long before unlock to begin sending emails. Must allow enough time for all students at the configured rate limit. |
-| `spec.email.rateLimit` | `int` | `1` | Maximum emails sent per second. |
-| `spec.email.instructorEmail` | `string` | (required) | Instructor email for notifications (spares, unlock, lock). |
-| `spec.email.secretRef` | `string` | (required) | Name of the Kubernetes Secret containing SMTP credentials. |
-| `spec.email.from` | `string` | (required) | Sender address for all emails. |
-| `spec.email.subject` | `string` | (required) | Email subject line. |
-| `spec.spares` | `int` | `0` | Number of spare instances to provision. Immutable after provisioning. |
-| `spec.domain` | `string` | (required) | Base domain for student Ingress URLs (e.g. `exam.otu.ca`). Must be a valid DNS subdomain. Immutable after provisioning. |
-| `spec.ingressTLS.secretName` | `string` | (required) | Name of the TLS Secret for Ingress resources (e.g. a wildcard certificate). |
-
-## Email Setup
-
-The controller reads SMTP credentials from a Kubernetes Secret referenced by `spec.email.secretRef`. Create the secret in the same namespace as the Exam resource:
-
-```sh
-kubectl create secret generic exam-smtp-credentials \
-  --namespace exam-system \
-  --from-literal=host=smtp.example.com \
-  --from-literal=port=587 \
-  --from-literal=username=apikey \
-  --from-literal=password=SG.xxxxx
-```
-
-| Secret Key | Description |
-|---|---|
-| `host` | SMTP server hostname |
-| `port` | SMTP server port (defaults to 587 if omitted) |
-| `username` | SMTP authentication username |
-| `password` | SMTP authentication password |
-
-The controller resolves credentials from the Secret at send time (not at startup), so you can rotate credentials without restarting the controller. Emails are sent with automatic retry (up to 3 attempts).
-
-Three types of emails are sent:
-
-1. **Student emails** -- Each student receives their unique instance URL before the exam unlocks.
-2. **Instructor spare notification** -- The instructor receives all spare instance URLs when provisioning completes.
-3. **Instructor unlock/lock notifications** -- The instructor is notified when the exam unlocks (including any failed email deliveries) and when it locks (with healthy/failed instance counts).
-
-## Network Policies
-
-### Backend Auto-Detection
-
-At startup, the controller checks the Kubernetes API for the `CiliumNetworkPolicy` CRD. If found, it uses the Cilium policy provider with L7 visibility. Otherwise, it falls back to vanilla Kubernetes `NetworkPolicy` resources.
-
-### Three-Policy Model
-
-For each student/spare instance, the controller creates three network policies:
-
-| Policy | Present | Effect |
+| Document | Audience | What it covers |
 |---|---|---|
-| **deny-all** | All phases after provisioning | Blocks all ingress and egress traffic to/from the pod. |
-| **egress-allowlist** | All phases after provisioning | Permits DNS lookups (UDP/TCP port 53) to `kube-dns` in `kube-system`. |
-| **ingress-allow** | Unlocked phase only | Permits inbound traffic from the ingress controller on the container port. |
-
-### Per-Phase Behavior
-
-| Phase | Ingress | Egress | Ingress Resources |
-|---|---|---|---|
-| Provisioning | Blocked | DNS only | None |
-| Ready | Blocked | DNS only | None |
-| Unlocked | Allowed (from ingress controller) | DNS only | Created |
-| Locked | Blocked | DNS only | Deleted |
-
-The dry-run smoke test (if configured) includes a negative connectivity check that verifies network policies are actually enforced. The result is recorded in the `NetworkPolicyEnforced` status condition.
-
-## Monitoring
-
-The controller exposes 12 Prometheus metrics. Enable a `ServiceMonitor` via the Helm chart by setting `metrics.serviceMonitor.enabled: true`.
-
-| Metric | Type | Labels | Description |
-|---|---|---|---|
-| `exam_reconcile_duration_seconds` | Histogram | -- | Time spent per reconcile loop. |
-| `exam_reconcile_errors_total` | Counter | -- | Total reconcile failures. |
-| `exam_phase_transitions_total` | Counter | `exam`, `namespace`, `from`, `to` | Phase changes by exam and transition direction. |
-| `exam_instances_total` | Gauge | `exam`, `namespace` | Total instances (students + spares). |
-| `exam_instances_healthy` | Gauge | `exam`, `namespace` | Instances passing health checks. |
-| `exam_instances_failed` | Gauge | `exam`, `namespace` | Instances in failed state. |
-| `exam_emails_sent_total` | Counter | `exam`, `namespace` | Emails successfully sent. |
-| `exam_emails_failed_total` | Counter | `exam`, `namespace` | Email delivery failures. |
-| `exam_dryrun_passed` | Gauge | `exam`, `namespace` | Dry run pass count. |
-| `exam_dryrun_failed` | Gauge | `exam`, `namespace` | Dry run fail count. |
-| `exam_seconds_until_unlock` | Gauge | `exam`, `namespace` | Countdown to unlock (0 after unlock). |
-| `exam_seconds_until_lock` | Gauge | `exam`, `namespace` | Countdown to lock (0 after lock). |
-
-Metric series for a given exam are automatically cleaned up during the TearingDown phase to prevent unbounded cardinality growth.
+| [User Guide](docs/user-guide.md) | Instructors | Step-by-step: creating exams, checking status, handling common situations, emergency overrides |
+| [Operations Runbook](docs/operations.md) | Platform teams | Deployment, monitoring, troubleshooting, emergency procedures, scaling |
+| [CRD Reference](docs/crd-reference.md) | Both | Full spec field reference with types, defaults, and immutability rules |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Developers | Setup, workflow, make targets, CI pipeline, releasing |
 
 ## Development
 
@@ -188,7 +129,7 @@ make test          # full integration suite + coverage gate
 make test-e2e      # end-to-end tests on Kind
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the full workflow, all make targets, and CI details.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
 ## License
 
