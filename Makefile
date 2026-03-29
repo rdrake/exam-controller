@@ -165,12 +165,12 @@ setup: install-hooks ## One-time developer setup after cloning the repo.
 	@echo "Ready to develop. Run 'make verify-fast' before pushing."
 
 .PHONY: install-hooks
-install-hooks: ## Install git pre-commit and pre-push hooks.
-	@printf '#!/usr/bin/env bash\nset -e\nmake fmt-check vet\n' > .git/hooks/pre-commit
-	@chmod +x .git/hooks/pre-commit
+install-hooks: ## Install git hooks via prek (pre-commit + pre-push).
+	@command -v prek >/dev/null 2>&1 || { echo "prek not found — install with: brew install prek"; exit 1; }
+	@prek install
 	@printf '#!/usr/bin/env bash\nset -e\nmake verify-fast\n' > .git/hooks/pre-push
 	@chmod +x .git/hooks/pre-push
-	@echo "Installed .git/hooks/pre-commit and .git/hooks/pre-push"
+	@echo "Installed pre-commit (prek) and pre-push hooks"
 
 ##@ Build
 
