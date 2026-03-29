@@ -178,6 +178,11 @@ install-hooks: ## Install git pre-commit and pre-push hooks.
 build: manifests generate fmt vet ## Build manager binary.
 	go build -o bin/manager cmd/main.go
 
+.PHONY: build-cross
+build-cross: manifests generate ## Cross-compile manager for linux/amd64 and linux/arm64.
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o bin/manager-linux-amd64 cmd/main.go
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags="-s -w" -o bin/manager-linux-arm64 cmd/main.go
+
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./cmd/main.go

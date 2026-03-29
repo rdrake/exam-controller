@@ -21,6 +21,7 @@ package e2e
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"testing"
 
@@ -44,12 +45,16 @@ func TestE2E(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	By("building the manager image")
-	cmd := exec.Command("make", "docker-build", fmt.Sprintf("IMG=%s", managerImage))
-	_, err := utils.Run(cmd)
-	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to build the manager image")
+	// CI pre-builds the image from a cross-compiled binary artifact.
+	// Set SKIP_IMG_BUILD=1 to skip the docker-build step.
+	if os.Getenv("SKIP_IMG_BUILD") == "" {
+		By("building the manager image")
+		cmd := exec.Command("make", "docker-build", fmt.Sprintf("IMG=%s", managerImage))
+		_, err := utils.Run(cmd)
+		ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to build the manager image")
+	}
 
 	By("loading the manager image on Kind")
-	err = utils.LoadImageToKindClusterWithName(managerImage)
+	err := utils.LoadImageToKindClusterWithName(managerImage)
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to load the manager image into Kind")
 })

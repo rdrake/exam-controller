@@ -1,0 +1,173 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  preflight:
+    name: Preflight checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: azure/setup-helm@v4
+      - name: Run fast verification
+        run: make verify-fast
+
+  test:
+    name: Integration tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Run tests
+        run: |
+          go mod tidy
+          make test
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage
+          path: cover.out
+
+  build-binary:
+    name: Build binary (${{ matrix.arch }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Build manager binary
+        run: |
+          CGO_ENABLED=0 GOOS=linux GOARCH=${{ matrix.arch }} \
+            go build -trimpath -ldflags="-s -w" -o bin/manager-linux-${{ matrix.arch }} cmd/main.go
+      - uses: actions/upload-artifact@v4
+        with:
+          name: manager-linux-${{ matrix.arch }}
+          path: bin/manager-linux-${{ matrix.arch }}
+          retention-days: 1
+
+  build-image:
+    name: Build and push image
+    needs: [preflight, test, build-binary]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: manager-linux-*
+          path: bin/
+          merge-multiple: true
+
+      - name: Verify downloaded binaries
+        run: |
+          file bin/manager-linux-amd64
+          file bin/manager-linux-arm64
+          test -x bin/manager-linux-amd64
+          test -x bin/manager-linux-arm64
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        if: github.event_name != 'pull_request'
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha
+
+      - name: Build and push multi-arch image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64,linux/arm64
+          build-args: BUILD_MODE=prebuilt
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build single-platform image for scanning
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: scan-target:latest
+          build-args: BUILD_MODE=prebuilt
+
+      - name: Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@v0.35.0
+        with:
+          image-ref: scan-target:latest
+          exit-code: "1"
+          severity: CRITICAL,HIGH
+
+  e2e:
+    name: E2E tests
+    needs: [preflight, test, build-binary]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: manager-linux-amd64
+          path: bin/
+
+      - run: chmod +x bin/manager-linux-amd64
+
+      - name: Install kind
+        run: |
+          curl -Lo ./kind https://kind.sigs.k8s.io/dl/latest/kind-linux-amd64
+          chmod +x ./kind
+          sudo mv ./kind /usr/local/bin/kind
+
+      - name: Build manager image from pre-built binary
+        run: docker build --build-arg BUILD_MODE=prebuilt -t example.com/exam-controller:v0.0.1 .
+
+      - name: Run e2e tests
+        env:
+          SKIP_IMG_BUILD: "1"
+        run: make test-e2e
