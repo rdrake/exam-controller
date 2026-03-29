@@ -496,13 +496,13 @@ func (r *ExamReconciler) reconcileReady(ctx context.Context, exam *examv1alpha1.
 	unlock := exam.Spec.Schedule.Unlock.Time
 
 	if !meta.IsStatusConditionTrue(exam.Status.Conditions, "AllEmailsSent") && !now.Before(emailTime) {
-		rateLimit := exam.Spec.Email.RateLimit
-		if rateLimit <= 0 {
-			rateLimit = 1
+		sendInterval := exam.Spec.Email.SendInterval.Duration
+		if sendInterval <= 0 {
+			sendInterval = time.Second
 		}
 		sent := r.sendNextPendingEmail(ctx, exam)
 		if sent {
-			return ctrl.Result{RequeueAfter: time.Second / time.Duration(rateLimit)}, nil
+			return ctrl.Result{RequeueAfter: sendInterval}, nil
 		}
 		setCondition(exam, metav1.Condition{
 			Type:   "AllEmailsSent",

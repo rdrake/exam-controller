@@ -26,7 +26,7 @@ func baseExam() *Exam {
 			},
 			Email: ExamEmail{
 				Before:          metav1.Duration{Duration: 30 * time.Minute},
-				RateLimit:       1,
+				SendInterval:    metav1.Duration{Duration: 1 * time.Second},
 				InstructorEmail: "prof@test.com",
 				From:            "noreply@test.com",
 				Subject:         "Test",
@@ -254,10 +254,10 @@ func TestValidateCreate_MultiplierExactlyOne(t *testing.T) {
 func TestValidateCreate_EmailTimingEdge(t *testing.T) {
 	v := &examValidator{}
 	e := baseExam()
-	// 1 student, rateLimit=1 → minEmailTime = ceil(1/1) * 1.5 = 1.5s
+	// 1 student, sendInterval=1s → minEmailTime = 1 * 1.0 * 1.5 = 1.5s
 	// Set emailBefore to exactly 2s (>= 1.5s boundary) to pass.
 	e.Spec.Students = []ExamStudent{{ID: "alice", Email: "alice@test.com"}}
-	e.Spec.Email.RateLimit = 1
+	e.Spec.Email.SendInterval = metav1.Duration{Duration: 1 * time.Second}
 	e.Spec.Email.Before = metav1.Duration{Duration: 2 * time.Second}
 	e.Spec.Schedule.ProvisionBefore = metav1.Duration{Duration: 10 * time.Second}
 	_, err := v.ValidateCreate(context.Background(), e)
@@ -319,13 +319,13 @@ func TestValidateCreate_DefaultMultiplier(t *testing.T) {
 	}
 }
 
-func TestValidateCreate_DefaultRateLimit(t *testing.T) {
+func TestValidateCreate_DefaultSendInterval(t *testing.T) {
 	v := &examValidator{}
 	e := baseExam()
-	e.Spec.Email.RateLimit = 0 // should default to 1
+	e.Spec.Email.SendInterval = metav1.Duration{Duration: 0} // should default to 1s
 	_, err := v.ValidateCreate(context.Background(), e)
 	if err != nil {
-		t.Errorf("rateLimit=0 should default to 1 and pass, got error: %v", err)
+		t.Errorf("sendInterval=0 should default to 1s and pass, got error: %v", err)
 	}
 }
 

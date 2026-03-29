@@ -24,7 +24,7 @@ func examWithSchedule(unlock time.Time) *examv1alpha1.Exam {
 			},
 			Email: examv1alpha1.ExamEmail{
 				Before:          metav1.Duration{Duration: 30 * time.Minute},
-				RateLimit:       1,
+				SendInterval:    metav1.Duration{Duration: 1 * time.Second},
 				InstructorEmail: "prof@test.com",
 				From:            "noreply@test.com",
 				Subject:         "Test",

@@ -65,7 +65,7 @@ spec:
       before: "5m"
   email:
     before: "30m"
-    rateLimit: 1
+    sendInterval: "1s"
     instructorEmail: instructor@ontariotechu.net
     from: "noreply@otu.ca"
     subject: "SOFE4790U Midterm - Your Exam Instance"

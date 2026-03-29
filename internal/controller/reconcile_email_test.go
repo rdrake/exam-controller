@@ -98,10 +98,10 @@ var _ = Describe("Email Sending", func() {
 		createExamCR(ctx, examName, unlock, students, 0)
 		preseedSlugs(ctx, nn)
 
-		// Patch rateLimit to 1 on the CR
+		// Patch sendInterval to 1s on the CR
 		exam := &examv1alpha1.Exam{}
 		Expect(k8sClient.Get(ctx, nn, exam)).To(Succeed())
-		exam.Spec.Email.RateLimit = 1
+		exam.Spec.Email.SendInterval = metav1.Duration{Duration: 1 * time.Second}
 		Expect(k8sClient.Update(ctx, exam)).To(Succeed())
 
 		reconciler := driveToPhase(ctx, nn, examv1alpha1.ExamPhaseReady, unlock, fakeSender, nil)

@@ -62,9 +62,9 @@ spec:
                     type: string
                   instructorEmail:
                     type: string
-                  rateLimit:
-                    default: 1
-                    type: integer
+                  sendInterval:
+                    default: 1s
+                    type: string
                   subject:
                     type: string
                 required:

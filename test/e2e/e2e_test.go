@@ -372,7 +372,7 @@ spec:
   spares: 0
   email:
     before: "3m"
-    rateLimit: 10
+    sendInterval: "100ms"
     instructorEmail: "instructor@example.com"
     from: "noreply@example.com"
     subject: "E2E Lifecycle Test"`, examName, examCRNamespace, unlock)
@@ -453,7 +453,7 @@ spec:
   spares: 0
   email:
     before: "30m"
-    rateLimit: 1
+    sendInterval: "1s"
     instructorEmail: "instructor@example.com"
     from: "noreply@example.com"
     subject: "Webhook Test"`, examCRNamespace, unlock)
@@ -489,7 +489,7 @@ spec:
   spares: 0
   email:
     before: "30m"
-    rateLimit: 10
+    sendInterval: "100ms"
     instructorEmail: "instructor@example.com"
     from: "noreply@example.com"
     subject: "Webhook Test"`, examCRNamespace, unlock)
@@ -525,7 +525,7 @@ spec:
   spares: 0
   email:
     before: "30m"
-    rateLimit: 10
+    sendInterval: "100ms"
     instructorEmail: "instructor@example.com"
     from: "noreply@example.com"
     subject: "Webhook Test"`, examCRNamespace, unlock)
@@ -570,7 +570,7 @@ spec:
   spares: 0
   email:
     before: "1m30s"
-    rateLimit: 10
+    sendInterval: "100ms"
     instructorEmail: "instructor@example.com"
     from: "noreply@example.com"
     subject: "E2E Phase Test"`, examName, examCRNamespace, unlock)
@@ -674,7 +674,7 @@ spec:
   spares: 1
   email:
     before: "15s"
-    rateLimit: 10
+    sendInterval: "100ms"
     instructorEmail: "instructor@example.com"
     from: "noreply@example.com"
     subject: "E2E Full Lifecycle Test"`, examName, examCRNamespace, unlock)

@@ -19,7 +19,6 @@ package v1alpha1
 import (
 	"context"
 	"fmt"
-	"math"
 	"reflect"
 	"time"
 
@@ -60,18 +59,18 @@ func (v *examValidator) validateFields(exam *Exam) error {
 		return fmt.Errorf("spec.spares must be >= 0")
 	}
 
-	rateLimit := exam.Spec.Email.RateLimit
-	if rateLimit <= 0 {
-		rateLimit = 1
+	sendInterval := exam.Spec.Email.SendInterval.Duration
+	if sendInterval <= 0 {
+		sendInterval = time.Second
 	}
 	emailBefore := exam.Spec.Email.Before.Duration
 	if emailBefore == 0 {
 		emailBefore = 30 * time.Minute
 	}
-	minEmailTime := math.Ceil(float64(len(exam.Spec.Students))/float64(rateLimit)) * 1.5
+	minEmailTime := float64(len(exam.Spec.Students)) * sendInterval.Seconds() * 1.5
 	if emailBefore.Seconds() < minEmailTime {
-		return fmt.Errorf("spec.email.before (%v) is too short to send %d emails at %d/s (need %.0fs with retry buffer)",
-			emailBefore, len(exam.Spec.Students), rateLimit, minEmailTime)
+		return fmt.Errorf("spec.email.before (%v) is too short to send %d emails at %v intervals (need %.0fs with retry buffer)",
+			emailBefore, len(exam.Spec.Students), sendInterval, minEmailTime)
 	}
 
 	provisionBefore := exam.Spec.Schedule.ProvisionBefore.Duration

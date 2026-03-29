@@ -76,7 +76,7 @@ func createExamCRWithDryRun(ctx context.Context, name string, unlock time.Time, 
 			Spares:   spares,
 			Email: examv1alpha1.ExamEmail{
 				Before:          metav1.Duration{Duration: 30 * time.Minute},
-				RateLimit:       10,
+				SendInterval:    metav1.Duration{Duration: 100 * time.Millisecond},
 				InstructorEmail: "prof@test.com",
 				From:            "test@test.com",
 				Subject:         "Test Exam",

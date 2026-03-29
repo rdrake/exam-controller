@@ -87,11 +87,11 @@ type ExamStudent struct {
 type ExamEmail struct {
 	// +kubebuilder:default="30m"
 	Before metav1.Duration `json:"before,omitempty"`
-	// +kubebuilder:default=1
-	RateLimit       int    `json:"rateLimit,omitempty"`
-	InstructorEmail string `json:"instructorEmail"`
-	From            string `json:"from"`
-	Subject         string `json:"subject"`
+	// +kubebuilder:default="1s"
+	SendInterval    metav1.Duration `json:"sendInterval,omitempty"`
+	InstructorEmail string          `json:"instructorEmail"`
+	From            string          `json:"from"`
+	Subject         string          `json:"subject"`
 }
 
 // ExamSpec defines the desired state of Exam.

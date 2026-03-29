@@ -596,20 +596,20 @@ For a 50-student exam with 5 spares, that is 55 Deployments, 55 Services, and 11
 - Ensure the Kubernetes API server can handle the object count. Each reconcile loop may list Deployments across exam namespaces.
 - Consider staggering exam start times to avoid provisioning storms.
 
-### Email rate limiting
+### Email send interval
 
-The controller sends emails one at a time, controlled by `spec.email.rateLimit`:
+The controller sends emails one at a time, controlled by `spec.email.sendInterval`:
 
 ```yaml
 email:
-  rateLimit: 1  # emails per second
+  sendInterval: "1s"  # 1 second between emails
 ```
 
-With `rateLimit: 1` and 100 students, email delivery takes approximately 100 seconds. The controller requeues after each send with a delay of `1/rateLimit` seconds.
+With `sendInterval: "1s"` and 100 students, email delivery takes approximately 100 seconds. The controller requeues after each send with the configured delay.
 
 **Considerations:**
 
-- Most SMTP providers have rate limits (e.g. 10--30 messages/second for institutional relays). Set `rateLimit` below your provider's limit.
+- Most SMTP providers have rate limits (e.g. 10--30 messages/second for institutional relays). Set `sendInterval` above the inverse of your provider's limit (e.g. `"100ms"` for 10/s).
 - Failed emails are retried 3 times with exponential backoff (100ms, 200ms, 400ms) before being marked as `Failed`. They are not retried again automatically.
 - Students with `Failed` email status must be notified manually. The configured course contact receives a list of failed deliveries in the unlock notification email.
 - For large classes (200+ students), consider setting `email.before` to `1h` or more to allow time for all emails to be sent before unlock.

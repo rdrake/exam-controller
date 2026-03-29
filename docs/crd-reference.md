@@ -71,7 +71,7 @@ Configures email delivery to students and the designated course contact.
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
 | `spec.email.before` | `string` (duration) | No | `"30m"` | How far before `unlock` to begin sending student emails. Must allow enough time to send all emails at the configured rate. |
-| `spec.email.rateLimit` | `int` | No | `1` | Maximum emails sent per second. |
+| `spec.email.sendInterval` | `string` (duration) | No | `"1s"` | Delay between sending each email. |
 | `spec.email.instructorEmail` | `string` | Yes | -- | Email address for course-staff notifications (spare URLs, unlock summary, lock summary). |
 | `spec.email.from` | `string` | Yes | -- | Sender address for all outgoing emails. |
 | `spec.email.subject` | `string` | Yes | -- | Subject line for student credential emails. |
@@ -79,7 +79,7 @@ Configures email delivery to students and the designated course contact.
 **Validation rules:**
 
 - `spec.email.instructorEmail` is required (must be non-empty).
-- `spec.email.before` must be long enough to deliver all emails at the given `rateLimit`. The webhook enforces: `before >= ceil(len(students) / rateLimit) * 1.5` seconds.
+- `spec.email.before` must be long enough to deliver all emails at the given `sendInterval`. The webhook enforces: `before >= len(students) * sendInterval * 1.5`.
 
 ---
 
@@ -258,7 +258,7 @@ spec:
   # --- Email settings ---
   email:
     before: "30m"                                 # Start sending emails 30m before unlock
-    rateLimit: 1                                  # Max 1 email per second
+    sendInterval: "1s"                             # 1 second between emails
     instructorEmail: "instructor@ontariotechu.net" # Receives spare URLs + unlock/lock summaries
     from: "noreply@otu.ca"                        # Sender address
     subject: "SOFE4790U - Your Exam Instance"     # Email subject line
