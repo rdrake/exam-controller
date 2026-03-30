@@ -1,0 +1,80 @@
+{{- if and .Values.metrics.enabled .Values.metrics.prometheusRule.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "exam-controller.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "exam-controller.labels" . | nindent 4 }}
+    prometheus: kube-prometheus
+spec:
+  groups:
+    - name: exam-controller.rules
+      interval: 30s
+      rules:
+        - alert: ExamInstancesFailed
+          expr: |
+            exam_instances_failed > 0
+          for: 2m
+          labels:
+            severity: critical
+            component: exam-controller
+          annotations:
+            summary: "{{ "{{ $value }}" }} failed instances for exam {{ "{{ $labels.exam }}" }}"
+            description: "Exam {{ "{{ $labels.exam }}" }} in namespace {{ "{{ $labels.namespace }}" }} has {{ "{{ $value }}" }} failed student instance(s) for more than 2 minutes."
+
+        - alert: ExamDryRunFailed
+          expr: |
+            exam_dryrun_failed > 0
+          for: 1m
+          labels:
+            severity: critical
+            component: exam-controller
+          annotations:
+            summary: "Dry run failures for exam {{ "{{ $labels.exam }}" }}"
+            description: "Exam {{ "{{ $labels.exam }}" }} in namespace {{ "{{ $labels.namespace }}" }} has {{ "{{ $value }}" }} dry run failure(s). The exam environment is not ready."
+
+        - alert: ExamProvisioningStuck
+          expr: |
+            exam_phase_duration_seconds{phase="Provisioning"} > 600
+          for: 5m
+          labels:
+            severity: critical
+            component: exam-controller
+          annotations:
+            summary: "Exam {{ "{{ $labels.exam }}" }} stuck in Provisioning"
+            description: "Exam {{ "{{ $labels.exam }}" }} in namespace {{ "{{ $labels.namespace }}" }} has been in the Provisioning phase for {{ "{{ $value | humanizeDuration }}" }}."
+
+        - alert: ExamEmailDeliveryFailed
+          expr: |
+            exam_emails_failed_total > 0
+          for: 2m
+          labels:
+            severity: warning
+            component: exam-controller
+          annotations:
+            summary: "Email delivery failures for exam {{ "{{ $labels.exam }}" }}"
+            description: "Exam {{ "{{ $labels.exam }}" }} in namespace {{ "{{ $labels.namespace }}" }} has {{ "{{ $value }}" }} failed email delivery attempt(s). Some students may not have received credentials."
+
+        - alert: ExamReconcileErrors
+          expr: |
+            rate(exam_reconcile_errors_total[5m]) > 0
+          for: 5m
+          labels:
+            severity: warning
+            component: exam-controller
+          annotations:
+            summary: "Exam controller reconcile errors"
+            description: "The exam controller is experiencing reconcile errors at {{ "{{ $value | humanize }}" }}/s for the last 5 minutes."
+
+        - alert: ExamInstancesDegraded
+          expr: |
+            exam_instances_healthy < exam_instances_total
+          for: 5m
+          labels:
+            severity: warning
+            component: exam-controller
+          annotations:
+            summary: "Degraded instances for exam {{ "{{ $labels.exam }}" }}"
+            description: "Exam {{ "{{ $labels.exam }}" }} in namespace {{ "{{ $labels.namespace }}" }} has only {{ "{{ $value }}" }} healthy instances. Not all instances are passing health checks."
+{{- end }}

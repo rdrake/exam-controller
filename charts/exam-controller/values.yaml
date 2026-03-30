@@ -24,6 +24,8 @@ metrics:
   serviceMonitor:
     enabled: false
     interval: "30s"
+  prometheusRule:
+    enabled: false
 
 webhook:
   enabled: false

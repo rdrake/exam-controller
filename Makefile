@@ -104,6 +104,7 @@ helm-verify: ## Verify Helm chart linting and rendering in key configurations.
 	"$(HELM)" template exam-controller charts/exam-controller --namespace exam-system \
 		--set webhook.enabled=true \
 		--set metrics.serviceMonitor.enabled=true \
+		--set metrics.prometheusRule.enabled=true \
 		--set networkPolicy.enabled=true >/dev/null
 	"$(HELM)" template exam-controller charts/exam-controller --namespace exam-system \
 		--set grafana.dashboard.enabled=true \
