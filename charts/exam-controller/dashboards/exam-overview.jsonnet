@@ -44,7 +44,8 @@ local statPanel(title, targets, overrides=[], textMode='auto', unit=null) =
     { color: 'green', value: null },
   ])
   + (if unit != null then g.panel.stat.standardOptions.withUnit(unit) else {})
-  + (if std.length(overrides) > 0 then g.panel.stat.standardOptions.withOverrides(overrides) else {});
+  + (if std.length(overrides) > 0 then g.panel.stat.standardOptions.withOverrides(overrides) else {})
+  + { options+: { noValue: 'N/A' } };
 
 // --- Helper: Query variable ---
 local queryVar(name, label, queryStr) =
@@ -80,7 +81,7 @@ local variables = [
 local phasePanel =
   statPanel(
     'Phase',
-    [promQuery('exam_phase_duration_seconds{%(f)s}' % { f: filters }, '{{phase}}')],
+    [promQuery('exam_phase_duration_seconds{%(f)s} > 0' % { f: filters }, '{{phase}}')],
     overrides=[
       colorOverride('Ready', 'green'),
       colorOverride('Unlocked', 'green'),
@@ -91,6 +92,7 @@ local phasePanel =
     ],
     textMode='name',
   )
+  + g.panel.stat.panelOptions.withDescription('Current exam lifecycle phase')
   + g.panel.stat.panelOptions.withGridPos(h=4, w=4, x=0, y=1)
   + { id: 1 };
 
@@ -106,19 +108,40 @@ local healthyTotalPanel =
     ],
     textMode='value_and_name',
   )
+  + g.panel.stat.panelOptions.withDescription('Instances passing health checks vs total expected')
+  + g.panel.stat.panelOptions.withGridPos(h=4, w=4, x=4, y=1)
+  + { id: 2 };
+
+local failedPanel =
+  statPanel(
+    'Failed',
+    [promQuery('exam_instances_failed{%(f)s}' % { f: filters })],
+  )
   + g.panel.stat.standardOptions.thresholds.withSteps([
     { color: 'green', value: null },
     { color: 'red', value: 1 },
   ])
-  + g.panel.stat.panelOptions.withGridPos(h=4, w=4, x=4, y=1)
-  + { id: 2 };
-
-local emailsSentPanel =
-  statPanel(
-    'Emails Sent',
-    [promQuery('exam_emails_sent_total{%(f)s}' % { f: filters })],
-  )
+  + g.panel.stat.panelOptions.withDescription('Student instances in failed state')
   + g.panel.stat.panelOptions.withGridPos(h=4, w=4, x=8, y=1)
+  + { id: 14 };
+
+local emailsPanel =
+  statPanel(
+    'Emails',
+    [
+      promQuery('exam_emails_sent_total{%(f)s}' % { f: filters }, 'Sent'),
+      promQuery('exam_emails_failed_total{%(f)s}' % { f: filters }, 'Failed', refId='B'),
+    ],
+    overrides=[
+      thresholdOverride('Failed', [
+        { color: 'green', value: null },
+        { color: 'red', value: 1 },
+      ]),
+    ],
+    textMode='value_and_name',
+  )
+  + g.panel.stat.panelOptions.withDescription('Credential emails sent and failed')
+  + g.panel.stat.panelOptions.withGridPos(h=4, w=4, x=12, y=1)
   + { id: 3 };
 
 local dryRunPanel =
@@ -136,26 +159,23 @@ local dryRunPanel =
     ],
     textMode='value_and_name',
   )
-  + g.panel.stat.panelOptions.withGridPos(h=4, w=4, x=12, y=1)
+  + g.panel.stat.panelOptions.withDescription('Pre-exam smoke test results — all should pass before unlock')
+  + g.panel.stat.panelOptions.withGridPos(h=4, w=4, x=16, y=1)
   + { id: 4 };
 
-local timeUntilUnlockPanel =
+local countdownPanel =
   statPanel(
-    'Time Until Unlock',
-    [promQuery('exam_seconds_until_unlock{%(f)s}' % { f: filters })],
-    unit='s',
+    'Countdowns',
+    [
+      promQuery('exam_seconds_until_unlock{%(f)s}' % { f: filters }, 'Unlock'),
+      promQuery('exam_seconds_until_lock{%(f)s}' % { f: filters }, 'Lock', refId='B'),
+    ],
+    unit='dthms',
+    textMode='value_and_name',
   )
-  + g.panel.stat.panelOptions.withGridPos(h=4, w=4, x=16, y=1)
-  + { id: 5 };
-
-local timeUntilLockPanel =
-  statPanel(
-    'Time Until Lock',
-    [promQuery('exam_seconds_until_lock{%(f)s}' % { f: filters })],
-    unit='s',
-  )
+  + g.panel.stat.panelOptions.withDescription('Countdown to exam start and end')
   + g.panel.stat.panelOptions.withGridPos(h=4, w=4, x=20, y=1)
-  + { id: 6 };
+  + { id: 5 };
 
 // ==========================================================================
 // Row 2: Provisioning & Health
@@ -181,11 +201,10 @@ local instanceHealthPanel =
   + g.panel.timeSeries.fieldConfig.defaults.custom.withPointSize(5)
   + g.panel.timeSeries.fieldConfig.defaults.custom.withShowPoints('auto')
   + g.panel.timeSeries.fieldConfig.defaults.custom.withSpanNulls(false)
-  + g.panel.timeSeries.fieldConfig.defaults.custom.stacking.withMode('normal')
+  + g.panel.timeSeries.fieldConfig.defaults.custom.stacking.withMode('none')
   + g.panel.timeSeries.fieldConfig.defaults.custom.stacking.withGroup('A')
   + g.panel.timeSeries.standardOptions.withOverrides([
     g.panel.timeSeries.standardOptions.override.byName.new('Total')
-    + g.panel.timeSeries.standardOptions.override.byName.withProperty('custom.stacking', { group: 'A', mode: 'none' })
     + g.panel.timeSeries.standardOptions.override.byName.withProperty('custom.fillOpacity', 0)
     + g.panel.timeSeries.standardOptions.override.byName.withProperty('custom.lineWidth', 2),
   ])
@@ -194,6 +213,7 @@ local instanceHealthPanel =
   + g.panel.timeSeries.options.legend.withShowLegend(true)
   + g.panel.timeSeries.options.tooltip.withMode('multi')
   + g.panel.timeSeries.options.tooltip.withSort('none')
+  + g.panel.timeSeries.panelOptions.withDescription('Instance state over time')
   + g.panel.timeSeries.panelOptions.withGridPos(h=10, w=12, x=0, y=6)
   + { id: 7 };
 
@@ -207,6 +227,7 @@ local provisioningLatencyPanel =
     )
     + g.query.prometheus.withFormat('heatmap'),
   ])
+  + g.panel.heatmap.panelOptions.withDescription('Only populated during the Provisioning phase. Blank outside that window is expected.')
   + {
     fieldConfig: {
       defaults: {
@@ -247,12 +268,20 @@ local phaseTimelinePanel =
   + g.panel.stateTimeline.queryOptions.withTargets([
     promQuery('exam_phase_duration_seconds{%(f)s} > 0' % { f: filters }, '{{phase}}'),
   ])
-  + g.panel.stateTimeline.standardOptions.color.withMode('continuous-GrYlRd')
+  + g.panel.stateTimeline.standardOptions.color.withMode('fixed')
   + g.panel.stateTimeline.fieldConfig.defaults.custom.withFillOpacity(80)
   + g.panel.stateTimeline.fieldConfig.defaults.custom.withLineWidth(0)
   + g.panel.stateTimeline.standardOptions.thresholds.withMode('absolute')
   + g.panel.stateTimeline.standardOptions.thresholds.withSteps([
     { color: 'green', value: null },
+  ])
+  + g.panel.stateTimeline.standardOptions.withOverrides([
+    colorOverride('Ready', 'green'),
+    colorOverride('Unlocked', 'green'),
+    colorOverride('Provisioning', 'yellow'),
+    colorOverride('Pending', 'blue'),
+    colorOverride('Locked', 'orange'),
+    colorOverride('TearingDown', 'red'),
   ])
   + g.panel.stateTimeline.options.withAlignValue('left')
   + g.panel.stateTimeline.options.legend.withDisplayMode('list')
@@ -263,11 +292,12 @@ local phaseTimelinePanel =
   + g.panel.stateTimeline.options.withShowValue('auto')
   + g.panel.stateTimeline.options.tooltip.withMode('single')
   + g.panel.stateTimeline.options.tooltip.withSort('none')
+  + g.panel.stateTimeline.panelOptions.withDescription('Exam lifecycle phase history')
   + g.panel.stateTimeline.panelOptions.withGridPos(h=10, w=6, x=18, y=6)
   + { id: 9 };
 
 // ==========================================================================
-// Row 3: Operational (collapsed)
+// Row 3: Operator Health (all exams) (collapsed)
 // ==========================================================================
 
 local reconcileLatencyPanel =
@@ -304,6 +334,7 @@ local reconcileLatencyPanel =
   + g.panel.timeSeries.options.legend.withShowLegend(true)
   + g.panel.timeSeries.options.tooltip.withMode('multi')
   + g.panel.timeSeries.options.tooltip.withSort('none')
+  + g.panel.timeSeries.panelOptions.withDescription('Controller-wide metric — not filtered by exam selection')
   + g.panel.timeSeries.panelOptions.withGridPos(h=8, w=8, x=0, y=17)
   + { id: 10 };
 
@@ -332,20 +363,9 @@ local reconcileErrorsPanel =
   + g.panel.timeSeries.options.legend.withShowLegend(true)
   + g.panel.timeSeries.options.tooltip.withMode('multi')
   + g.panel.timeSeries.options.tooltip.withSort('none')
-  + g.panel.timeSeries.panelOptions.withGridPos(h=8, w=4, x=8, y=17)
+  + g.panel.timeSeries.panelOptions.withDescription('Controller-wide metric — not filtered by exam selection')
+  + g.panel.timeSeries.panelOptions.withGridPos(h=8, w=8, x=8, y=17)
   + { id: 11 };
-
-local emailFailuresPanel =
-  statPanel(
-    'Email Failures',
-    [promQuery('exam_emails_failed_total{%(f)s}' % { f: filters })],
-  )
-  + g.panel.stat.standardOptions.thresholds.withSteps([
-    { color: 'green', value: null },
-    { color: 'red', value: 1 },
-  ])
-  + g.panel.stat.panelOptions.withGridPos(h=8, w=6, x=12, y=17)
-  + { id: 12 };
 
 local spareSwapsPanel =
   statPanel(
@@ -356,7 +376,7 @@ local spareSwapsPanel =
     { color: 'green', value: null },
     { color: 'yellow', value: 1 },
   ])
-  + g.panel.stat.panelOptions.withGridPos(h=8, w=6, x=18, y=17)
+  + g.panel.stat.panelOptions.withGridPos(h=8, w=8, x=16, y=17)
   + { id: 13 };
 
 // ==========================================================================
@@ -374,14 +394,13 @@ local row2 =
   + { id: 200 };
 
 local row3 =
-  g.panel.row.new('Operational')
+  g.panel.row.new('Operator Health (all exams)')
   + g.panel.row.withCollapsed(true)
   + g.panel.row.withGridPos(16)
   + { id: 300 }
   + g.panel.row.withPanels([
     reconcileLatencyPanel,
     reconcileErrorsPanel,
-    emailFailuresPanel,
     spareSwapsPanel,
   ]);
 
@@ -397,7 +416,7 @@ g.dashboard.new('Exam Controller Overview')
 + g.dashboard.withSchemaVersion(39)
 + g.dashboard.graphTooltip.withSharedCrosshair()
 + g.dashboard.withTimezone('browser')
-+ g.dashboard.time.withFrom('now-3h')
++ g.dashboard.time.withFrom('now-6h')
 + g.dashboard.time.withTo('now')
 + g.dashboard.withVariables(variables)
 + g.dashboard.withPanels(
@@ -405,10 +424,10 @@ g.dashboard.new('Exam Controller Overview')
     row1,
     phasePanel,
     healthyTotalPanel,
-    emailsSentPanel,
+    failedPanel,
+    emailsPanel,
     dryRunPanel,
-    timeUntilUnlockPanel,
-    timeUntilLockPanel,
+    countdownPanel,
     row2,
     instanceHealthPanel,
     provisioningLatencyPanel,

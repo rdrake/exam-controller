@@ -36,6 +36,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
          },
+         "description": "Current exam lifecycle phase",
          "fieldConfig": {
             "defaults": {
                "color": {
@@ -155,6 +156,7 @@
             "colorMode": "value",
             "graphMode": "none",
             "justifyMode": "auto",
+            "noValue": "N/A",
             "orientation": "auto",
             "reduceOptions": {
                "calcs": [
@@ -172,7 +174,7 @@
                   "type": "prometheus",
                   "uid": "${DS_PROMETHEUS}"
                },
-               "expr": "exam_phase_duration_seconds{exam=\"$exam\", namespace=\"$namespace\"}",
+               "expr": "exam_phase_duration_seconds{exam=\"$exam\", namespace=\"$namespace\"} > 0",
                "legendFormat": "{{phase}}",
                "refId": "A"
             }
@@ -185,6 +187,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
          },
+         "description": "Instances passing health checks vs total expected",
          "fieldConfig": {
             "defaults": {
                "color": {
@@ -196,10 +199,6 @@
                      {
                         "color": "green",
                         "value": null
-                     },
-                     {
-                        "color": "red",
-                        "value": 1
                      }
                   ]
                }
@@ -238,6 +237,7 @@
             "colorMode": "value",
             "graphMode": "none",
             "justifyMode": "auto",
+            "noValue": "N/A",
             "orientation": "auto",
             "reduceOptions": {
                "calcs": [
@@ -277,6 +277,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
          },
+         "description": "Student instances in failed state",
          "fieldConfig": {
             "defaults": {
                "color": {
@@ -288,6 +289,10 @@
                      {
                         "color": "green",
                         "value": null
+                     },
+                     {
+                        "color": "red",
+                        "value": 1
                      }
                   ]
                }
@@ -299,11 +304,12 @@
             "x": 8,
             "y": 1
          },
-         "id": 3,
+         "id": 14,
          "options": {
             "colorMode": "value",
             "graphMode": "none",
             "justifyMode": "auto",
+            "noValue": "N/A",
             "orientation": "auto",
             "reduceOptions": {
                "calcs": [
@@ -321,12 +327,12 @@
                   "type": "prometheus",
                   "uid": "${DS_PROMETHEUS}"
                },
-               "expr": "exam_emails_sent_total{exam=\"$exam\", namespace=\"$namespace\"}",
+               "expr": "exam_instances_failed{exam=\"$exam\", namespace=\"$namespace\"}",
                "legendFormat": "",
                "refId": "A"
             }
          ],
-         "title": "Emails Sent",
+         "title": "Failed",
          "type": "stat"
       },
       {
@@ -334,6 +340,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
          },
+         "description": "Credential emails sent and failed",
          "fieldConfig": {
             "defaults": {
                "color": {
@@ -382,11 +389,106 @@
             "x": 12,
             "y": 1
          },
+         "id": 3,
+         "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "noValue": "N/A",
+            "orientation": "auto",
+            "reduceOptions": {
+               "calcs": [
+                  "last"
+               ],
+               "fields": "",
+               "values": false
+            },
+            "textMode": "value_and_name"
+         },
+         "pluginVersion": "v11.4.0",
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${DS_PROMETHEUS}"
+               },
+               "expr": "exam_emails_sent_total{exam=\"$exam\", namespace=\"$namespace\"}",
+               "legendFormat": "Sent",
+               "refId": "A"
+            },
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${DS_PROMETHEUS}"
+               },
+               "expr": "exam_emails_failed_total{exam=\"$exam\", namespace=\"$namespace\"}",
+               "legendFormat": "Failed",
+               "refId": "B"
+            }
+         ],
+         "title": "Emails",
+         "type": "stat"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+         },
+         "description": "Pre-exam smoke test results — all should pass before unlock",
+         "fieldConfig": {
+            "defaults": {
+               "color": {
+                  "mode": "thresholds"
+               },
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                     {
+                        "color": "green",
+                        "value": null
+                     }
+                  ]
+               }
+            },
+            "overrides": [
+               {
+                  "matcher": {
+                     "id": "byName",
+                     "options": "Failed"
+                  },
+                  "properties": [
+                     {
+                        "id": "thresholds",
+                        "value": {
+                           "mode": "absolute",
+                           "steps": [
+                              {
+                                 "color": "green",
+                                 "value": null
+                              },
+                              {
+                                 "color": "red",
+                                 "value": 1
+                              }
+                           ]
+                        }
+                     }
+                  ]
+               }
+            ]
+         },
+         "gridPos": {
+            "h": 4,
+            "w": 4,
+            "x": 16,
+            "y": 1
+         },
          "id": 4,
          "options": {
             "colorMode": "value",
             "graphMode": "none",
             "justifyMode": "auto",
+            "noValue": "N/A",
             "orientation": "auto",
             "reduceOptions": {
                "calcs": [
@@ -426,6 +528,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
          },
+         "description": "Countdown to exam start and end",
          "fieldConfig": {
             "defaults": {
                "color": {
@@ -440,13 +543,13 @@
                      }
                   ]
                },
-               "unit": "s"
+               "unit": "dthms"
             }
          },
          "gridPos": {
             "h": 4,
             "w": 4,
-            "x": 16,
+            "x": 20,
             "y": 1
          },
          "id": 5,
@@ -454,6 +557,7 @@
             "colorMode": "value",
             "graphMode": "none",
             "justifyMode": "auto",
+            "noValue": "N/A",
             "orientation": "auto",
             "reduceOptions": {
                "calcs": [
@@ -462,7 +566,7 @@
                "fields": "",
                "values": false
             },
-            "textMode": "auto"
+            "textMode": "value_and_name"
          },
          "pluginVersion": "v11.4.0",
          "targets": [
@@ -472,69 +576,20 @@
                   "uid": "${DS_PROMETHEUS}"
                },
                "expr": "exam_seconds_until_unlock{exam=\"$exam\", namespace=\"$namespace\"}",
-               "legendFormat": "",
+               "legendFormat": "Unlock",
                "refId": "A"
-            }
-         ],
-         "title": "Time Until Unlock",
-         "type": "stat"
-      },
-      {
-         "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-         },
-         "fieldConfig": {
-            "defaults": {
-               "color": {
-                  "mode": "thresholds"
-               },
-               "thresholds": {
-                  "mode": "absolute",
-                  "steps": [
-                     {
-                        "color": "green",
-                        "value": null
-                     }
-                  ]
-               },
-               "unit": "s"
-            }
-         },
-         "gridPos": {
-            "h": 4,
-            "w": 4,
-            "x": 20,
-            "y": 1
-         },
-         "id": 6,
-         "options": {
-            "colorMode": "value",
-            "graphMode": "none",
-            "justifyMode": "auto",
-            "orientation": "auto",
-            "reduceOptions": {
-               "calcs": [
-                  "last"
-               ],
-               "fields": "",
-               "values": false
             },
-            "textMode": "auto"
-         },
-         "pluginVersion": "v11.4.0",
-         "targets": [
             {
                "datasource": {
                   "type": "prometheus",
                   "uid": "${DS_PROMETHEUS}"
                },
                "expr": "exam_seconds_until_lock{exam=\"$exam\", namespace=\"$namespace\"}",
-               "legendFormat": "",
-               "refId": "A"
+               "legendFormat": "Lock",
+               "refId": "B"
             }
          ],
-         "title": "Time Until Lock",
+         "title": "Countdowns",
          "type": "stat"
       },
       {
@@ -554,6 +609,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
          },
+         "description": "Instance state over time",
          "fieldConfig": {
             "defaults": {
                "color": {
@@ -569,7 +625,7 @@
                   "spanNulls": false,
                   "stacking": {
                      "group": "A",
-                     "mode": "normal"
+                     "mode": "none"
                   }
                },
                "thresholds": {
@@ -589,13 +645,6 @@
                      "options": "Total"
                   },
                   "properties": [
-                     {
-                        "id": "custom.stacking",
-                        "value": {
-                           "group": "A",
-                           "mode": "none"
-                        }
-                     },
                      {
                         "id": "custom.fillOpacity",
                         "value": 0
@@ -664,6 +713,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
          },
+         "description": "Only populated during the Provisioning phase. Blank outside that window is expected.",
          "fieldConfig": {
             "defaults": {
                "color": {
@@ -746,10 +796,11 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
          },
+         "description": "Exam lifecycle phase history",
          "fieldConfig": {
             "defaults": {
                "color": {
-                  "mode": "continuous-GrYlRd"
+                  "mode": "fixed"
                },
                "custom": {
                   "fillOpacity": 80,
@@ -764,7 +815,99 @@
                      }
                   ]
                }
-            }
+            },
+            "overrides": [
+               {
+                  "matcher": {
+                     "id": "byName",
+                     "options": "Ready"
+                  },
+                  "properties": [
+                     {
+                        "id": "color",
+                        "value": {
+                           "fixedColor": "green",
+                           "mode": "fixed"
+                        }
+                     }
+                  ]
+               },
+               {
+                  "matcher": {
+                     "id": "byName",
+                     "options": "Unlocked"
+                  },
+                  "properties": [
+                     {
+                        "id": "color",
+                        "value": {
+                           "fixedColor": "green",
+                           "mode": "fixed"
+                        }
+                     }
+                  ]
+               },
+               {
+                  "matcher": {
+                     "id": "byName",
+                     "options": "Provisioning"
+                  },
+                  "properties": [
+                     {
+                        "id": "color",
+                        "value": {
+                           "fixedColor": "yellow",
+                           "mode": "fixed"
+                        }
+                     }
+                  ]
+               },
+               {
+                  "matcher": {
+                     "id": "byName",
+                     "options": "Pending"
+                  },
+                  "properties": [
+                     {
+                        "id": "color",
+                        "value": {
+                           "fixedColor": "blue",
+                           "mode": "fixed"
+                        }
+                     }
+                  ]
+               },
+               {
+                  "matcher": {
+                     "id": "byName",
+                     "options": "Locked"
+                  },
+                  "properties": [
+                     {
+                        "id": "color",
+                        "value": {
+                           "fixedColor": "orange",
+                           "mode": "fixed"
+                        }
+                     }
+                  ]
+               },
+               {
+                  "matcher": {
+                     "id": "byName",
+                     "options": "TearingDown"
+                  },
+                  "properties": [
+                     {
+                        "id": "color",
+                        "value": {
+                           "fixedColor": "red",
+                           "mode": "fixed"
+                        }
+                     }
+                  ]
+               }
+            ]
          },
          "gridPos": {
             "h": 10,
@@ -818,6 +961,7 @@
                   "type": "prometheus",
                   "uid": "${DS_PROMETHEUS}"
                },
+               "description": "Controller-wide metric — not filtered by exam selection",
                "fieldConfig": {
                   "defaults": {
                      "color": {
@@ -895,6 +1039,7 @@
                   "type": "prometheus",
                   "uid": "${DS_PROMETHEUS}"
                },
+               "description": "Controller-wide metric — not filtered by exam selection",
                "fieldConfig": {
                   "defaults": {
                      "color": {
@@ -926,7 +1071,7 @@
                },
                "gridPos": {
                   "h": 8,
-                  "w": 4,
+                  "w": 8,
                   "x": 8,
                   "y": 17
                },
@@ -975,67 +1120,6 @@
                               "value": null
                            },
                            {
-                              "color": "red",
-                              "value": 1
-                           }
-                        ]
-                     }
-                  }
-               },
-               "gridPos": {
-                  "h": 8,
-                  "w": 6,
-                  "x": 12,
-                  "y": 17
-               },
-               "id": 12,
-               "options": {
-                  "colorMode": "value",
-                  "graphMode": "none",
-                  "justifyMode": "auto",
-                  "orientation": "auto",
-                  "reduceOptions": {
-                     "calcs": [
-                        "last"
-                     ],
-                     "fields": "",
-                     "values": false
-                  },
-                  "textMode": "auto"
-               },
-               "pluginVersion": "v11.4.0",
-               "targets": [
-                  {
-                     "datasource": {
-                        "type": "prometheus",
-                        "uid": "${DS_PROMETHEUS}"
-                     },
-                     "expr": "exam_emails_failed_total{exam=\"$exam\", namespace=\"$namespace\"}",
-                     "legendFormat": "",
-                     "refId": "A"
-                  }
-               ],
-               "title": "Email Failures",
-               "type": "stat"
-            },
-            {
-               "datasource": {
-                  "type": "prometheus",
-                  "uid": "${DS_PROMETHEUS}"
-               },
-               "fieldConfig": {
-                  "defaults": {
-                     "color": {
-                        "mode": "thresholds"
-                     },
-                     "thresholds": {
-                        "mode": "absolute",
-                        "steps": [
-                           {
-                              "color": "green",
-                              "value": null
-                           },
-                           {
                               "color": "yellow",
                               "value": 1
                            }
@@ -1045,8 +1129,8 @@
                },
                "gridPos": {
                   "h": 8,
-                  "w": 6,
-                  "x": 18,
+                  "w": 8,
+                  "x": 16,
                   "y": 17
                },
                "id": 13,
@@ -1054,6 +1138,7 @@
                   "colorMode": "value",
                   "graphMode": "none",
                   "justifyMode": "auto",
+                  "noValue": "N/A",
                   "orientation": "auto",
                   "reduceOptions": {
                      "calcs": [
@@ -1080,7 +1165,7 @@
                "type": "stat"
             }
          ],
-         "title": "Operational",
+         "title": "Operator Health (all exams)",
          "type": "row"
       }
    ],
@@ -1140,7 +1225,7 @@
       ]
    },
    "time": {
-      "from": "now-3h",
+      "from": "now-6h",
       "to": "now"
    },
    "timepicker": { },
