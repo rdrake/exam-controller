@@ -410,6 +410,11 @@ var _ = Describe("Exam Lifecycle", func() {
 			Expect(exam.Status.ComputedLockTime.Time).To(BeTemporally("~", newExpectedLockTime, time.Second))
 			Expect(exam.Status.ComputedLockTime.Time).NotTo(BeTemporally("~", originalLockTime, time.Second))
 
+			By("Verifying RetentionDeadline has been recalculated based on new lock time")
+			newExpectedRetention := newExpectedLockTime.Add(24 * time.Hour)
+			Expect(exam.Status.RetentionDeadline).NotTo(BeNil())
+			Expect(exam.Status.RetentionDeadline.Time).To(BeTemporally("~", newExpectedRetention, time.Second))
+
 			By("Verifying exam is still Unlocked (not prematurely locked)")
 			Expect(exam.Status.Phase).To(Equal(examv1alpha1.ExamPhaseUnlocked))
 
