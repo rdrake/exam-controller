@@ -231,3 +231,185 @@ var _ = Describe("Concurrent Exam Reconciliation", func() {
 		Expect(totalA).NotTo(Equal(totalB), "per-exam instance counts should differ")
 	})
 })
+
+var _ = Describe("Same-exam rapid re-reconciliation", func() {
+	var (
+		ctx        context.Context
+		examName   string
+		nn         types.NamespacedName
+		unlock     time.Time
+		fakeSender *notifier.FakeSender
+		reconciler *ExamReconciler
+		reg        *prometheus.Registry
+		m          *metrics.ExamMetrics
+		clockTime  time.Time
+	)
+
+	BeforeEach(func() {
+		ctx = context.Background()
+		examName = uniqueExamName("rapid")
+		nn = types.NamespacedName{Name: examName, Namespace: examCRNamespace}
+
+		// Unlock at T+60min. provisionBefore=1h, so provisionTime = unlock-1h = baseTime.
+		// Clock at T+30min is past provision time but before unlock.
+		baseTime := time.Date(2026, 6, 15, 12, 0, 0, 0, time.UTC)
+		unlock = baseTime.Add(60 * time.Minute) // 13:00
+
+		fakeSender = &notifier.FakeSender{}
+		reg = prometheus.NewRegistry()
+		m = metrics.NewExamMetrics(reg)
+
+		students := []examv1alpha1.ExamStudent{
+			{ID: "alice", Email: "alice@test.com"},
+			{ID: "bob", Email: "bob@test.com"},
+		}
+		createExamCR(ctx, examName, unlock, students, 0)
+		preseedSlugs(ctx, nn)
+
+		// Clock at T+30min — past provision time, before unlock.
+		clockTime = baseTime.Add(30 * time.Minute) // 12:30
+		reconciler = newReconciler(func() time.Time { return clockTime }, fakeSender, m)
+	})
+
+	AfterEach(func() {
+		cleanupExam(ctx, examName, examCRNamespace)
+		ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: examNamespace(examName, nn.Namespace)}}
+		_ = k8sClient.Delete(ctx, ns)
+	})
+
+	It("should be idempotent when the same exam is reconciled twice at the same clock time", func() {
+		// ---- Step 1: Reconcile into Provisioning ----
+		By("Reconciling the exam into Provisioning")
+		_, err := reconciler.Reconcile(ctx, reconcileRequest(nn))
+		Expect(err).NotTo(HaveOccurred())
+
+		exam := &examv1alpha1.Exam{}
+		Expect(k8sClient.Get(ctx, nn, exam)).To(Succeed())
+		Expect(exam.Status.Phase).To(Equal(examv1alpha1.ExamPhaseProvisioning))
+
+		// Patch deployments ready so next reconcile can reach Ready.
+		By("Patching deployments ready")
+		patchDeploymentsReady(ctx, examNamespace(examName, nn.Namespace), examName)
+
+		// Reconcile once to reach Ready.
+		By("Reconciling into Ready")
+		_, err = reconciler.Reconcile(ctx, reconcileRequest(nn))
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(k8sClient.Get(ctx, nn, exam)).To(Succeed())
+		Expect(exam.Status.Phase).To(Equal(examv1alpha1.ExamPhaseReady))
+
+		// ---- Step 2: Snapshot state, then reconcile twice rapidly at the same clock time ----
+		By("Capturing state snapshot before rapid re-reconciliation in Ready phase")
+		Expect(k8sClient.Get(ctx, nn, exam)).To(Succeed())
+		phaseBeforeReady := exam.Status.Phase
+		conditionsCountBeforeReady := len(exam.Status.Conditions)
+		resourceVersionBeforeFirstReady := exam.ResourceVersion
+
+		// Count deployments before.
+		var depsBefore appsv1.DeploymentList
+		Expect(k8sClient.List(ctx, &depsBefore,
+			client.InNamespace(examNamespace(examName, nn.Namespace)),
+			client.MatchingLabels{provisioner.LabelExam: examName},
+		)).To(Succeed())
+		deploymentCountBefore := len(depsBefore.Items)
+
+		// Count services before.
+		var svcsBefore corev1.ServiceList
+		Expect(k8sClient.List(ctx, &svcsBefore,
+			client.InNamespace(examNamespace(examName, nn.Namespace)),
+			client.MatchingLabels{provisioner.LabelExam: examName},
+		)).To(Succeed())
+		serviceCountBefore := len(svcsBefore.Items)
+
+		By("Reconciling the same exam a second time at the same clock time (Ready phase)")
+		_, err = reconciler.Reconcile(ctx, reconcileRequest(nn))
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Reconciling the same exam a third time at the same clock time (Ready phase)")
+		_, err = reconciler.Reconcile(ctx, reconcileRequest(nn))
+		Expect(err).NotTo(HaveOccurred())
+
+		// ---- Step 3: Verify idempotency — same phase, same conditions, no extra resources ----
+		By("Verifying phase is unchanged after rapid re-reconciliation")
+		Expect(k8sClient.Get(ctx, nn, exam)).To(Succeed())
+		Expect(exam.Status.Phase).To(Equal(phaseBeforeReady))
+
+		By("Verifying no duplicate conditions were added")
+		Expect(len(exam.Status.Conditions)).To(Equal(conditionsCountBeforeReady),
+			"condition count should not change after idempotent reconcile")
+
+		// Verify no duplicate condition types.
+		conditionTypes := map[string]int{}
+		for _, c := range exam.Status.Conditions {
+			conditionTypes[c.Type]++
+		}
+		for ct, count := range conditionTypes {
+			Expect(count).To(Equal(1), "condition %q appears %d times, expected 1", ct, count)
+		}
+
+		By("Verifying no extra deployments were created")
+		var depsAfter appsv1.DeploymentList
+		Expect(k8sClient.List(ctx, &depsAfter,
+			client.InNamespace(examNamespace(examName, nn.Namespace)),
+			client.MatchingLabels{provisioner.LabelExam: examName},
+		)).To(Succeed())
+		Expect(len(depsAfter.Items)).To(Equal(deploymentCountBefore))
+
+		By("Verifying no extra services were created")
+		var svcsAfter corev1.ServiceList
+		Expect(k8sClient.List(ctx, &svcsAfter,
+			client.InNamespace(examNamespace(examName, nn.Namespace)),
+			client.MatchingLabels{provisioner.LabelExam: examName},
+		)).To(Succeed())
+		Expect(len(svcsAfter.Items)).To(Equal(serviceCountBefore))
+
+		// ---- Step 4: Advance clock past unlock, reconcile twice rapidly ----
+		By("Advancing clock past unlock time")
+		reconciler.Now = func() time.Time { return unlock.Add(1 * time.Minute) }
+
+		By("First reconcile after unlock — should transition to Unlocked")
+		_, err = reconciler.Reconcile(ctx, reconcileRequest(nn))
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(k8sClient.Get(ctx, nn, exam)).To(Succeed())
+		Expect(exam.Status.Phase).To(Equal(examv1alpha1.ExamPhaseUnlocked))
+
+		// Capture state after unlock.
+		conditionsCountAfterUnlock := len(exam.Status.Conditions)
+		_ = resourceVersionBeforeFirstReady // referenced above for clarity
+
+		By("Second reconcile after unlock — should remain Unlocked (idempotent)")
+		_, err = reconciler.Reconcile(ctx, reconcileRequest(nn))
+		Expect(err).NotTo(HaveOccurred())
+
+		// ---- Step 5: Verify phase transition happened exactly once ----
+		By("Verifying phase is still Unlocked after second reconcile")
+		Expect(k8sClient.Get(ctx, nn, exam)).To(Succeed())
+		Expect(exam.Status.Phase).To(Equal(examv1alpha1.ExamPhaseUnlocked))
+
+		By("Verifying no duplicate conditions after unlock re-reconciliation")
+		Expect(len(exam.Status.Conditions)).To(Equal(conditionsCountAfterUnlock),
+			"condition count should not change after idempotent reconcile post-unlock")
+
+		conditionTypes = map[string]int{}
+		for _, c := range exam.Status.Conditions {
+			conditionTypes[c.Type]++
+		}
+		for ct, count := range conditionTypes {
+			Expect(count).To(Equal(1), "condition %q appears %d times after unlock, expected 1", ct, count)
+		}
+
+		By("Verifying ingresses were created exactly once (2 students)")
+		var ingresses networkingv1.IngressList
+		Expect(k8sClient.List(ctx, &ingresses,
+			client.InNamespace(examNamespace(examName, nn.Namespace)),
+			client.MatchingLabels{provisioner.LabelExam: examName},
+		)).To(Succeed())
+		Expect(ingresses.Items).To(HaveLen(2), "should have exactly 2 ingresses (one per student)")
+
+		By("Verifying Ready->Unlocked phase transition metric counted exactly once")
+		val := testutil.ToFloat64(m.PhaseTransitions.WithLabelValues(examName, nn.Namespace, "Ready", "Unlocked"))
+		Expect(val).To(Equal(float64(1)), "Ready->Unlocked transition should be counted exactly once")
+	})
+})
