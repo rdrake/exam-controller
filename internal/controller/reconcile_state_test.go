@@ -533,9 +533,9 @@ var _ = Describe("State transition depth tests", func() {
 			exam := &examv1alpha1.Exam{}
 			Expect(k8sClient.Get(ctx, nn, exam)).To(Succeed())
 
-			cond := meta.FindStatusCondition(exam.Status.Conditions, "Provisioned")
+			cond := meta.FindStatusCondition(exam.Status.Conditions, examv1alpha1.ConditionProvisioned)
 			Expect(cond).NotTo(BeNil())
-			Expect(cond.Reason).To(Equal("AllHealthy"))
+			Expect(cond.Reason).To(Equal(examv1alpha1.ReasonAllHealthy))
 			Expect(cond.Status).To(Equal(metav1.ConditionTrue))
 		})
 
@@ -559,7 +559,7 @@ var _ = Describe("State transition depth tests", func() {
 			Expect(k8sClient.Get(ctx, nn, exam)).To(Succeed())
 			cond := meta.FindStatusCondition(exam.Status.Conditions, examv1alpha1.ConditionProvisioningDegraded)
 			Expect(cond).NotTo(BeNil())
-			Expect(cond.Reason).To(Equal("SomeInstancesFailed"))
+			Expect(cond.Reason).To(Equal(examv1alpha1.ReasonSomeInstancesFailed))
 			Expect(cond.Message).To(Equal("One or more instances failed to provision"))
 		})
 	})
@@ -854,7 +854,7 @@ var _ = Describe("State transition depth tests", func() {
 				"LastTransitionTime should not change since status stayed True")
 
 			By("Verifying Provisioned condition also exists")
-			provCond := meta.FindStatusCondition(exam.Status.Conditions, "Provisioned")
+			provCond := meta.FindStatusCondition(exam.Status.Conditions, examv1alpha1.ConditionProvisioned)
 			Expect(provCond).NotTo(BeNil())
 			Expect(provCond.Status).To(Equal(metav1.ConditionTrue))
 		})

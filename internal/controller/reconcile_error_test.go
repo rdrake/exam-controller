@@ -140,7 +140,7 @@ var _ = Describe("Error Paths and Dry Run", func() {
 			cond := meta.FindStatusCondition(exam.Status.Conditions, examv1alpha1.ConditionProvisioningDegraded)
 			Expect(cond).NotTo(BeNil())
 			Expect(cond.Status).To(Equal(metav1.ConditionTrue))
-			Expect(cond.Reason).To(Equal("SomeInstancesFailed"))
+			Expect(cond.Reason).To(Equal(examv1alpha1.ReasonSomeInstancesFailed))
 		})
 
 		It("continues provisioning remaining students after one fails", func() {
@@ -316,7 +316,7 @@ var _ = Describe("Error Paths and Dry Run", func() {
 			cond := meta.FindStatusCondition(exam.Status.Conditions, examv1alpha1.ConditionDryRunFailed)
 			Expect(cond).NotTo(BeNil())
 			Expect(cond.Status).To(Equal(metav1.ConditionTrue))
-			Expect(cond.Reason).To(Equal("SomeFailed"))
+			Expect(cond.Reason).To(Equal(examv1alpha1.ReasonSomeFailed))
 
 			completeCond := meta.FindStatusCondition(exam.Status.Conditions, examv1alpha1.ConditionDryRunComplete)
 			Expect(completeCond).NotTo(BeNil())
@@ -354,7 +354,7 @@ var _ = Describe("Error Paths and Dry Run", func() {
 			cond := meta.FindStatusCondition(exam.Status.Conditions, examv1alpha1.ConditionNetworkPolicyEnforced)
 			Expect(cond).NotTo(BeNil())
 			Expect(cond.Status).To(Equal(metav1.ConditionFalse))
-			Expect(cond.Reason).To(Equal("NotEnforced"))
+			Expect(cond.Reason).To(Equal(examv1alpha1.ReasonNotEnforced))
 		})
 
 		It("runDryRun populates Status.DryRun", func() {
@@ -393,7 +393,7 @@ var _ = Describe("Error Paths and Dry Run", func() {
 			npCond := meta.FindStatusCondition(exam.Status.Conditions, examv1alpha1.ConditionNetworkPolicyEnforced)
 			Expect(npCond).NotTo(BeNil())
 			Expect(npCond.Status).To(Equal(metav1.ConditionTrue))
-			Expect(npCond.Reason).To(Equal("Verified"))
+			Expect(npCond.Reason).To(Equal(examv1alpha1.ReasonVerified))
 
 			Expect(testutil.ToFloat64(m.DryRunPassed.WithLabelValues(examName, examCRNamespace))).To(Equal(float64(3)))
 			Expect(testutil.ToFloat64(m.DryRunFailed.WithLabelValues(examName, examCRNamespace))).To(Equal(float64(0)))

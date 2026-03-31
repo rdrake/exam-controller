@@ -476,7 +476,7 @@ func (r *ExamReconciler) reconcileProvisioning(ctx context.Context, exam *examv1
 		setCondition(exam, metav1.Condition{
 			Type:    examv1alpha1.ConditionProvisioningDegraded,
 			Status:  metav1.ConditionTrue,
-			Reason:  "SomeInstancesFailed",
+			Reason:  examv1alpha1.ReasonSomeInstancesFailed,
 			Message: "One or more instances failed to provision",
 		})
 	}
@@ -491,9 +491,9 @@ func (r *ExamReconciler) reconcileProvisioning(ctx context.Context, exam *examv1
 
 	if r.allInstancesHealthy(ctx, exam, ns) {
 		setCondition(exam, metav1.Condition{
-			Type:   "Provisioned",
+			Type:   examv1alpha1.ConditionProvisioned,
 			Status: metav1.ConditionTrue,
-			Reason: "AllHealthy",
+			Reason: examv1alpha1.ReasonAllHealthy,
 		})
 		exam.Status.Phase = examv1alpha1.ExamPhaseReady
 		phaseNow := metav1.NewTime(r.now())
@@ -540,7 +540,7 @@ func (r *ExamReconciler) reconcileReady(ctx context.Context, exam *examv1alpha1.
 		setCondition(exam, metav1.Condition{
 			Type:   examv1alpha1.ConditionAllEmailsSent,
 			Status: metav1.ConditionTrue,
-			Reason: "Complete",
+			Reason: examv1alpha1.ReasonComplete,
 		})
 	}
 
@@ -551,7 +551,7 @@ func (r *ExamReconciler) reconcileReady(ctx context.Context, exam *examv1alpha1.
 			setCondition(exam, metav1.Condition{
 				Type:   examv1alpha1.ConditionDryRunComplete,
 				Status: metav1.ConditionTrue,
-				Reason: "Complete",
+				Reason: examv1alpha1.ReasonComplete,
 			})
 		}
 	}
@@ -591,7 +591,7 @@ func (r *ExamReconciler) reconcileUnlock(ctx context.Context, exam *examv1alpha1
 		}
 	}
 
-	if !meta.IsStatusConditionTrue(exam.Status.Conditions, "InstructorNotifiedUnlock") {
+	if !meta.IsStatusConditionTrue(exam.Status.Conditions, examv1alpha1.ConditionInstructorNotifiedUnlock) {
 		var failedEmails []string
 		for _, s := range exam.Status.Students {
 			if s.EmailStatus == examv1alpha1.EmailStatusFailed {
@@ -604,7 +604,7 @@ func (r *ExamReconciler) reconcileUnlock(ctx context.Context, exam *examv1alpha1
 			logger.Error(err, "Failed to send unlock notification")
 		} else {
 			setCondition(exam, metav1.Condition{
-				Type: "InstructorNotifiedUnlock", Status: metav1.ConditionTrue, Reason: "Sent",
+				Type: examv1alpha1.ConditionInstructorNotifiedUnlock, Status: metav1.ConditionTrue, Reason: examv1alpha1.ReasonSent,
 			})
 		}
 	}
@@ -635,7 +635,7 @@ func (r *ExamReconciler) reconcileLocked(ctx context.Context, exam *examv1alpha1
 		}
 	}
 
-	if !meta.IsStatusConditionTrue(exam.Status.Conditions, "InstructorNotifiedLock") {
+	if !meta.IsStatusConditionTrue(exam.Status.Conditions, examv1alpha1.ConditionInstructorNotifiedLock) {
 		healthy := 0
 		failed := 0
 		for _, s := range exam.Status.Students {
@@ -651,7 +651,7 @@ func (r *ExamReconciler) reconcileLocked(ctx context.Context, exam *examv1alpha1
 			logger.Error(err, "Failed to send lock notification")
 		} else {
 			setCondition(exam, metav1.Condition{
-				Type: "InstructorNotifiedLock", Status: metav1.ConditionTrue, Reason: "Sent",
+				Type: examv1alpha1.ConditionInstructorNotifiedLock, Status: metav1.ConditionTrue, Reason: examv1alpha1.ReasonSent,
 			})
 		}
 	}
@@ -965,10 +965,10 @@ func (r *ExamReconciler) runDryRun(ctx context.Context, exam *examv1alpha1.Exam)
 	}
 
 	status := metav1.ConditionTrue
-	reason := "Verified"
+	reason := examv1alpha1.ReasonVerified
 	if !dr.PolicyEnforced {
 		status = metav1.ConditionFalse
-		reason = "NotEnforced"
+		reason = examv1alpha1.ReasonNotEnforced
 	}
 	setCondition(exam, metav1.Condition{
 		Type:    examv1alpha1.ConditionNetworkPolicyEnforced,
@@ -981,7 +981,7 @@ func (r *ExamReconciler) runDryRun(ctx context.Context, exam *examv1alpha1.Exam)
 		setCondition(exam, metav1.Condition{
 			Type:    examv1alpha1.ConditionDryRunFailed,
 			Status:  metav1.ConditionTrue,
-			Reason:  "SomeFailed",
+			Reason:  examv1alpha1.ReasonSomeFailed,
 			Message: fmt.Sprintf("%d of %d checks failed", dr.Result.Failed, dr.Result.Passed+dr.Result.Failed),
 		})
 	}

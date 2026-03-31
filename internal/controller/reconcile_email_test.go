@@ -225,7 +225,7 @@ var _ = Describe("Email Sending", func() {
 		cond := meta.FindStatusCondition(exam.Status.Conditions, examv1alpha1.ConditionAllEmailsSent)
 		Expect(cond).NotTo(BeNil())
 		Expect(cond.Status).To(Equal(metav1.ConditionTrue))
-		Expect(cond.Reason).To(Equal("Complete"))
+		Expect(cond.Reason).To(Equal(examv1alpha1.ReasonComplete))
 	})
 
 	It("sends unlock notification to instructor", func() {
@@ -257,7 +257,7 @@ var _ = Describe("Email Sending", func() {
 		// Verify condition is set
 		exam := &examv1alpha1.Exam{}
 		Expect(k8sClient.Get(ctx, nn, exam)).To(Succeed())
-		cond := meta.FindStatusCondition(exam.Status.Conditions, "InstructorNotifiedUnlock")
+		cond := meta.FindStatusCondition(exam.Status.Conditions, examv1alpha1.ConditionInstructorNotifiedUnlock)
 		Expect(cond).NotTo(BeNil())
 		Expect(cond.Status).To(Equal(metav1.ConditionTrue))
 	})
@@ -291,7 +291,7 @@ var _ = Describe("Email Sending", func() {
 		// Verify condition is set
 		exam := &examv1alpha1.Exam{}
 		Expect(k8sClient.Get(ctx, nn, exam)).To(Succeed())
-		cond := meta.FindStatusCondition(exam.Status.Conditions, "InstructorNotifiedLock")
+		cond := meta.FindStatusCondition(exam.Status.Conditions, examv1alpha1.ConditionInstructorNotifiedLock)
 		Expect(cond).NotTo(BeNil())
 		Expect(cond.Status).To(Equal(metav1.ConditionTrue))
 	})

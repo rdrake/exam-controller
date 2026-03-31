@@ -45,11 +45,25 @@ const (
 
 // Condition type constants for Exam status conditions.
 const (
-	ConditionAllEmailsSent         = "AllEmailsSent"
-	ConditionDryRunComplete        = "DryRunComplete"
-	ConditionDryRunFailed          = "DryRunFailed"
-	ConditionNetworkPolicyEnforced = "NetworkPolicyEnforced"
-	ConditionProvisioningDegraded  = "ProvisioningDegraded"
+	ConditionAllEmailsSent            = "AllEmailsSent"
+	ConditionDryRunComplete           = "DryRunComplete"
+	ConditionDryRunFailed             = "DryRunFailed"
+	ConditionInstructorNotifiedLock   = "InstructorNotifiedLock"
+	ConditionInstructorNotifiedUnlock = "InstructorNotifiedUnlock"
+	ConditionNetworkPolicyEnforced    = "NetworkPolicyEnforced"
+	ConditionProvisioned              = "Provisioned"
+	ConditionProvisioningDegraded     = "ProvisioningDegraded"
+)
+
+// Condition reason constants for Exam status conditions.
+const (
+	ReasonAllHealthy          = "AllHealthy"
+	ReasonComplete            = "Complete"
+	ReasonNotEnforced         = "NotEnforced"
+	ReasonSent                = "Sent"
+	ReasonSomeFailed          = "SomeFailed"
+	ReasonSomeInstancesFailed = "SomeInstancesFailed"
+	ReasonVerified            = "Verified"
 )
 
 // EmailStatus represents the email delivery state.

@@ -120,7 +120,7 @@ var _ = Describe("Exam Lifecycle", func() {
 			Expect(k8sClient.Get(ctx, nn, exam)).To(Succeed())
 			Expect(exam.Status.Phase).To(Equal(examv1alpha1.ExamPhaseReady))
 
-			cond := meta.FindStatusCondition(exam.Status.Conditions, "Provisioned")
+			cond := meta.FindStatusCondition(exam.Status.Conditions, examv1alpha1.ConditionProvisioned)
 			Expect(cond).NotTo(BeNil())
 			Expect(cond.Status).To(Equal(metav1.ConditionTrue))
 
