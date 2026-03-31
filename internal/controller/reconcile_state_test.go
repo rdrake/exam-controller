@@ -557,7 +557,7 @@ var _ = Describe("State transition depth tests", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(k8sClient.Get(ctx, nn, exam)).To(Succeed())
-			cond := meta.FindStatusCondition(exam.Status.Conditions, "ProvisioningDegraded")
+			cond := meta.FindStatusCondition(exam.Status.Conditions, examv1alpha1.ConditionProvisioningDegraded)
 			Expect(cond).NotTo(BeNil())
 			Expect(cond.Reason).To(Equal("SomeInstancesFailed"))
 			Expect(cond.Message).To(Equal("One or more instances failed to provision"))
@@ -825,7 +825,7 @@ var _ = Describe("State transition depth tests", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(k8sClient.Get(ctx, nn, exam)).To(Succeed())
-			cond := meta.FindStatusCondition(exam.Status.Conditions, "ProvisioningDegraded")
+			cond := meta.FindStatusCondition(exam.Status.Conditions, examv1alpha1.ConditionProvisioningDegraded)
 			Expect(cond).NotTo(BeNil())
 			Expect(cond.Status).To(Equal(metav1.ConditionTrue))
 			degradedTime := cond.LastTransitionTime
@@ -848,7 +848,7 @@ var _ = Describe("State transition depth tests", func() {
 			Expect(exam.Status.Phase).To(Equal(examv1alpha1.ExamPhaseReady))
 
 			By("Verifying ProvisioningDegraded still exists from first reconcile")
-			cond = meta.FindStatusCondition(exam.Status.Conditions, "ProvisioningDegraded")
+			cond = meta.FindStatusCondition(exam.Status.Conditions, examv1alpha1.ConditionProvisioningDegraded)
 			Expect(cond).NotTo(BeNil(), "ProvisioningDegraded should persist even after recovery")
 			Expect(cond.LastTransitionTime).To(Equal(degradedTime),
 				"LastTransitionTime should not change since status stayed True")

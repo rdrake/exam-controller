@@ -474,7 +474,7 @@ func (r *ExamReconciler) reconcileProvisioning(ctx context.Context, exam *examv1
 
 	if !allHealthy {
 		setCondition(exam, metav1.Condition{
-			Type:    "ProvisioningDegraded",
+			Type:    examv1alpha1.ConditionProvisioningDegraded,
 			Status:  metav1.ConditionTrue,
 			Reason:  "SomeInstancesFailed",
 			Message: "One or more instances failed to provision",
@@ -528,7 +528,7 @@ func (r *ExamReconciler) reconcileReady(ctx context.Context, exam *examv1alpha1.
 	_, emailTime, _, _ := computeSchedule(exam)
 	unlock := exam.Spec.Schedule.Unlock.Time
 
-	if !meta.IsStatusConditionTrue(exam.Status.Conditions, "AllEmailsSent") && !now.Before(emailTime) {
+	if !meta.IsStatusConditionTrue(exam.Status.Conditions, examv1alpha1.ConditionAllEmailsSent) && !now.Before(emailTime) {
 		sendInterval := exam.Spec.Email.SendInterval.Duration
 		if sendInterval <= 0 {
 			sendInterval = time.Second
@@ -538,18 +538,18 @@ func (r *ExamReconciler) reconcileReady(ctx context.Context, exam *examv1alpha1.
 			return ctrl.Result{RequeueAfter: sendInterval}, nil
 		}
 		setCondition(exam, metav1.Condition{
-			Type:   "AllEmailsSent",
+			Type:   examv1alpha1.ConditionAllEmailsSent,
 			Status: metav1.ConditionTrue,
 			Reason: "Complete",
 		})
 	}
 
-	if exam.Spec.Schedule.DryRun != nil && !meta.IsStatusConditionTrue(exam.Status.Conditions, "DryRunComplete") {
+	if exam.Spec.Schedule.DryRun != nil && !meta.IsStatusConditionTrue(exam.Status.Conditions, examv1alpha1.ConditionDryRunComplete) {
 		dryRunTime := unlock.Add(-exam.Spec.Schedule.DryRun.Before.Duration)
 		if !now.Before(dryRunTime) {
 			r.runDryRun(ctx, exam)
 			setCondition(exam, metav1.Condition{
-				Type:   "DryRunComplete",
+				Type:   examv1alpha1.ConditionDryRunComplete,
 				Status: metav1.ConditionTrue,
 				Reason: "Complete",
 			})
@@ -559,10 +559,10 @@ func (r *ExamReconciler) reconcileReady(ctx context.Context, exam *examv1alpha1.
 	r.enforcePolicies(ctx, exam, false)
 
 	nextWake := unlock
-	if !meta.IsStatusConditionTrue(exam.Status.Conditions, "AllEmailsSent") && emailTime.Before(nextWake) {
+	if !meta.IsStatusConditionTrue(exam.Status.Conditions, examv1alpha1.ConditionAllEmailsSent) && emailTime.Before(nextWake) {
 		nextWake = emailTime
 	}
-	if exam.Spec.Schedule.DryRun != nil && !meta.IsStatusConditionTrue(exam.Status.Conditions, "DryRunComplete") {
+	if exam.Spec.Schedule.DryRun != nil && !meta.IsStatusConditionTrue(exam.Status.Conditions, examv1alpha1.ConditionDryRunComplete) {
 		dryRunTime := unlock.Add(-exam.Spec.Schedule.DryRun.Before.Duration)
 		if dryRunTime.Before(nextWake) {
 			nextWake = dryRunTime
@@ -971,7 +971,7 @@ func (r *ExamReconciler) runDryRun(ctx context.Context, exam *examv1alpha1.Exam)
 		reason = "NotEnforced"
 	}
 	setCondition(exam, metav1.Condition{
-		Type:    "NetworkPolicyEnforced",
+		Type:    examv1alpha1.ConditionNetworkPolicyEnforced,
 		Status:  status,
 		Reason:  reason,
 		Message: fmt.Sprintf("Negative connectivity test: policyEnforced=%v", dr.PolicyEnforced),
@@ -979,7 +979,7 @@ func (r *ExamReconciler) runDryRun(ctx context.Context, exam *examv1alpha1.Exam)
 
 	if dr.Result.Failed > 0 {
 		setCondition(exam, metav1.Condition{
-			Type:    "DryRunFailed",
+			Type:    examv1alpha1.ConditionDryRunFailed,
 			Status:  metav1.ConditionTrue,
 			Reason:  "SomeFailed",
 			Message: fmt.Sprintf("%d of %d checks failed", dr.Result.Failed, dr.Result.Passed+dr.Result.Failed),

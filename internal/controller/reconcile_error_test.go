@@ -137,7 +137,7 @@ var _ = Describe("Error Paths and Dry Run", func() {
 
 			Expect(k8sClient.Get(ctx, nn, exam)).To(Succeed())
 
-			cond := meta.FindStatusCondition(exam.Status.Conditions, "ProvisioningDegraded")
+			cond := meta.FindStatusCondition(exam.Status.Conditions, examv1alpha1.ConditionProvisioningDegraded)
 			Expect(cond).NotTo(BeNil())
 			Expect(cond.Status).To(Equal(metav1.ConditionTrue))
 			Expect(cond.Reason).To(Equal("SomeInstancesFailed"))
@@ -257,7 +257,7 @@ var _ = Describe("Error Paths and Dry Run", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(k8sClient.Get(ctx, nn, exam)).To(Succeed())
-			cond := meta.FindStatusCondition(exam.Status.Conditions, "AllEmailsSent")
+			cond := meta.FindStatusCondition(exam.Status.Conditions, examv1alpha1.ConditionAllEmailsSent)
 			Expect(cond).NotTo(BeNil())
 			Expect(cond.Status).To(Equal(metav1.ConditionTrue))
 		})
@@ -289,7 +289,6 @@ var _ = Describe("Error Paths and Dry Run", func() {
 				{ID: "alice", Email: "alice@test.com"},
 				{ID: "bob", Email: "bob@test.com"},
 			}
-			// DryRun: before=20m
 			createExamCRWithDryRun(ctx, examName, unlock, students, 1, 20*time.Minute)
 			preseedSlugs(ctx, nn)
 
@@ -297,43 +296,32 @@ var _ = Describe("Error Paths and Dry Run", func() {
 			m := metrics.NewExamMetrics(reg)
 			fakeSender := &notifier.FakeSender{}
 
-			// Drive to Ready
 			reconciler := driveToPhase(ctx, nn, examv1alpha1.ExamPhaseReady, unlock, fakeSender, m)
-
-			// Set Checker to fail health checks
 			reconciler.Checker = &smoketest.FakeChecker{
 				HealthErr: errors.New("connection refused"),
 			}
 			reconciler.Metrics = m
 
-			// Advance clock past dry run time (unlock - 20m)
 			dryRunTime := unlock.Add(-20 * time.Minute)
 			reconciler.Now = func() time.Time { return dryRunTime.Add(1 * time.Minute) }
 
-			// Drain the email queue first — reconcileReady sends one email per
-			// reconcile and only processes dry run after AllEmailsSent is set.
-			// 2 students = 2 email reconciles + 1 to set AllEmailsSent.
 			drainEmails(ctx, reconciler, nn)
 
-			// Now reconcile to trigger the dry run
 			_, err := reconciler.Reconcile(ctx, reconcileRequest(nn))
 			Expect(err).NotTo(HaveOccurred())
 
 			exam := &examv1alpha1.Exam{}
 			Expect(k8sClient.Get(ctx, nn, exam)).To(Succeed())
 
-			// DryRunFailed condition should be set
-			cond := meta.FindStatusCondition(exam.Status.Conditions, "DryRunFailed")
+			cond := meta.FindStatusCondition(exam.Status.Conditions, examv1alpha1.ConditionDryRunFailed)
 			Expect(cond).NotTo(BeNil())
 			Expect(cond.Status).To(Equal(metav1.ConditionTrue))
 			Expect(cond.Reason).To(Equal("SomeFailed"))
 
-			// DryRunComplete condition should also be set
-			completeCond := meta.FindStatusCondition(exam.Status.Conditions, "DryRunComplete")
+			completeCond := meta.FindStatusCondition(exam.Status.Conditions, examv1alpha1.ConditionDryRunComplete)
 			Expect(completeCond).NotTo(BeNil())
 			Expect(completeCond.Status).To(Equal(metav1.ConditionTrue))
 
-			// Status.DryRun.Failed should be > 0
 			Expect(exam.Status.DryRun).NotTo(BeNil())
 			Expect(exam.Status.DryRun.Failed).To(BeNumerically(">", 0))
 		})
@@ -348,26 +336,22 @@ var _ = Describe("Error Paths and Dry Run", func() {
 			fakeSender := &notifier.FakeSender{}
 			reconciler := driveToPhase(ctx, nn, examv1alpha1.ExamPhaseReady, unlock, fakeSender, nil)
 
-			// Set Checker: health passes but blocked check fails (service is reachable)
+			// Health passes but blocked check fails (service is reachable)
 			reconciler.Checker = &smoketest.FakeChecker{
 				BlockedErr: errors.New("reachable"),
 			}
 
-			// Advance clock past dry run time
 			dryRunTime := unlock.Add(-20 * time.Minute)
 			reconciler.Now = func() time.Time { return dryRunTime.Add(1 * time.Minute) }
-
-			// Drain the email queue first
 			drainEmails(ctx, reconciler, nn)
 
-			// Reconcile to trigger dry run
 			_, err := reconciler.Reconcile(ctx, reconcileRequest(nn))
 			Expect(err).NotTo(HaveOccurred())
 
 			exam := &examv1alpha1.Exam{}
 			Expect(k8sClient.Get(ctx, nn, exam)).To(Succeed())
 
-			cond := meta.FindStatusCondition(exam.Status.Conditions, "NetworkPolicyEnforced")
+			cond := meta.FindStatusCondition(exam.Status.Conditions, examv1alpha1.ConditionNetworkPolicyEnforced)
 			Expect(cond).NotTo(BeNil())
 			Expect(cond.Status).To(Equal(metav1.ConditionFalse))
 			Expect(cond.Reason).To(Equal("NotEnforced"))
@@ -385,49 +369,104 @@ var _ = Describe("Error Paths and Dry Run", func() {
 			m := metrics.NewExamMetrics(reg)
 			fakeSender := &notifier.FakeSender{}
 
-			// Drive to Ready
 			reconciler := driveToPhase(ctx, nn, examv1alpha1.ExamPhaseReady, unlock, fakeSender, m)
-
-			// Set Checker to all-passing
 			reconciler.Checker = &smoketest.FakeChecker{}
 			reconciler.Metrics = m
 
-			// Advance clock past dry run time
 			dryRunTime := unlock.Add(-20 * time.Minute)
 			reconciler.Now = func() time.Time { return dryRunTime.Add(1 * time.Minute) }
-
-			// Drain the email queue first
 			drainEmails(ctx, reconciler, nn)
 
-			// Now reconcile to trigger the dry run
 			_, err := reconciler.Reconcile(ctx, reconcileRequest(nn))
 			Expect(err).NotTo(HaveOccurred())
 
 			exam := &examv1alpha1.Exam{}
 			Expect(k8sClient.Get(ctx, nn, exam)).To(Succeed())
 
-			// Status.DryRun should be populated
-			Expect(exam.Status.DryRun).NotTo(BeNil())
-			Expect(exam.Status.DryRun.CompletedAt).NotTo(BeNil())
-			// 2 students + 1 spare = 3 passed
-			Expect(exam.Status.DryRun.Passed).To(Equal(3))
-			Expect(exam.Status.DryRun.Failed).To(Equal(0))
+			assertDryRunPreserved(exam, exam.Status.DryRun.CompletedAt.Time, 3, 0)
 			Expect(exam.Status.DryRun.Failures).To(BeEmpty())
 
-			// DryRunComplete condition should be set
-			cond := meta.FindStatusCondition(exam.Status.Conditions, "DryRunComplete")
+			cond := meta.FindStatusCondition(exam.Status.Conditions, examv1alpha1.ConditionDryRunComplete)
 			Expect(cond).NotTo(BeNil())
 			Expect(cond.Status).To(Equal(metav1.ConditionTrue))
 
-			// NetworkPolicyEnforced should be True (blocked check passes)
-			npCond := meta.FindStatusCondition(exam.Status.Conditions, "NetworkPolicyEnforced")
+			npCond := meta.FindStatusCondition(exam.Status.Conditions, examv1alpha1.ConditionNetworkPolicyEnforced)
 			Expect(npCond).NotTo(BeNil())
 			Expect(npCond.Status).To(Equal(metav1.ConditionTrue))
 			Expect(npCond.Reason).To(Equal("Verified"))
 
-			// Metrics should reflect dry run results
 			Expect(testutil.ToFloat64(m.DryRunPassed.WithLabelValues(examName, examCRNamespace))).To(Equal(float64(3)))
 			Expect(testutil.ToFloat64(m.DryRunFailed.WithLabelValues(examName, examCRNamespace))).To(Equal(float64(0)))
+		})
+
+		It("preserves DryRun status across Unlocked, Locked, and TearingDown phases", func() {
+			reconciler, _ := triggerDryRun(ctx, examName, nn, unlock)
+
+			By("Verifying DryRun status is populated after completion in Ready phase")
+			exam := &examv1alpha1.Exam{}
+			Expect(k8sClient.Get(ctx, nn, exam)).To(Succeed())
+			Expect(exam.Status.Phase).To(Equal(examv1alpha1.ExamPhaseReady))
+			Expect(exam.Status.DryRun.Failures).To(BeEmpty())
+
+			completeCond := meta.FindStatusCondition(exam.Status.Conditions, examv1alpha1.ConditionDryRunComplete)
+			Expect(completeCond).NotTo(BeNil())
+			Expect(completeCond.Status).To(Equal(metav1.ConditionTrue))
+
+			origCompletedAt := exam.Status.DryRun.CompletedAt.Time
+
+			By("Advancing clock to Unlocked phase")
+			reconciler.Now = func() time.Time { return unlock.Add(5 * time.Minute) }
+			_, err := reconciler.Reconcile(ctx, reconcileRequest(nn))
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(k8sClient.Get(ctx, nn, exam)).To(Succeed())
+			Expect(exam.Status.Phase).To(Equal(examv1alpha1.ExamPhaseUnlocked))
+			assertDryRunPreserved(exam, origCompletedAt, 3, 0)
+
+			By("Advancing clock to Locked phase")
+			lockTime := computeLockTime(unlock, 2*time.Hour, 1.5)
+			reconciler.Now = func() time.Time { return lockTime.Add(5 * time.Minute) }
+			_, err = reconciler.Reconcile(ctx, reconcileRequest(nn))
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(k8sClient.Get(ctx, nn, exam)).To(Succeed())
+			Expect(exam.Status.Phase).To(Equal(examv1alpha1.ExamPhaseLocked))
+			assertDryRunPreserved(exam, origCompletedAt, 3, 0)
+
+			By("Advancing clock to TearingDown phase")
+			retentionDeadline := lockTime.Add(24 * time.Hour)
+			reconciler.Now = func() time.Time { return retentionDeadline.Add(5 * time.Minute) }
+			_, err = reconciler.Reconcile(ctx, reconcileRequest(nn))
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(k8sClient.Get(ctx, nn, exam)).To(Succeed())
+			Expect(exam.Status.Phase).To(Equal(examv1alpha1.ExamPhaseTearingDown))
+			assertDryRunPreserved(exam, origCompletedAt, 3, 0)
+		})
+
+		It("does not re-trigger dry run after completion in Ready phase", func() {
+			reconciler, dryRunTime := triggerDryRun(ctx, examName, nn, unlock)
+
+			exam := &examv1alpha1.Exam{}
+			Expect(k8sClient.Get(ctx, nn, exam)).To(Succeed())
+			origCompletedAt := exam.Status.DryRun.CompletedAt.Time
+
+			By("Reconciling again in the same Ready phase (still in dry run window)")
+			reconciler.Now = func() time.Time { return dryRunTime.Add(5 * time.Minute) }
+			_, err := reconciler.Reconcile(ctx, reconcileRequest(nn))
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(k8sClient.Get(ctx, nn, exam)).To(Succeed())
+			Expect(exam.Status.Phase).To(Equal(examv1alpha1.ExamPhaseReady))
+			assertDryRunPreserved(exam, origCompletedAt, 3, 0)
+
+			By("Reconciling a third time further into the window")
+			reconciler.Now = func() time.Time { return dryRunTime.Add(10 * time.Minute) }
+			_, err = reconciler.Reconcile(ctx, reconcileRequest(nn))
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(k8sClient.Get(ctx, nn, exam)).To(Succeed())
+			assertDryRunPreserved(exam, origCompletedAt, 3, 0)
 		})
 	})
 })

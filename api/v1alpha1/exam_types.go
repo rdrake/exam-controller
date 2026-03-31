@@ -43,6 +43,15 @@ const (
 	StudentPhaseFailed      StudentPhase = "Failed"
 )
 
+// Condition type constants for Exam status conditions.
+const (
+	ConditionAllEmailsSent         = "AllEmailsSent"
+	ConditionDryRunComplete        = "DryRunComplete"
+	ConditionDryRunFailed          = "DryRunFailed"
+	ConditionNetworkPolicyEnforced = "NetworkPolicyEnforced"
+	ConditionProvisioningDegraded  = "ProvisioningDegraded"
+)
+
 // EmailStatus represents the email delivery state.
 type EmailStatus string
 

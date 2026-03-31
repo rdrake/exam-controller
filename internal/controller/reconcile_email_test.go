@@ -222,7 +222,7 @@ var _ = Describe("Email Sending", func() {
 		exam := &examv1alpha1.Exam{}
 		Expect(k8sClient.Get(ctx, nn, exam)).To(Succeed())
 
-		cond := meta.FindStatusCondition(exam.Status.Conditions, "AllEmailsSent")
+		cond := meta.FindStatusCondition(exam.Status.Conditions, examv1alpha1.ConditionAllEmailsSent)
 		Expect(cond).NotTo(BeNil())
 		Expect(cond.Status).To(Equal(metav1.ConditionTrue))
 		Expect(cond.Reason).To(Equal("Complete"))

@@ -41,6 +41,7 @@ import (
 	"github.com/rdrake/exam-controller/internal/network"
 	"github.com/rdrake/exam-controller/internal/notifier"
 	"github.com/rdrake/exam-controller/internal/provisioner"
+	"github.com/rdrake/exam-controller/internal/smoketest"
 )
 
 // examCRNamespace is the namespace where Exam CRs live in integration tests.
@@ -218,7 +219,7 @@ func drainEmails(ctx context.Context, reconciler *ExamReconciler, nn types.Names
 	for i := 0; i < 20; i++ { // safety limit
 		exam := &examv1alpha1.Exam{}
 		Expect(k8sClient.Get(ctx, nn, exam)).To(Succeed())
-		if meta.IsStatusConditionTrue(exam.Status.Conditions, "AllEmailsSent") {
+		if meta.IsStatusConditionTrue(exam.Status.Conditions, examv1alpha1.ConditionAllEmailsSent) {
 			return
 		}
 		_, err := reconciler.Reconcile(ctx, reconcileRequest(nn))
@@ -227,7 +228,7 @@ func drainEmails(ctx context.Context, reconciler *ExamReconciler, nn types.Names
 	// Verify AllEmailsSent was eventually set
 	exam := &examv1alpha1.Exam{}
 	Expect(k8sClient.Get(ctx, nn, exam)).To(Succeed())
-	Expect(meta.IsStatusConditionTrue(exam.Status.Conditions, "AllEmailsSent")).To(BeTrue(),
+	Expect(meta.IsStatusConditionTrue(exam.Status.Conditions, examv1alpha1.ConditionAllEmailsSent)).To(BeTrue(),
 		"AllEmailsSent condition should be set after draining emails")
 }
 
@@ -299,4 +300,39 @@ func driveToPhase(
 // reconcileRequest builds a reconcile.Request from a NamespacedName.
 func reconcileRequest(nn types.NamespacedName) reconcile.Request {
 	return reconcile.Request{NamespacedName: nn}
+}
+
+// triggerDryRun creates a dry-run-enabled exam with 2 students + 1 spare,
+// drives it to Ready, and triggers one successful dry run reconcile.
+func triggerDryRun(ctx context.Context, examName string, nn types.NamespacedName, unlock time.Time) (*ExamReconciler, time.Time) {
+	students := []examv1alpha1.ExamStudent{
+		{ID: "alice", Email: "alice@test.com"},
+		{ID: "bob", Email: "bob@test.com"},
+	}
+	dryRunBefore := 20 * time.Minute
+	createExamCRWithDryRun(ctx, examName, unlock, students, 1, dryRunBefore)
+	preseedSlugs(ctx, nn)
+
+	fakeSender := &notifier.FakeSender{}
+	reconciler := driveToPhase(ctx, nn, examv1alpha1.ExamPhaseReady, unlock, fakeSender, nil)
+	reconciler.Checker = &smoketest.FakeChecker{}
+
+	dryRunTime := unlock.Add(-dryRunBefore)
+	reconciler.Now = func() time.Time { return dryRunTime.Add(1 * time.Minute) }
+
+	drainEmails(ctx, reconciler, nn)
+
+	_, err := reconciler.Reconcile(ctx, reconcileRequest(nn))
+	Expect(err).NotTo(HaveOccurred())
+
+	return reconciler, dryRunTime
+}
+
+// assertDryRunPreserved verifies that DryRun status fields match expected values.
+func assertDryRunPreserved(exam *examv1alpha1.Exam, completedAt time.Time, passed, failed int) {
+	Expect(exam.Status.DryRun).NotTo(BeNil())
+	Expect(exam.Status.DryRun.CompletedAt).NotTo(BeNil())
+	Expect(exam.Status.DryRun.CompletedAt.Time).To(Equal(completedAt))
+	Expect(exam.Status.DryRun.Passed).To(Equal(passed))
+	Expect(exam.Status.DryRun.Failed).To(Equal(failed))
 }
