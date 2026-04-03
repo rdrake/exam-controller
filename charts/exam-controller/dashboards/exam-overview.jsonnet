@@ -297,7 +297,105 @@ local phaseTimelinePanel =
   + { id: 9 };
 
 // ==========================================================================
-// Row 3: Operator Health (all exams) (collapsed)
+// Row 3: Student Activity (collapsed, requires Hubble metrics)
+// ==========================================================================
+
+local hubbleFilters = 'destination_namespace="$namespace"';
+
+local activeInstancesPanel =
+  statPanel(
+    'Active Instances',
+    [promQuery(
+      'count(rate(hubble_http_requests_total{%(f)s}[5m]) > 0)' % { f: hubbleFilters },
+    )],
+  )
+  + g.panel.stat.standardOptions.thresholds.withSteps([
+    { color: 'blue', value: null },
+  ])
+  + g.panel.stat.panelOptions.withDescription('Instances with HTTP activity in the last 5 minutes. Requires Hubble metrics.')
+  + g.panel.stat.panelOptions.withGridPos(h=8, w=4, x=0, y=27)
+  + { id: 20 };
+
+local requestsPerInstancePanel =
+  g.panel.timeSeries.new('Requests per Instance')
+  + g.panel.timeSeries.queryOptions.withDatasource('prometheus', ds)
+  + g.panel.timeSeries.queryOptions.withTargets([
+    promQuery(
+      'sum(rate(hubble_http_requests_total{%(f)s}[$__rate_interval])) by (destination_workload)' % { f: hubbleFilters },
+      '{{destination_workload}}'
+    ),
+  ])
+  + g.panel.timeSeries.standardOptions.color.withMode('palette-classic')
+  + g.panel.timeSeries.standardOptions.withUnit('reqps')
+  + g.panel.timeSeries.standardOptions.thresholds.withMode('absolute')
+  + g.panel.timeSeries.standardOptions.thresholds.withSteps([
+    { color: 'green', value: null },
+  ])
+  + g.panel.timeSeries.fieldConfig.defaults.custom.withDrawStyle('line')
+  + g.panel.timeSeries.fieldConfig.defaults.custom.withLineInterpolation('linear')
+  + g.panel.timeSeries.fieldConfig.defaults.custom.withLineWidth(1)
+  + g.panel.timeSeries.fieldConfig.defaults.custom.withFillOpacity(10)
+  + g.panel.timeSeries.fieldConfig.defaults.custom.withPointSize(5)
+  + g.panel.timeSeries.fieldConfig.defaults.custom.withShowPoints('auto')
+  + g.panel.timeSeries.fieldConfig.defaults.custom.withSpanNulls(false)
+  + g.panel.timeSeries.fieldConfig.defaults.custom.stacking.withMode('none')
+  + g.panel.timeSeries.fieldConfig.defaults.custom.stacking.withGroup('A')
+  + g.panel.timeSeries.options.legend.withDisplayMode('list')
+  + g.panel.timeSeries.options.legend.withPlacement('bottom')
+  + g.panel.timeSeries.options.legend.withShowLegend(true)
+  + g.panel.timeSeries.options.tooltip.withMode('multi')
+  + g.panel.timeSeries.options.tooltip.withSort('none')
+  + g.panel.timeSeries.panelOptions.withDescription('HTTP request rate per student instance. Requires Hubble metrics.')
+  + g.panel.timeSeries.panelOptions.withGridPos(h=8, w=10, x=4, y=27)
+  + { id: 21 };
+
+local activityLatencyPanel =
+  g.panel.heatmap.new('Request Latency')
+  + g.panel.heatmap.queryOptions.withDatasource('prometheus', ds)
+  + g.panel.heatmap.queryOptions.withTargets([
+    promQuery(
+      'sum(rate(hubble_http_request_duration_seconds_bucket{%(f)s}[$__rate_interval])) by (le)' % { f: hubbleFilters },
+      '{{le}}'
+    )
+    + g.query.prometheus.withFormat('heatmap'),
+  ])
+  + g.panel.heatmap.panelOptions.withDescription('HTTP request latency distribution across student instances. Requires Hubble metrics.')
+  + {
+    fieldConfig: {
+      defaults: {
+        color: { mode: 'scheme', schemeName: 'Oranges', steps: 128 },
+        custom: {
+          hideFrom: { legend: false, tooltip: false, viz: false },
+          scaleDistribution: { type: 'linear' },
+        },
+      },
+      overrides: [],
+    },
+    options: {
+      calculate: false,
+      cellGap: 1,
+      color: {
+        exponent: 0.5,
+        fill: 'dark-orange',
+        mode: 'scheme',
+        reverse: false,
+        scale: 'exponential',
+        scheme: 'Oranges',
+        steps: 128,
+      },
+      exemplars: { color: 'rgba(255,0,255,0.7)' },
+      filterValues: { le: 1e-9 },
+      legend: { show: true },
+      rowsFrame: { layout: 'auto' },
+      tooltip: { show: true, yHistogram: true },
+      yAxis: { axisPlacement: 'left', reverse: false, unit: 's' },
+    },
+  }
+  + g.panel.heatmap.panelOptions.withGridPos(h=8, w=10, x=14, y=27)
+  + { id: 22 };
+
+// ==========================================================================
+// Row 4: Operator Health (all exams) (collapsed)
 // ==========================================================================
 
 local reconcileLatencyPanel =
@@ -394,10 +492,21 @@ local row2 =
   + { id: 200 };
 
 local row3 =
-  g.panel.row.new('Operator Health (all exams)')
+  g.panel.row.new('Student Activity (requires Hubble)')
   + g.panel.row.withCollapsed(true)
   + g.panel.row.withGridPos(16)
   + { id: 300 }
+  + g.panel.row.withPanels([
+    activeInstancesPanel,
+    requestsPerInstancePanel,
+    activityLatencyPanel,
+  ]);
+
+local row4 =
+  g.panel.row.new('Operator Health (all exams)')
+  + g.panel.row.withCollapsed(true)
+  + g.panel.row.withGridPos(26)
+  + { id: 400 }
   + g.panel.row.withPanels([
     reconcileLatencyPanel,
     reconcileErrorsPanel,
@@ -433,6 +542,7 @@ g.dashboard.new('Exam Controller Overview')
     provisioningLatencyPanel,
     phaseTimelinePanel,
     row3,
+    row4,
   ],
   setPanelIDs=false,
 )

@@ -961,6 +961,231 @@
                   "type": "prometheus",
                   "uid": "${DS_PROMETHEUS}"
                },
+               "description": "Instances with HTTP activity in the last 5 minutes. Requires Hubble metrics.",
+               "fieldConfig": {
+                  "defaults": {
+                     "color": {
+                        "mode": "thresholds"
+                     },
+                     "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                           {
+                              "color": "blue",
+                              "value": null
+                           }
+                        ]
+                     }
+                  }
+               },
+               "gridPos": {
+                  "h": 8,
+                  "w": 4,
+                  "x": 0,
+                  "y": 27
+               },
+               "id": 20,
+               "options": {
+                  "colorMode": "value",
+                  "graphMode": "none",
+                  "justifyMode": "auto",
+                  "noValue": "N/A",
+                  "orientation": "auto",
+                  "reduceOptions": {
+                     "calcs": [
+                        "last"
+                     ],
+                     "fields": "",
+                     "values": false
+                  },
+                  "textMode": "auto"
+               },
+               "pluginVersion": "v11.4.0",
+               "targets": [
+                  {
+                     "datasource": {
+                        "type": "prometheus",
+                        "uid": "${DS_PROMETHEUS}"
+                     },
+                     "expr": "count(rate(hubble_http_requests_total{destination_namespace=\"$namespace\"}[5m]) > 0)",
+                     "legendFormat": "",
+                     "refId": "A"
+                  }
+               ],
+               "title": "Active Instances",
+               "type": "stat"
+            },
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${DS_PROMETHEUS}"
+               },
+               "description": "HTTP request rate per student instance. Requires Hubble metrics.",
+               "fieldConfig": {
+                  "defaults": {
+                     "color": {
+                        "mode": "palette-classic"
+                     },
+                     "custom": {
+                        "drawStyle": "line",
+                        "fillOpacity": 10,
+                        "lineInterpolation": "linear",
+                        "lineWidth": 1,
+                        "pointSize": 5,
+                        "showPoints": "auto",
+                        "spanNulls": false,
+                        "stacking": {
+                           "group": "A",
+                           "mode": "none"
+                        }
+                     },
+                     "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                           {
+                              "color": "green",
+                              "value": null
+                           }
+                        ]
+                     },
+                     "unit": "reqps"
+                  }
+               },
+               "gridPos": {
+                  "h": 8,
+                  "w": 10,
+                  "x": 4,
+                  "y": 27
+               },
+               "id": 21,
+               "options": {
+                  "legend": {
+                     "displayMode": "list",
+                     "placement": "bottom",
+                     "showLegend": true
+                  },
+                  "tooltip": {
+                     "mode": "multi",
+                     "sort": "none"
+                  }
+               },
+               "pluginVersion": "v11.4.0",
+               "targets": [
+                  {
+                     "datasource": {
+                        "type": "prometheus",
+                        "uid": "${DS_PROMETHEUS}"
+                     },
+                     "expr": "sum(rate(hubble_http_requests_total{destination_namespace=\"$namespace\"}[$__rate_interval])) by (destination_workload)",
+                     "legendFormat": "{{destination_workload}}",
+                     "refId": "A"
+                  }
+               ],
+               "title": "Requests per Instance",
+               "type": "timeseries"
+            },
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${DS_PROMETHEUS}"
+               },
+               "description": "HTTP request latency distribution across student instances. Requires Hubble metrics.",
+               "fieldConfig": {
+                  "defaults": {
+                     "color": {
+                        "mode": "scheme",
+                        "schemeName": "Oranges",
+                        "steps": 128
+                     },
+                     "custom": {
+                        "hideFrom": {
+                           "legend": false,
+                           "tooltip": false,
+                           "viz": false
+                        },
+                        "scaleDistribution": {
+                           "type": "linear"
+                        }
+                     }
+                  },
+                  "overrides": [ ]
+               },
+               "gridPos": {
+                  "h": 8,
+                  "w": 10,
+                  "x": 14,
+                  "y": 27
+               },
+               "id": 22,
+               "options": {
+                  "calculate": false,
+                  "cellGap": 1,
+                  "color": {
+                     "exponent": 0.5,
+                     "fill": "dark-orange",
+                     "mode": "scheme",
+                     "reverse": false,
+                     "scale": "exponential",
+                     "scheme": "Oranges",
+                     "steps": 128
+                  },
+                  "exemplars": {
+                     "color": "rgba(255,0,255,0.7)"
+                  },
+                  "filterValues": {
+                     "le": 1.0000000000000001e-09
+                  },
+                  "legend": {
+                     "show": true
+                  },
+                  "rowsFrame": {
+                     "layout": "auto"
+                  },
+                  "tooltip": {
+                     "show": true,
+                     "yHistogram": true
+                  },
+                  "yAxis": {
+                     "axisPlacement": "left",
+                     "reverse": false,
+                     "unit": "s"
+                  }
+               },
+               "pluginVersion": "v11.4.0",
+               "targets": [
+                  {
+                     "datasource": {
+                        "type": "prometheus",
+                        "uid": "${DS_PROMETHEUS}"
+                     },
+                     "expr": "sum(rate(hubble_http_request_duration_seconds_bucket{destination_namespace=\"$namespace\"}[$__rate_interval])) by (le)",
+                     "format": "heatmap",
+                     "legendFormat": "{{le}}",
+                     "refId": "A"
+                  }
+               ],
+               "title": "Request Latency",
+               "type": "heatmap"
+            }
+         ],
+         "title": "Student Activity (requires Hubble)",
+         "type": "row"
+      },
+      {
+         "collapsed": true,
+         "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 26
+         },
+         "id": 400,
+         "panels": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "${DS_PROMETHEUS}"
+               },
                "description": "Controller-wide metric — not filtered by exam selection",
                "fieldConfig": {
                   "defaults": {
