@@ -22,7 +22,7 @@ spec:
           annotations:
             summary: "{{ "{{ $value }}" }} failed instances for exam {{ "{{ $labels.exam }}" }}"
             description: "Exam {{ "{{ $labels.exam }}" }} in namespace {{ "{{ $labels.namespace }}" }} has {{ "{{ $value }}" }} failed student instance(s) for more than 2 minutes."
-            runbook_url: https://me.rdrake.org/exam-controller/operations/#exam-stuck-in-provisioning
+            runbook_url: https://rdrake.github.io/exam-controller/operations/#exam-stuck-in-provisioning
 
         - alert: ExamDryRunFailed
           expr: |
@@ -34,7 +34,7 @@ spec:
           annotations:
             summary: "Dry run failures for exam {{ "{{ $labels.exam }}" }}"
             description: "Exam {{ "{{ $labels.exam }}" }} in namespace {{ "{{ $labels.namespace }}" }} has {{ "{{ $value }}" }} dry run failure(s). The exam environment is not ready."
-            runbook_url: https://me.rdrake.org/exam-controller/operations/#dry-run-showing-failures
+            runbook_url: https://rdrake.github.io/exam-controller/operations/#dry-run-showing-failures
 
         - alert: ExamProvisioningStuck
           expr: |
@@ -46,7 +46,7 @@ spec:
           annotations:
             summary: "Exam {{ "{{ $labels.exam }}" }} stuck in Provisioning"
             description: "Exam {{ "{{ $labels.exam }}" }} in namespace {{ "{{ $labels.namespace }}" }} has been in the Provisioning phase for {{ "{{ $value | humanizeDuration }}" }}."
-            runbook_url: https://me.rdrake.org/exam-controller/operations/#exam-stuck-in-provisioning
+            runbook_url: https://rdrake.github.io/exam-controller/operations/#exam-stuck-in-provisioning
 
         - alert: ExamEmailDeliveryFailed
           expr: |
@@ -58,7 +58,7 @@ spec:
           annotations:
             summary: "Email delivery failures for exam {{ "{{ $labels.exam }}" }}"
             description: "Exam {{ "{{ $labels.exam }}" }} in namespace {{ "{{ $labels.namespace }}" }} has {{ "{{ $value }}" }} failed email delivery attempt(s). Some students may not have received credentials."
-            runbook_url: https://me.rdrake.org/exam-controller/operations/#emails-failing
+            runbook_url: https://rdrake.github.io/exam-controller/operations/#emails-failing
 
         - alert: ExamReconcileErrors
           expr: |
@@ -70,7 +70,7 @@ spec:
           annotations:
             summary: "Exam controller reconcile errors"
             description: "The exam controller is experiencing reconcile errors at {{ "{{ $value | humanize }}" }}/s for the last 5 minutes."
-            runbook_url: https://me.rdrake.org/exam-controller/operations/#exam-not-transitioning-phases
+            runbook_url: https://rdrake.github.io/exam-controller/operations/#exam-not-transitioning-phases
 
         - alert: ExamInstancesDegraded
           expr: |
@@ -82,5 +82,5 @@ spec:
           annotations:
             summary: "Degraded instances for exam {{ "{{ $labels.exam }}" }}"
             description: "Exam {{ "{{ $labels.exam }}" }} in namespace {{ "{{ $labels.namespace }}" }} has only {{ "{{ $value }}" }} healthy instances. Not all instances are passing health checks."
-            runbook_url: https://me.rdrake.org/exam-controller/operations/#exam-stuck-in-provisioning
+            runbook_url: https://rdrake.github.io/exam-controller/operations/#exam-stuck-in-provisioning
 {{- end }}
