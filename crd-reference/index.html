@@ -1,0 +1,1595 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://rdrake.github.io/exam-controller/crd-reference/">
+      
+      
+        <link rel="prev" href="../operations/">
+      
+      
+        <link rel="next" href="../platform-guide/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>CRD Reference - Exam Controller</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#exam-crd-reference" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Exam Controller" class="md-header__button md-logo" aria-label="Exam Controller" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Exam Controller
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              CRD Reference
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/rdrake/exam-controller" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    rdrake/exam-controller
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Exam Controller" class="md-nav__button md-logo" aria-label="Exam Controller" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Exam Controller
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/rdrake/exam-controller" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    rdrake/exam-controller
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../operations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operational Runbook
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CRD Reference
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CRD Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#spec-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Spec Fields
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Spec Fields">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#template-spectemplate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Template (spec.template)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#schedule-specschedule" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schedule (spec.schedule)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dry-run-specscheduledryrun" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dry Run (spec.schedule.dryRun)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#email-specemail" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Email (spec.email)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#students-specstudents" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Students (spec.students)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other-spec-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Other Spec Fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#status-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status Fields
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Status Fields">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#top-level-status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Top-Level Status
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dry-run-status-statusdryrun" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dry Run Status (status.dryRun)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#student-status-statusstudents" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Student Status (status.students)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spare-status-statusspares" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Spare Status (status.spares)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#metrics-summary-statusmetrics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Metrics Summary (status.metrics)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#condition-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Condition Types
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exam-phases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exam Phases
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#complete-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Complete Example
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Complete Example">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#resulting-timeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resulting Timeline
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../platform-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Platform Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#spec-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Spec Fields
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Spec Fields">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#template-spectemplate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Template (spec.template)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#schedule-specschedule" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schedule (spec.schedule)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dry-run-specscheduledryrun" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dry Run (spec.schedule.dryRun)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#email-specemail" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Email (spec.email)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#students-specstudents" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Students (spec.students)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other-spec-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Other Spec Fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#status-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status Fields
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Status Fields">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#top-level-status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Top-Level Status
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dry-run-status-statusdryrun" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dry Run Status (status.dryRun)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#student-status-statusstudents" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Student Status (status.students)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spare-status-statusspares" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Spare Status (status.spares)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#metrics-summary-statusmetrics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Metrics Summary (status.metrics)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#condition-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Condition Types
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exam-phases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exam Phases
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#complete-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Complete Example
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Complete Example">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#resulting-timeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resulting Timeline
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="exam-crd-reference">Exam CRD Reference<a class="headerlink" href="#exam-crd-reference" title="Permanent link">&para;</a></h1>
+<p>The <code>Exam</code> custom resource defines the complete lifecycle of a scheduled exam environment: instance provisioning, network policy enforcement, email notifications, dry-run smoke tests, timed unlock/lock transitions, retention, and teardown. This document covers every field in <code>ExamSpec</code> and <code>ExamStatus</code>.</p>
+<p><strong>API group:</strong> <code>exam.otu.ca</code>
+<strong>Version:</strong> <code>v1alpha1</code>
+<strong>Kind:</strong> <code>Exam</code>
+<strong>Scope:</strong> Namespaced (<code>Exam</code> objects typically live in a control namespace such as <code>exam-system</code>; the controller creates a dedicated namespace per exam)</p>
+<hr />
+<h2 id="spec-fields">Spec Fields<a class="headerlink" href="#spec-fields" title="Permanent link">&para;</a></h2>
+<h3 id="template-spectemplate">Template (<code>spec.template</code>)<a class="headerlink" href="#template-spectemplate" title="Permanent link">&para;</a></h3>
+<p>Defines the pod template used for each student and spare instance.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>spec.template.image</code></td>
+<td><code>string</code></td>
+<td>Yes</td>
+<td>--</td>
+<td>Container image for the vulnerable application.</td>
+</tr>
+<tr>
+<td><code>spec.template.resources</code></td>
+<td><code>corev1.ResourceRequirements</code></td>
+<td>No</td>
+<td>--</td>
+<td>CPU/memory requests and limits for each pod. Uses the standard Kubernetes <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#resourcerequirements-v1-core">ResourceRequirements</a> schema.</td>
+</tr>
+<tr>
+<td><code>spec.template.port</code></td>
+<td><code>int32</code></td>
+<td>Yes</td>
+<td>--</td>
+<td>Container port the application listens on. Used by the Service and Ingress created for each instance.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Validation rules:</strong></p>
+<ul>
+<li><code>spec.template.image</code> is immutable after provisioning (any phase past <code>Pending</code>).</li>
+<li><code>spec.template.port</code> is immutable after provisioning.</li>
+<li><code>spec.template.resources</code> is immutable after provisioning.</li>
+</ul>
+<hr />
+<h3 id="schedule-specschedule">Schedule (<code>spec.schedule</code>)<a class="headerlink" href="#schedule-specschedule" title="Permanent link">&para;</a></h3>
+<p>Controls the exam timeline: when provisioning starts, when the exam unlocks/locks, and how long resources are retained.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>spec.schedule.unlock</code></td>
+<td><code>string</code> (RFC 3339 timestamp)</td>
+<td>Yes</td>
+<td>--</td>
+<td>The moment the exam unlocks and students gain network access. Example: <code>"2026-04-10T14:00:00-04:00"</code>.</td>
+</tr>
+<tr>
+<td><code>spec.schedule.duration</code></td>
+<td><code>string</code> (duration, e.g. <code>"2h"</code>)</td>
+<td>Yes</td>
+<td>--</td>
+<td>Base exam duration. Must be greater than 0.</td>
+</tr>
+<tr>
+<td><code>spec.schedule.timeMultiplier</code></td>
+<td><code>float64</code></td>
+<td>No</td>
+<td><code>1.5</code></td>
+<td>Multiplier applied to <code>duration</code> to compute the lock time. <code>lockTime = unlock + (duration * timeMultiplier)</code>. Must be &gt;= 1.0.</td>
+</tr>
+<tr>
+<td><code>spec.schedule.provisionBefore</code></td>
+<td><code>string</code> (duration)</td>
+<td>No</td>
+<td><code>"1h"</code></td>
+<td>How far before <code>unlock</code> to begin provisioning instances. Must be greater than <code>spec.email.before</code>.</td>
+</tr>
+<tr>
+<td><code>spec.schedule.retention</code></td>
+<td><code>string</code> (duration)</td>
+<td>No</td>
+<td><code>"24h"</code></td>
+<td>How long after lock time to retain pods before teardown. Platform teams can increase this later to preserve an exam environment for investigation.</td>
+</tr>
+<tr>
+<td><code>spec.schedule.dryRun</code></td>
+<td><code>object</code></td>
+<td>No</td>
+<td>--</td>
+<td>If set, configures a pre-exam smoke test. See <a href="#dry-run-specscheduledryrun">Dry Run</a> below.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Validation rules:</strong></p>
+<ul>
+<li><code>spec.schedule.duration</code> must be &gt; 0.</li>
+<li><code>spec.schedule.timeMultiplier</code> must be &gt;= 1.0 (defaults to 1.5 if unset or zero).</li>
+<li><code>spec.schedule.provisionBefore</code> must be strictly greater than <code>spec.email.before</code>.</li>
+<li><code>spec.schedule.unlock</code> is immutable after provisioning.</li>
+<li><code>spec.schedule.duration</code> is immutable after locking (phases <code>Locked</code> or <code>TearingDown</code>).</li>
+<li><code>spec.schedule.timeMultiplier</code> is immutable after locking.</li>
+<li>While the exam is <code>Unlocked</code>, changes to <code>duration</code> or <code>timeMultiplier</code> are allowed only if the resulting computed lock time is still in the future.</li>
+</ul>
+<hr />
+<h3 id="dry-run-specscheduledryrun">Dry Run (<code>spec.schedule.dryRun</code>)<a class="headerlink" href="#dry-run-specscheduledryrun" title="Permanent link">&para;</a></h3>
+<p>Optional pre-exam smoke test that verifies all student instances are reachable and network policies are enforced.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>spec.schedule.dryRun.before</code></td>
+<td><code>string</code> (duration)</td>
+<td>Yes</td>
+<td>--</td>
+<td>How far before <code>unlock</code> to start the dry run.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="email-specemail">Email (<code>spec.email</code>)<a class="headerlink" href="#email-specemail" title="Permanent link">&para;</a></h3>
+<p>Configures email delivery to students and the designated course contact.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>spec.email.before</code></td>
+<td><code>string</code> (duration)</td>
+<td>No</td>
+<td><code>"30m"</code></td>
+<td>How far before <code>unlock</code> to begin sending student emails. Must allow enough time to send all emails at the configured rate.</td>
+</tr>
+<tr>
+<td><code>spec.email.sendInterval</code></td>
+<td><code>string</code> (duration)</td>
+<td>No</td>
+<td><code>"1s"</code></td>
+<td>Delay between sending each email.</td>
+</tr>
+<tr>
+<td><code>spec.email.instructorEmail</code></td>
+<td><code>string</code></td>
+<td>Yes</td>
+<td>--</td>
+<td>Email address for course-staff notifications (spare URLs, unlock summary, lock summary).</td>
+</tr>
+<tr>
+<td><code>spec.email.from</code></td>
+<td><code>string</code></td>
+<td>Yes</td>
+<td>--</td>
+<td>Sender address for all outgoing emails.</td>
+</tr>
+<tr>
+<td><code>spec.email.subject</code></td>
+<td><code>string</code></td>
+<td>Yes</td>
+<td>--</td>
+<td>Subject line for student credential emails.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Validation rules:</strong></p>
+<ul>
+<li><code>spec.email.instructorEmail</code> is required (must be non-empty).</li>
+<li><code>spec.email.before</code> must be long enough to deliver all emails at the given <code>sendInterval</code>. The webhook enforces: <code>before &gt;= len(students) * sendInterval * 1.5</code>.</li>
+</ul>
+<hr />
+<h3 id="students-specstudents">Students (<code>spec.students</code>)<a class="headerlink" href="#students-specstudents" title="Permanent link">&para;</a></h3>
+<p>List of students participating in the exam. Each student gets a dedicated pod, service, and ingress.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>spec.students</code></td>
+<td><code>[]object</code></td>
+<td>Yes</td>
+<td>--</td>
+<td>Must contain at least one entry.</td>
+</tr>
+<tr>
+<td><code>spec.students[].id</code></td>
+<td><code>string</code></td>
+<td>Yes</td>
+<td>--</td>
+<td>Unique student identifier. Must be a valid Kubernetes label value (alphanumeric, <code>-</code>, <code>_</code>, <code>.</code>, max 63 characters). Used to generate the instance slug.</td>
+</tr>
+<tr>
+<td><code>spec.students[].email</code></td>
+<td><code>string</code></td>
+<td>Yes</td>
+<td>--</td>
+<td>Student email address where instance credentials are sent.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Validation rules:</strong></p>
+<ul>
+<li><code>spec.students</code> must have at least one entry.</li>
+<li>Each <code>spec.students[].id</code> must be a valid Kubernetes label value.</li>
+<li>The student list length is immutable after provisioning.</li>
+<li>Individual <code>spec.students[].id</code> values are immutable after provisioning.</li>
+</ul>
+<hr />
+<h3 id="other-spec-fields">Other Spec Fields<a class="headerlink" href="#other-spec-fields" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>spec.spares</code></td>
+<td><code>int</code></td>
+<td>No</td>
+<td><code>0</code></td>
+<td>Number of spare instances to provision. Spare URLs are emailed to the course contact once all instances are healthy.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Validation rules:</strong></p>
+<ul>
+<li><code>spec.spares</code> must be &gt;= 0.</li>
+<li><code>spec.spares</code> is immutable after provisioning.</li>
+</ul>
+<p>Routing and SMTP settings are controller-level platform configuration, not <code>ExamSpec</code> fields. Set them with deployment flags or Helm values such as <code>platform.baseDomain</code>, <code>platform.ingressTLSSecretName</code>, <code>platform.smtpSecretName</code>, and <code>platform.secretNamespace</code>.</p>
+<hr />
+<h2 id="status-fields">Status Fields<a class="headerlink" href="#status-fields" title="Permanent link">&para;</a></h2>
+<p>All status fields are set by the controller and should be treated as read-only.</p>
+<h3 id="top-level-status">Top-Level Status<a class="headerlink" href="#top-level-status" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>status.phase</code></td>
+<td><code>string</code></td>
+<td>Current lifecycle phase. One of: <code>Pending</code>, <code>Provisioning</code>, <code>Ready</code>, <code>Unlocked</code>, <code>Locked</code>, <code>TearingDown</code>.</td>
+</tr>
+<tr>
+<td><code>status.message</code></td>
+<td><code>string</code></td>
+<td>Human-readable message describing the current state (e.g., <code>"Exam in progress -- 30 students, 2 spares"</code>).</td>
+</tr>
+<tr>
+<td><code>status.conditions</code></td>
+<td><code>[]metav1.Condition</code></td>
+<td>Standard Kubernetes conditions. See <a href="#condition-types">Condition Types</a> below.</td>
+</tr>
+<tr>
+<td><code>status.computedLockTime</code></td>
+<td><code>string</code> (RFC 3339)</td>
+<td>Computed lock time: <code>unlock + (duration * timeMultiplier)</code>.</td>
+</tr>
+<tr>
+<td><code>status.provisionTime</code></td>
+<td><code>string</code> (RFC 3339)</td>
+<td>Computed time when provisioning begins: <code>unlock - provisionBefore</code>.</td>
+</tr>
+<tr>
+<td><code>status.emailTime</code></td>
+<td><code>string</code> (RFC 3339)</td>
+<td>Computed time when email delivery begins: <code>unlock - email.before</code>.</td>
+</tr>
+<tr>
+<td><code>status.retentionDeadline</code></td>
+<td><code>string</code> (RFC 3339)</td>
+<td>Computed time when teardown begins: <code>computedLockTime + retention</code>.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="dry-run-status-statusdryrun">Dry Run Status (<code>status.dryRun</code>)<a class="headerlink" href="#dry-run-status-statusdryrun" title="Permanent link">&para;</a></h3>
+<p>Present only when <code>spec.schedule.dryRun</code> is configured and the dry run has executed.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>status.dryRun.completedAt</code></td>
+<td><code>string</code> (RFC 3339)</td>
+<td>Timestamp when the dry run finished.</td>
+</tr>
+<tr>
+<td><code>status.dryRun.passed</code></td>
+<td><code>int</code></td>
+<td>Number of instances that passed the smoke test.</td>
+</tr>
+<tr>
+<td><code>status.dryRun.failed</code></td>
+<td><code>int</code></td>
+<td>Number of instances that failed.</td>
+</tr>
+<tr>
+<td><code>status.dryRun.failures</code></td>
+<td><code>[]object</code></td>
+<td>Details of each failure.</td>
+</tr>
+<tr>
+<td><code>status.dryRun.failures[].student</code></td>
+<td><code>string</code></td>
+<td>Student ID (or spare slug) of the failed instance.</td>
+</tr>
+<tr>
+<td><code>status.dryRun.failures[].error</code></td>
+<td><code>string</code></td>
+<td>Error message describing the failure.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="student-status-statusstudents">Student Status (<code>status.students</code>)<a class="headerlink" href="#student-status-statusstudents" title="Permanent link">&para;</a></h3>
+<p>One entry per student, tracking instance and email state.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>status.students[].id</code></td>
+<td><code>string</code></td>
+<td>Student ID matching <code>spec.students[].id</code>.</td>
+</tr>
+<tr>
+<td><code>status.students[].slug</code></td>
+<td><code>string</code></td>
+<td>Generated slug used for the pod, service, and ingress hostname.</td>
+</tr>
+<tr>
+<td><code>status.students[].url</code></td>
+<td><code>string</code></td>
+<td>Full URL for the student's exam instance (e.g., <code>https://&lt;slug&gt;.&lt;domain&gt;</code>).</td>
+</tr>
+<tr>
+<td><code>status.students[].phase</code></td>
+<td><code>string</code></td>
+<td>Instance phase: <code>Provisioned</code>, <code>Unlocked</code>, <code>Locked</code>, or <code>Failed</code>.</td>
+</tr>
+<tr>
+<td><code>status.students[].emailStatus</code></td>
+<td><code>string</code></td>
+<td>Email delivery state: <code>Pending</code>, <code>Sent</code>, or <code>Failed</code>.</td>
+</tr>
+<tr>
+<td><code>status.students[].emailSentAt</code></td>
+<td><code>string</code> (RFC 3339)</td>
+<td>Timestamp when the credential email was sent.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="spare-status-statusspares">Spare Status (<code>status.spares</code>)<a class="headerlink" href="#spare-status-statusspares" title="Permanent link">&para;</a></h3>
+<p>One entry per spare instance.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>status.spares[].slug</code></td>
+<td><code>string</code></td>
+<td>Generated slug for the spare instance.</td>
+</tr>
+<tr>
+<td><code>status.spares[].url</code></td>
+<td><code>string</code></td>
+<td>Full URL for the spare instance.</td>
+</tr>
+<tr>
+<td><code>status.spares[].phase</code></td>
+<td><code>string</code></td>
+<td>Instance phase: <code>Provisioned</code>, <code>Unlocked</code>, <code>Locked</code>, or <code>Failed</code>.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="metrics-summary-statusmetrics">Metrics Summary (<code>status.metrics</code>)<a class="headerlink" href="#metrics-summary-statusmetrics" title="Permanent link">&para;</a></h3>
+<p>Aggregated counts for dashboard queries and Prometheus metrics.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>status.metrics.totalStudents</code></td>
+<td><code>int</code></td>
+<td>Total number of student instances.</td>
+</tr>
+<tr>
+<td><code>status.metrics.totalSpares</code></td>
+<td><code>int</code></td>
+<td>Total number of spare instances.</td>
+</tr>
+<tr>
+<td><code>status.metrics.emailsSent</code></td>
+<td><code>int</code></td>
+<td>Number of student emails successfully sent.</td>
+</tr>
+<tr>
+<td><code>status.metrics.emailsFailed</code></td>
+<td><code>int</code></td>
+<td>Number of student emails that failed to send.</td>
+</tr>
+<tr>
+<td><code>status.metrics.instancesHealthy</code></td>
+<td><code>int</code></td>
+<td>Number of instances currently healthy.</td>
+</tr>
+<tr>
+<td><code>status.metrics.instancesFailed</code></td>
+<td><code>int</code></td>
+<td>Number of instances in a failed state.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="condition-types">Condition Types<a class="headerlink" href="#condition-types" title="Permanent link">&para;</a></h2>
+<p>The controller sets the following conditions on <code>status.conditions</code>. Each condition follows the standard Kubernetes <code>metav1.Condition</code> schema with <code>type</code>, <code>status</code> (<code>True</code>/<code>False</code>), <code>reason</code>, <code>message</code>, and <code>lastTransitionTime</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Condition Type</th>
+<th>Set When</th>
+<th>Reason Values</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Provisioned</code></td>
+<td>All student and spare pods are healthy.</td>
+<td><code>AllHealthy</code></td>
+<td>Indicates provisioning is complete. Transitions the exam to <code>Ready</code> phase.</td>
+</tr>
+<tr>
+<td><code>ProvisioningDegraded</code></td>
+<td>One or more instances failed to provision.</td>
+<td><code>SomeInstancesFailed</code></td>
+<td>Warning condition; the controller retries on subsequent reconciliations.</td>
+</tr>
+<tr>
+<td><code>AllEmailsSent</code></td>
+<td>All student credential emails have been sent (or failed).</td>
+<td><code>Complete</code></td>
+<td>Set during <code>Ready</code> phase once the email queue is drained.</td>
+</tr>
+<tr>
+<td><code>DryRunComplete</code></td>
+<td>The dry-run smoke test has finished executing.</td>
+<td><code>Complete</code></td>
+<td>Set regardless of whether all checks passed or some failed.</td>
+</tr>
+<tr>
+<td><code>DryRunFailed</code></td>
+<td>One or more dry-run checks failed.</td>
+<td><code>SomeFailed</code></td>
+<td>Message includes the count of failures (e.g., <code>"3 of 30 checks failed"</code>).</td>
+</tr>
+<tr>
+<td><code>NetworkPolicyEnforced</code></td>
+<td>The dry run has tested network policy enforcement.</td>
+<td><code>Verified</code> / <code>NotEnforced</code></td>
+<td><code>True</code> if the negative connectivity test confirmed policies block traffic; <code>False</code> otherwise.</td>
+</tr>
+<tr>
+<td><code>InstructorNotifiedUnlock</code></td>
+<td>The unlock notification email was sent to the course contact.</td>
+<td><code>Sent</code></td>
+<td>Includes a summary of student count, spare count, and any failed emails.</td>
+</tr>
+<tr>
+<td><code>InstructorNotifiedLock</code></td>
+<td>The lock notification email was sent to the course contact.</td>
+<td><code>Sent</code></td>
+<td>Includes a summary of healthy vs. failed instances at lock time.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="exam-phases">Exam Phases<a class="headerlink" href="#exam-phases" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Pending</code></td>
+<td>The Exam resource has been created but provisioning has not started (waiting for <code>provisionTime</code>).</td>
+</tr>
+<tr>
+<td><code>Provisioning</code></td>
+<td>Pods, services, and network policies are being created in the exam namespace.</td>
+</tr>
+<tr>
+<td><code>Ready</code></td>
+<td>All instances are healthy. Emails and dry runs execute during this phase. Waiting for <code>unlock</code> time.</td>
+</tr>
+<tr>
+<td><code>Unlocked</code></td>
+<td>The exam is in progress. Ingress resources are created and network policies allow student traffic.</td>
+</tr>
+<tr>
+<td><code>Locked</code></td>
+<td>The exam has ended. Ingress resources are deleted and network policies block traffic. Instances are retained until <code>retentionDeadline</code>.</td>
+</tr>
+<tr>
+<td><code>TearingDown</code></td>
+<td>The exam namespace is being deleted. Terminal state.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="complete-example">Complete Example<a class="headerlink" href="#complete-example" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">exam.otu.ca/v1alpha1</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Exam</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="nt">metadata</span><span class="p">:</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sofe4790u-midterm</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span><span class="nt">labels</span><span class="p">:</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">    </span><span class="nt">app.kubernetes.io/name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">exam-controller</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">    </span><span class="nt">app.kubernetes.io/managed-by</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kustomize</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="nt">spec</span><span class="p">:</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">  </span><span class="c1"># --- Pod template for each student instance ---</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">  </span><span class="nt">template</span><span class="p">:</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">registry.example.com/vuln-app:v2.1</span><span class="w">  </span><span class="c1"># Vulnerable application image</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">    </span><span class="nt">resources</span><span class="p">:</span><span class="w">                                   </span><span class="c1"># Standard K8s resource constraints</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">      </span><span class="nt">requests</span><span class="p">:</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">        </span><span class="nt">cpu</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;250m&quot;</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">        </span><span class="nt">memory</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;256Mi&quot;</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="w">      </span><span class="nt">limits</span><span class="p">:</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="w">        </span><span class="nt">cpu</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;500m&quot;</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="w">        </span><span class="nt">memory</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;512Mi&quot;</span>
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="w">    </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8080</span><span class="w">                                   </span><span class="c1"># Container port exposed via Service/Ingress</span>
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="w">  </span><span class="c1"># --- Exam schedule ---</span>
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="w">  </span><span class="nt">schedule</span><span class="p">:</span>
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="w">    </span><span class="nt">unlock</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;2026-04-10T14:00:00-04:00&quot;</span><span class="w">          </span><span class="c1"># When the exam becomes accessible (RFC 3339)</span>
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="w">    </span><span class="nt">duration</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;2h&quot;</span><span class="w">                                </span><span class="c1"># Base exam length</span>
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="w">    </span><span class="nt">timeMultiplier</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1.5</span><span class="w">                           </span><span class="c1"># Lock at unlock + (2h * 1.5) = unlock + 3h</span>
+<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="w">    </span><span class="nt">provisionBefore</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;1h&quot;</span><span class="w">                         </span><span class="c1"># Start provisioning 1h before unlock</span>
+<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="w">    </span><span class="nt">retention</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;24h&quot;</span><span class="w">                              </span><span class="c1"># Keep pods 24h after lock for investigation</span>
+<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a><span class="w">    </span><span class="nt">dryRun</span><span class="p">:</span><span class="w">                                       </span><span class="c1"># Optional pre-exam smoke test</span>
+<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a><span class="w">      </span><span class="nt">before</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;5m&quot;</span><span class="w">                                </span><span class="c1">#   Run 5 minutes before unlock</span>
+<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>
+<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a><span class="w">  </span><span class="c1"># --- Email settings ---</span>
+<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a><span class="w">  </span><span class="nt">email</span><span class="p">:</span>
+<a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a><span class="w">    </span><span class="nt">before</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;30m&quot;</span><span class="w">                                 </span><span class="c1"># Start sending emails 30m before unlock</span>
+<a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a><span class="w">    </span><span class="nt">sendInterval</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;1s&quot;</span><span class="w">                             </span><span class="c1"># 1 second between emails</span>
+<a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a><span class="w">    </span><span class="nt">instructorEmail</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;instructor@ontariotechu.net&quot;</span><span class="w"> </span><span class="c1"># Receives spare URLs + unlock/lock summaries</span>
+<a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a><span class="w">    </span><span class="nt">from</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;noreply@otu.ca&quot;</span><span class="w">                        </span><span class="c1"># Sender address</span>
+<a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a><span class="w">    </span><span class="nt">subject</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;SOFE4790U</span><span class="nv"> </span><span class="s">-</span><span class="nv"> </span><span class="s">Your</span><span class="nv"> </span><span class="s">Exam</span><span class="nv"> </span><span class="s">Instance&quot;</span><span class="w">     </span><span class="c1"># Email subject line</span>
+<a id="__codelineno-0-38" name="__codelineno-0-38" href="#__codelineno-0-38"></a>
+<a id="__codelineno-0-39" name="__codelineno-0-39" href="#__codelineno-0-39"></a><span class="w">  </span><span class="c1"># --- Student list ---</span>
+<a id="__codelineno-0-40" name="__codelineno-0-40" href="#__codelineno-0-40"></a><span class="w">  </span><span class="nt">students</span><span class="p">:</span>
+<a id="__codelineno-0-41" name="__codelineno-0-41" href="#__codelineno-0-41"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">john.smith</span><span class="w">                              </span><span class="c1"># Must be a valid K8s label value</span>
+<a id="__codelineno-0-42" name="__codelineno-0-42" href="#__codelineno-0-42"></a><span class="w">      </span><span class="nt">email</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">john.smith@ontariotechu.net</span>
+<a id="__codelineno-0-43" name="__codelineno-0-43" href="#__codelineno-0-43"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">jane.doe</span>
+<a id="__codelineno-0-44" name="__codelineno-0-44" href="#__codelineno-0-44"></a><span class="w">      </span><span class="nt">email</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">jane.doe@ontariotechu.net</span>
+<a id="__codelineno-0-45" name="__codelineno-0-45" href="#__codelineno-0-45"></a>
+<a id="__codelineno-0-46" name="__codelineno-0-46" href="#__codelineno-0-46"></a><span class="w">  </span><span class="c1"># --- Spare instances ---</span>
+<a id="__codelineno-0-47" name="__codelineno-0-47" href="#__codelineno-0-47"></a><span class="w">  </span><span class="nt">spares</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span><span class="w">                                       </span><span class="c1"># Number of hot-spare instances</span>
+</code></pre></div>
+<p><code>Exam</code> resources do not carry platform-wide routing or SMTP configuration. The controller provides the base domain, wildcard TLS secret, SMTP secret name, and secret namespace via deployment flags or Helm values.</p>
+<h3 id="resulting-timeline">Resulting Timeline<a class="headerlink" href="#resulting-timeline" title="Permanent link">&para;</a></h3>
+<p>Given the example above:</p>
+<table>
+<thead>
+<tr>
+<th>Event</th>
+<th>Time</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Provisioning starts</td>
+<td><code>2026-04-10T13:00:00-04:00</code> (unlock - 1h)</td>
+</tr>
+<tr>
+<td>Emails begin</td>
+<td><code>2026-04-10T13:30:00-04:00</code> (unlock - 30m)</td>
+</tr>
+<tr>
+<td>Dry run executes</td>
+<td><code>2026-04-10T13:55:00-04:00</code> (unlock - 5m)</td>
+</tr>
+<tr>
+<td>Exam unlocks</td>
+<td><code>2026-04-10T14:00:00-04:00</code></td>
+</tr>
+<tr>
+<td>Exam locks</td>
+<td><code>2026-04-10T17:00:00-04:00</code> (unlock + 2h * 1.5)</td>
+</tr>
+<tr>
+<td>Teardown begins</td>
+<td><code>2026-04-11T17:00:00-04:00</code> (lock + 24h)</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.sections", "navigation.top", "search.suggest", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,2190 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://rdrake.github.io/exam-controller/operations/">
+      
+      
+        <link rel="prev" href="..">
+      
+      
+        <link rel="next" href="../crd-reference/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Operational Runbook - Exam Controller</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#operational-runbook" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Exam Controller" class="md-header__button md-logo" aria-label="Exam Controller" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Exam Controller
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Operational Runbook
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/rdrake/exam-controller" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    rdrake/exam-controller
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Exam Controller" class="md-nav__button md-logo" aria-label="Exam Controller" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Exam Controller
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/rdrake/exam-controller" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    rdrake/exam-controller
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operational Runbook
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operational Runbook
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Deployment
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Deployment">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#namespace-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Namespace setup
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rbac-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RBAC overview
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#platform-secrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Platform secrets
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kustomize-deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Kustomize deployment
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#helm-deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Helm deployment
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-day-2-operations-prometheus-metrics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Day 2 operations -- Prometheus metrics
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Day 2 operations -- Prometheus metrics">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#metric-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Metric reference
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#promql-alerting-queries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PromQL alerting queries
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dashboard-panels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dashboard panels
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#grafana-dashboard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Grafana dashboard
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#prometheusrule-alerts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PrometheusRule alerts
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Troubleshooting
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Troubleshooting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#exam-stuck-in-provisioning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exam stuck in provisioning
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#emails-failing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Emails failing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dry-run-showing-failures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dry run showing failures
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#students-cannot-access-instance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Students cannot access instance
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#exam-not-transitioning-phases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exam not transitioning phases
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#metrics-not-showing-up" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Metrics not showing up
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-operational-procedures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Operational procedures
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Operational procedures">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#supported-manual-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Supported manual changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#extend-an-active-exam" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Extend an active exam
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#extend-retention-for-an-investigation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Extend retention for an investigation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#manual-teardown" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manual teardown
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cancel-an-exam-before-teardown" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cancel an exam before teardown
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#recover-from-controller-crash" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recover from controller crash
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reassign-a-failed-instance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reassign a failed instance
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-scaling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Scaling
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Scaling">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#controller-resource-limits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Controller resource limits
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#handling-many-concurrent-exams" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Handling many concurrent exams
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#email-send-interval" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Email send interval
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#node-capacity-planning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Node capacity planning
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../crd-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CRD Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../platform-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Platform Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Deployment
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Deployment">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#namespace-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Namespace setup
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rbac-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RBAC overview
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#platform-secrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Platform secrets
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kustomize-deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Kustomize deployment
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#helm-deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Helm deployment
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-day-2-operations-prometheus-metrics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Day 2 operations -- Prometheus metrics
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Day 2 operations -- Prometheus metrics">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#metric-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Metric reference
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#promql-alerting-queries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PromQL alerting queries
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dashboard-panels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dashboard panels
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#grafana-dashboard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Grafana dashboard
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#prometheusrule-alerts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PrometheusRule alerts
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Troubleshooting
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Troubleshooting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#exam-stuck-in-provisioning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exam stuck in provisioning
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#emails-failing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Emails failing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dry-run-showing-failures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dry run showing failures
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#students-cannot-access-instance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Students cannot access instance
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#exam-not-transitioning-phases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exam not transitioning phases
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#metrics-not-showing-up" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Metrics not showing up
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-operational-procedures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Operational procedures
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Operational procedures">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#supported-manual-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Supported manual changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#extend-an-active-exam" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Extend an active exam
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#extend-retention-for-an-investigation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Extend retention for an investigation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#manual-teardown" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manual teardown
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cancel-an-exam-before-teardown" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cancel an exam before teardown
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#recover-from-controller-crash" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recover from controller crash
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reassign-a-failed-instance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reassign a failed instance
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-scaling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Scaling
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Scaling">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#controller-resource-limits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Controller resource limits
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#handling-many-concurrent-exams" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Handling many concurrent exams
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#email-send-interval" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Email send interval
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#node-capacity-planning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Node capacity planning
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="operational-runbook">Operational runbook<a class="headerlink" href="#operational-runbook" title="Permanent link">&para;</a></h1>
+<p>This document covers deployment, monitoring, troubleshooting, and supported operational procedures for the exam-controller.</p>
+<hr />
+<h2 id="1-deployment">1. Deployment<a class="headerlink" href="#1-deployment" title="Permanent link">&para;</a></h2>
+<h3 id="prerequisites">Prerequisites<a class="headerlink" href="#prerequisites" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Kubernetes 1.28+</li>
+<li>An Ingress controller (ingress-nginx expected by default NetworkPolicy rules)</li>
+<li>(Optional) A wildcard TLS certificate for your exam domain (e.g. <code>*.science.ontariotechu.ca</code>) -- only needed when not using cert-manager or Cilium for TLS</li>
+<li>An SMTP server for email delivery</li>
+<li>(Optional) Prometheus + Grafana for monitoring</li>
+<li>(Optional) Cilium CNI for CiliumNetworkPolicy support (auto-detected at startup)</li>
+</ul>
+<h3 id="namespace-setup">Namespace setup<a class="headerlink" href="#namespace-setup" title="Permanent link">&para;</a></h3>
+<p>The controller itself runs in <code>exam-controller-system</code> (Kustomize) or whatever namespace you install the Helm release into. Each Exam CR creates a dedicated namespace named <code>exam-&lt;exam-name&gt;-&lt;hash&gt;</code> containing all student resources. The hash makes namespaces stable and collision-safe when two Exams share the same name in different Kubernetes namespaces.</p>
+<h3 id="rbac-overview">RBAC overview<a class="headerlink" href="#rbac-overview" title="Permanent link">&para;</a></h3>
+<p>The controller requires a ClusterRole with the following permissions:</p>
+<table>
+<thead>
+<tr>
+<th>API Group</th>
+<th>Resources</th>
+<th>Verbs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>""</code></td>
+<td>namespaces, services</td>
+<td>get, list, watch, create, update, patch, delete</td>
+</tr>
+<tr>
+<td><code>""</code></td>
+<td>secrets</td>
+<td>get, list, watch, create, update, patch</td>
+</tr>
+<tr>
+<td><code>apps</code></td>
+<td>deployments</td>
+<td>get, list, watch, create, update, patch, delete</td>
+</tr>
+<tr>
+<td><code>networking.k8s.io</code></td>
+<td>ingresses, networkpolicies</td>
+<td>get, list, watch, create, update, patch, delete</td>
+</tr>
+<tr>
+<td><code>cilium.io</code></td>
+<td>ciliumnetworkpolicies</td>
+<td>get, list, watch, create, update, patch, delete</td>
+</tr>
+<tr>
+<td><code>exam.otu.ca</code></td>
+<td>exams, exams/status, exams/finalizers</td>
+<td>full CRUD</td>
+</tr>
+</tbody>
+</table>
+<p>The default install ships only the RBAC required by the controller and its metrics endpoint. Bind any extra read or write access to <code>Exam</code> resources explicitly for your own platform team workflows.</p>
+<h3 id="platform-secrets">Platform secrets<a class="headerlink" href="#platform-secrets" title="Permanent link">&para;</a></h3>
+<p>The controller reads two platform-managed secrets from its configured secret namespace:</p>
+<ol>
+<li><strong>Wildcard certificate</strong> (optional) -- <code>--ingress-tls-secret-name</code> points to a TLS secret covering <code>*.science.ontariotechu.ca</code> (or your chosen base domain). The controller copies this secret into each exam namespace before creating ingresses. When left empty (the default), TLS secret management is disabled -- use this when cert-manager or Cilium handles TLS automatically.</li>
+<li><strong>SMTP credentials</strong> -- <code>--smtp-secret-name</code> points to a secret with <code>host</code>, <code>port</code>, and optionally <code>username</code> and <code>password</code> keys. The <code>port</code> defaults to 587 if missing. For unauthenticated SMTP relays, the <code>username</code> and <code>password</code> keys can be omitted.</li>
+</ol>
+<p>Example:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Optional: only needed when NOT using cert-manager or Cilium for TLS.</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="c1"># If using cert-manager, skip this step and leave --ingress-tls-secret-name empty.</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>kubectl<span class="w"> </span>create<span class="w"> </span>secret<span class="w"> </span>tls<span class="w"> </span>exam-wildcard-tls<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span>--cert<span class="o">=</span>wildcard.crt<span class="w"> </span>--key<span class="o">=</span>wildcard.key<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span>-n<span class="w"> </span>exam-controller-system
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c1"># For authenticated SMTP relays, include username and password:</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>kubectl<span class="w"> </span>create<span class="w"> </span>secret<span class="w"> </span>generic<span class="w"> </span>exam-smtp-credentials<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">  </span>--from-literal<span class="o">=</span><span class="nv">host</span><span class="o">=</span>smtp.example.com<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">  </span>--from-literal<span class="o">=</span><span class="nv">port</span><span class="o">=</span><span class="m">587</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">  </span>--from-literal<span class="o">=</span><span class="nv">username</span><span class="o">=</span>noreply@example.com<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">  </span>--from-literal<span class="o">=</span><span class="nv">password</span><span class="o">=</span>changeme<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">  </span>-n<span class="w"> </span>exam-controller-system
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="c1"># For unauthenticated SMTP relays, username and password can be omitted:</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="c1"># kubectl create secret generic exam-smtp-credentials \</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="c1">#   --from-literal=host=smtp-relay.internal \</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="c1">#   --from-literal=port=25 \</span>
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="c1">#   -n exam-controller-system</span>
+</code></pre></div>
+<p>Metrics and webhook certificates remain separate. The controller can generate self-signed certs by default; for production, use cert-manager or pass <code>--metrics-cert-path</code> / <code>--webhook-cert-path</code>.</p>
+<h3 id="kustomize-deployment">Kustomize deployment<a class="headerlink" href="#kustomize-deployment" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Install CRDs</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>make<span class="w"> </span>install
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># Deploy controller to exam-controller-system namespace</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>make<span class="w"> </span>deploy<span class="w"> </span><span class="nv">IMG</span><span class="o">=</span>ghcr.io/rdrake/exam-controller:latest
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># Verify</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-n<span class="w"> </span>exam-controller-system
+</code></pre></div>
+<p>Key startup flags (configured in <code>config/default/manager_metrics_patch.yaml</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--metrics-bind-address</code></td>
+<td><code>0</code></td>
+<td>Metrics listen address (<code>:8443</code> for HTTPS, <code>:8080</code> for HTTP)</td>
+</tr>
+<tr>
+<td><code>--health-probe-bind-address</code></td>
+<td><code>:8081</code></td>
+<td>Liveness/readiness probe address</td>
+</tr>
+<tr>
+<td><code>--leader-elect</code></td>
+<td><code>false</code></td>
+<td>Enable leader election for HA</td>
+</tr>
+<tr>
+<td><code>--base-domain</code></td>
+<td><code>science.ontariotechu.ca</code></td>
+<td>Base domain for student URLs and Ingress hosts</td>
+</tr>
+<tr>
+<td><code>--ingress-tls-secret-name</code></td>
+<td><code>""</code> (empty)</td>
+<td>Wildcard TLS secret copied into exam namespaces (optional; leave empty when cert-manager/Cilium handles TLS)</td>
+</tr>
+<tr>
+<td><code>--smtp-secret-name</code></td>
+<td><code>exam-smtp-credentials</code></td>
+<td>SMTP credentials secret name</td>
+</tr>
+<tr>
+<td><code>--platform-secret-namespace</code></td>
+<td><code>POD_NAMESPACE</code> or <code>exam-system</code></td>
+<td>Namespace holding platform secrets</td>
+</tr>
+<tr>
+<td><code>--metrics-secure</code></td>
+<td><code>true</code></td>
+<td>Serve metrics over HTTPS</td>
+</tr>
+<tr>
+<td><code>--enable-http2</code></td>
+<td><code>false</code></td>
+<td>Enable HTTP/2 (disabled by default for CVE mitigation)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="helm-deployment">Helm deployment<a class="headerlink" href="#helm-deployment" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>helm<span class="w"> </span>install<span class="w"> </span>exam-controller<span class="w"> </span>charts/exam-controller<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span>--namespace<span class="w"> </span>exam-controller-system<span class="w"> </span>--create-namespace<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span>--set<span class="w"> </span>image.tag<span class="o">=</span>v0.1.0<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span>--set<span class="w"> </span>leaderElection.enabled<span class="o">=</span><span class="nb">true</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">  </span>--set<span class="w"> </span>metrics.serviceMonitor.enabled<span class="o">=</span><span class="nb">true</span>
+</code></pre></div>
+<p>Key Helm values:</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>image.repository</code></td>
+<td><code>ghcr.io/rdrake/exam-controller</code></td>
+<td>Controller image</td>
+</tr>
+<tr>
+<td><code>image.tag</code></td>
+<td>Chart appVersion</td>
+<td>Image tag</td>
+</tr>
+<tr>
+<td><code>leaderElection.enabled</code></td>
+<td><code>true</code></td>
+<td>Leader election for HA</td>
+</tr>
+<tr>
+<td><code>metrics.enabled</code></td>
+<td><code>true</code></td>
+<td>Enable metrics endpoint</td>
+</tr>
+<tr>
+<td><code>metrics.port</code></td>
+<td><code>8443</code></td>
+<td>Metrics port</td>
+</tr>
+<tr>
+<td><code>metrics.secure</code></td>
+<td><code>true</code></td>
+<td>HTTPS metrics</td>
+</tr>
+<tr>
+<td><code>metrics.serviceMonitor.enabled</code></td>
+<td><code>false</code></td>
+<td>Create Prometheus ServiceMonitor</td>
+</tr>
+<tr>
+<td><code>metrics.serviceMonitor.interval</code></td>
+<td><code>30s</code></td>
+<td>Scrape interval</td>
+</tr>
+<tr>
+<td><code>webhook.enabled</code></td>
+<td><code>false</code></td>
+<td>Enable admission webhooks</td>
+</tr>
+<tr>
+<td><code>platform.baseDomain</code></td>
+<td><code>science.ontariotechu.ca</code></td>
+<td>Base domain for student URLs</td>
+</tr>
+<tr>
+<td><code>platform.ingressTLSSecretName</code></td>
+<td><code>""</code> (empty)</td>
+<td>Wildcard TLS secret name (optional; leave empty when cert-manager/Cilium handles TLS)</td>
+</tr>
+<tr>
+<td><code>platform.smtpSecretName</code></td>
+<td><code>exam-smtp-credentials</code></td>
+<td>SMTP credentials secret name</td>
+</tr>
+<tr>
+<td><code>platform.secretNamespace</code></td>
+<td><code>""</code></td>
+<td>Namespace holding platform secrets</td>
+</tr>
+<tr>
+<td><code>healthProbe.port</code></td>
+<td><code>8081</code></td>
+<td>Health probe port</td>
+</tr>
+<tr>
+<td><code>resources.requests.cpu</code></td>
+<td><code>10m</code></td>
+<td>CPU request</td>
+</tr>
+<tr>
+<td><code>resources.requests.memory</code></td>
+<td><code>64Mi</code></td>
+<td>Memory request</td>
+</tr>
+<tr>
+<td><code>resources.limits.cpu</code></td>
+<td><code>500m</code></td>
+<td>CPU limit</td>
+</tr>
+<tr>
+<td><code>resources.limits.memory</code></td>
+<td><code>128Mi</code></td>
+<td>Memory limit</td>
+</tr>
+<tr>
+<td><code>metrics.prometheusRule.enabled</code></td>
+<td><code>false</code></td>
+<td>Create PrometheusRule alerts</td>
+</tr>
+<tr>
+<td><code>grafana.dashboard.enabled</code></td>
+<td><code>false</code></td>
+<td>Create Grafana dashboard ConfigMap</td>
+</tr>
+<tr>
+<td><code>grafana.dashboard.folder</code></td>
+<td><code>""</code></td>
+<td>Grafana folder for the dashboard</td>
+</tr>
+<tr>
+<td><code>networkPolicy.enabled</code></td>
+<td><code>false</code></td>
+<td>Controller pod NetworkPolicy</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="2-day-2-operations-prometheus-metrics">2. Day 2 operations -- Prometheus metrics<a class="headerlink" href="#2-day-2-operations-prometheus-metrics" title="Permanent link">&para;</a></h2>
+<p>The controller exposes 12 metrics on its metrics endpoint. All per-exam metrics are labeled with both <code>exam="&lt;exam-name&gt;"</code> and <code>namespace="&lt;exam-cr-namespace&gt;"</code>.</p>
+<h3 id="metric-reference">Metric reference<a class="headerlink" href="#metric-reference" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Type</th>
+<th>Labels</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>exam_reconcile_duration_seconds</code></td>
+<td>Histogram</td>
+<td>(none)</td>
+<td>Time spent per reconcile loop</td>
+</tr>
+<tr>
+<td><code>exam_reconcile_errors_total</code></td>
+<td>Counter</td>
+<td>(none)</td>
+<td>Total reconcile failures</td>
+</tr>
+<tr>
+<td><code>exam_phase_transitions_total</code></td>
+<td>Counter</td>
+<td><code>exam</code>, <code>namespace</code>, <code>from</code>, <code>to</code></td>
+<td>Phase changes by exam</td>
+</tr>
+<tr>
+<td><code>exam_instances_total</code></td>
+<td>Gauge</td>
+<td><code>exam</code>, <code>namespace</code></td>
+<td>Total instances (students + spares)</td>
+</tr>
+<tr>
+<td><code>exam_instances_healthy</code></td>
+<td>Gauge</td>
+<td><code>exam</code>, <code>namespace</code></td>
+<td>Instances passing health checks</td>
+</tr>
+<tr>
+<td><code>exam_instances_failed</code></td>
+<td>Gauge</td>
+<td><code>exam</code>, <code>namespace</code></td>
+<td>Instances in failed state</td>
+</tr>
+<tr>
+<td><code>exam_emails_sent_total</code></td>
+<td>Counter</td>
+<td><code>exam</code>, <code>namespace</code></td>
+<td>Emails successfully delivered</td>
+</tr>
+<tr>
+<td><code>exam_emails_failed_total</code></td>
+<td>Counter</td>
+<td><code>exam</code>, <code>namespace</code></td>
+<td>Email delivery failures</td>
+</tr>
+<tr>
+<td><code>exam_dryrun_passed</code></td>
+<td>Gauge</td>
+<td><code>exam</code>, <code>namespace</code></td>
+<td>Dry run checks that passed</td>
+</tr>
+<tr>
+<td><code>exam_dryrun_failed</code></td>
+<td>Gauge</td>
+<td><code>exam</code>, <code>namespace</code></td>
+<td>Dry run checks that failed</td>
+</tr>
+<tr>
+<td><code>exam_seconds_until_unlock</code></td>
+<td>Gauge</td>
+<td><code>exam</code>, <code>namespace</code></td>
+<td>Seconds remaining until unlock (0 after)</td>
+</tr>
+<tr>
+<td><code>exam_seconds_until_lock</code></td>
+<td>Gauge</td>
+<td><code>exam</code>, <code>namespace</code></td>
+<td>Seconds remaining until lock (0 after)</td>
+</tr>
+<tr>
+<td><code>exam_provision_duration_seconds</code></td>
+<td>Histogram</td>
+<td><code>exam</code>, <code>namespace</code>, <code>student</code></td>
+<td>Time to provision each student instance (buckets: 5s–300s)</td>
+</tr>
+<tr>
+<td><code>exam_phase_duration_seconds</code></td>
+<td>Gauge</td>
+<td><code>exam</code>, <code>namespace</code>, <code>phase</code></td>
+<td>Seconds spent in the current lifecycle phase</td>
+</tr>
+<tr>
+<td><code>exam_spare_swaps_total</code></td>
+<td>Counter</td>
+<td><code>exam</code>, <code>namespace</code></td>
+<td>Spare instances swapped in for failed students</td>
+</tr>
+</tbody>
+</table>
+<p>When an exam is torn down, all its label series are cleaned up via <code>CleanupExam()</code> to prevent unbounded cardinality growth.</p>
+<h3 id="promql-alerting-queries">PromQL alerting queries<a class="headerlink" href="#promql-alerting-queries" title="Permanent link">&para;</a></h3>
+<p><strong>Reconcile error rate (&gt;5% over 5 minutes):</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kr">rate</span><span class="o">(</span><span class="nv">exam_reconcile_errors_total</span><span class="p">[</span><span class="s">5m</span><span class="p">]</span><span class="o">)</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="o">/</span><span class="w"> </span><span class="kr">rate</span><span class="o">(</span><span class="nv">exam_reconcile_duration_seconds_count</span><span class="p">[</span><span class="s">5m</span><span class="p">]</span><span class="o">)</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mf">0.05</span>
+</code></pre></div>
+<p><strong>Reconcile loop taking too long (p99 &gt; 10s):</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kr">histogram_quantile</span><span class="o">(</span><span class="mf">0.99</span><span class="p">,</span><span class="w"> </span><span class="kr">rate</span><span class="o">(</span><span class="nv">exam_reconcile_duration_seconds_bucket</span><span class="p">[</span><span class="s">5m</span><span class="p">]</span><span class="o">))</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">10</span>
+</code></pre></div>
+<p><strong>Exam stuck in Provisioning for over 15 minutes:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nv">exam_phase_transitions_total</span><span class="p">{</span><span class="nl">to</span><span class="o">=</span><span class="p">&quot;</span><span class="s">Provisioning</span><span class="p">&quot;}</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="ow">unless</span><span class="w"> </span><span class="nv">exam_phase_transitions_total</span><span class="p">{</span><span class="nl">from</span><span class="o">=</span><span class="p">&quot;</span><span class="s">Provisioning</span><span class="p">&quot;}</span>
+</code></pre></div>
+<p>Combined with a time-based approach, check for exams that have been provisioning longer than expected:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nv">exam_instances_healthy</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="nv">exam_instances_total</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span><span class="ow">and</span><span class="w"> </span><span class="nv">exam_seconds_until_unlock</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">3600</span>
+</code></pre></div>
+<p><strong>Failed instances detected:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nv">exam_instances_failed</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span>
+</code></pre></div>
+<p><strong>Email delivery failures:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nv">exam_emails_failed_total</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span>
+</code></pre></div>
+<p><strong>Dry run failures:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nv">exam_dryrun_failed</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span>
+</code></pre></div>
+<p><strong>Exam approaching unlock with unhealthy instances:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nv">exam_seconds_until_unlock</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">900</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span><span class="ow">and</span><span class="w"> </span><span class="nv">exam_instances_healthy</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="nv">exam_instances_total</span>
+</code></pre></div>
+<p><strong>Exam about to lock (less than 5 minutes):</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="nv">exam_seconds_until_lock</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="ow">and</span><span class="w"> </span><span class="nv">exam_seconds_until_lock</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">300</span>
+</code></pre></div>
+<h3 id="dashboard-panels">Dashboard panels<a class="headerlink" href="#dashboard-panels" title="Permanent link">&para;</a></h3>
+<p>Useful Grafana panel queries:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="c1"># Active exams by phase</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="k">count</span><span class="w"> </span><span class="k">by</span><span class="w"> </span><span class="o">(</span><span class="nv">to</span><span class="o">)</span><span class="w"> </span><span class="o">(</span><span class="nv">exam_phase_transitions_total</span><span class="o">)</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="c1"># Email success rate per exam</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="nv">exam_emails_sent_total</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="o">(</span><span class="nv">exam_emails_sent_total</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nv">exam_emails_failed_total</span><span class="o">)</span>
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="c1"># Instance health ratio</span>
+<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="nv">exam_instances_healthy</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="nv">exam_instances_total</span>
+<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>
+<a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="c1"># Reconcile latency heatmap</span>
+<a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a><span class="kr">rate</span><span class="o">(</span><span class="nv">exam_reconcile_duration_seconds_bucket</span><span class="p">[</span><span class="s">5m</span><span class="p">]</span><span class="o">)</span>
+</code></pre></div>
+<h3 id="grafana-dashboard">Grafana dashboard<a class="headerlink" href="#grafana-dashboard" title="Permanent link">&para;</a></h3>
+<p>The Helm chart ships a pre-built Grafana dashboard (<code>exam-overview.json</code>) that provides a single-pane overview of exam lifecycle, instance health, provisioning latency, and operator health. The chart delivers it as a ConfigMap discovered by the <a href="https://github.com/grafana/helm-charts/tree/main/charts/grafana#sidecar-for-dashboards">Grafana sidecar</a>.</p>
+<p><strong>Prerequisites:</strong></p>
+<ul>
+<li>Grafana deployed with the dashboard sidecar enabled (the default in the <code>grafana/grafana</code> Helm chart)</li>
+<li>The sidecar configured to watch ConfigMaps with label <code>grafana_dashboard: "1"</code> in the release namespace</li>
+</ul>
+<p><strong>Enable the dashboard:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>helm<span class="w"> </span>install<span class="w"> </span>exam-controller<span class="w"> </span>charts/exam-controller<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="w">  </span>--namespace<span class="w"> </span>exam-controller-system<span class="w"> </span>--create-namespace<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">  </span>--set<span class="w"> </span>metrics.enabled<span class="o">=</span><span class="nb">true</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="w">  </span>--set<span class="w"> </span>metrics.serviceMonitor.enabled<span class="o">=</span><span class="nb">true</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="w">  </span>--set<span class="w"> </span>grafana.dashboard.enabled<span class="o">=</span><span class="nb">true</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="w">  </span>--set<span class="w"> </span>grafana.dashboard.folder<span class="o">=</span><span class="s2">&quot;Exam Controller&quot;</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>grafana.dashboard.enabled</code></td>
+<td><code>false</code></td>
+<td>Create the dashboard ConfigMap</td>
+</tr>
+<tr>
+<td><code>grafana.dashboard.label</code></td>
+<td><code>grafana_dashboard</code></td>
+<td>ConfigMap label key for sidecar discovery</td>
+</tr>
+<tr>
+<td><code>grafana.dashboard.labelValue</code></td>
+<td><code>"1"</code></td>
+<td>ConfigMap label value for sidecar discovery</td>
+</tr>
+<tr>
+<td><code>grafana.dashboard.folder</code></td>
+<td><code>""</code></td>
+<td>Grafana folder name (empty = General folder)</td>
+</tr>
+</tbody>
+</table>
+<p>The dashboard expects a Prometheus datasource provisioned as a template variable (<code>${DS_PROMETHEUS}</code>). On first load, Grafana will prompt you to select the correct datasource if more than one is configured.</p>
+<p><strong>Dashboard layout:</strong></p>
+<ul>
+<li><strong>Row 1, status at a glance:</strong> current phase, healthy/total instances, failed count, email delivery stats, dry run results, countdowns to unlock/lock.</li>
+<li><strong>Row 2, provisioning and health:</strong> instance health over time (stacked time series), provisioning latency heatmap, phase timeline.</li>
+<li><strong>Row 3, operator health</strong> (collapsed): reconcile latency (p50/p99), reconcile error rate, spare swap count.</li>
+</ul>
+<p><strong>Dashboard source:</strong></p>
+<p>The dashboard source lives in <a href="https://github.com/grafana/grafonnet">Grafonnet</a> (Jsonnet) at <code>charts/exam-controller/dashboards/exam-overview.jsonnet</code> and compiled to JSON. The Grafonnet dependency is pinned by commit hash in <code>jsonnetfile.json</code> and locked in <code>jsonnetfile.lock.json</code>. To recompile after editing the Jsonnet source:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>make<span class="w"> </span>dashboard<span class="w">          </span><span class="c1"># compile Jsonnet → JSON</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>make<span class="w"> </span>check-dashboard<span class="w">    </span><span class="c1"># verify JSON is up to date (runs in CI)</span>
+</code></pre></div>
+<p><code>make check-dashboard</code> is included in <code>make verify-fast</code>, so stale JSON will fail CI.</p>
+<h3 id="prometheusrule-alerts">PrometheusRule alerts<a class="headerlink" href="#prometheusrule-alerts" title="Permanent link">&para;</a></h3>
+<p>The Helm chart includes a <code>PrometheusRule</code> resource with six alerts covering the critical exam lifecycle failure modes. Enable it alongside the ServiceMonitor:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>helm<span class="w"> </span>upgrade<span class="w"> </span>exam-controller<span class="w"> </span>charts/exam-controller<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="w">  </span>--set<span class="w"> </span>metrics.enabled<span class="o">=</span><span class="nb">true</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="w">  </span>--set<span class="w"> </span>metrics.prometheusRule.enabled<span class="o">=</span><span class="nb">true</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Alert</th>
+<th>Severity</th>
+<th>Fires when</th>
+<th>For</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ExamInstancesFailed</code></td>
+<td>critical</td>
+<td><code>exam_instances_failed &gt; 0</code></td>
+<td>2m</td>
+</tr>
+<tr>
+<td><code>ExamDryRunFailed</code></td>
+<td>critical</td>
+<td><code>exam_dryrun_failed &gt; 0</code></td>
+<td>1m</td>
+</tr>
+<tr>
+<td><code>ExamProvisioningStuck</code></td>
+<td>critical</td>
+<td>Provisioning phase exceeds 10 minutes</td>
+<td>5m</td>
+</tr>
+<tr>
+<td><code>ExamEmailDeliveryFailed</code></td>
+<td>warning</td>
+<td><code>exam_emails_failed_total &gt; 0</code></td>
+<td>2m</td>
+</tr>
+<tr>
+<td><code>ExamReconcileErrors</code></td>
+<td>warning</td>
+<td>Reconcile error rate &gt; 0 for 5 minutes</td>
+<td>5m</td>
+</tr>
+<tr>
+<td><code>ExamInstancesDegraded</code></td>
+<td>warning</td>
+<td><code>exam_instances_healthy &lt; exam_instances_total</code></td>
+<td>5m</td>
+</tr>
+</tbody>
+</table>
+<p>The PrometheusRule is labeled <code>prometheus: kube-prometheus</code> for automatic discovery by the kube-prometheus-stack operator. Adjust the label if your Prometheus uses a different selector.</p>
+<hr />
+<h2 id="3-troubleshooting">3. Troubleshooting<a class="headerlink" href="#3-troubleshooting" title="Permanent link">&para;</a></h2>
+<h3 id="exam-stuck-in-provisioning">Exam stuck in provisioning<a class="headerlink" href="#exam-stuck-in-provisioning" title="Permanent link">&para;</a></h3>
+<p><strong>Symptoms:</strong> Exam <code>status.phase</code> is <code>Provisioning</code> and has not transitioned to <code>Ready</code> within the expected time.</p>
+<p><strong>Diagnosis:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="nv">EXAM_NS</span><span class="o">=</span><span class="k">$(</span>kubectl<span class="w"> </span>get<span class="w"> </span>ns<span class="w"> </span>-l<span class="w"> </span>exam.otu.ca/exam<span class="o">=</span>&lt;name&gt;,exam.otu.ca/exam-namespace<span class="o">=</span>exam-system<span class="w"> </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">&#39;{.items[0].metadata.name}&#39;</span><span class="k">)</span>
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="c1"># Check exam status</span>
+<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>kubectl<span class="w"> </span>get<span class="w"> </span>exam<span class="w"> </span>&lt;name&gt;<span class="w"> </span>-n<span class="w"> </span>exam-system<span class="w"> </span>-o<span class="w"> </span>yaml
+<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>
+<a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a><span class="c1"># Check deployments in exam namespace</span>
+<a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a>kubectl<span class="w"> </span>get<span class="w"> </span>deployments<span class="w"> </span>-n<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$EXAM_NS</span><span class="s2">&quot;</span>
+<a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a>
+<a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a><span class="c1"># Check pods</span>
+<a id="__codelineno-16-10" name="__codelineno-16-10" href="#__codelineno-16-10"></a>kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-n<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$EXAM_NS</span><span class="s2">&quot;</span>
+<a id="__codelineno-16-11" name="__codelineno-16-11" href="#__codelineno-16-11"></a>
+<a id="__codelineno-16-12" name="__codelineno-16-12" href="#__codelineno-16-12"></a><span class="c1"># Look for pods not reaching Ready</span>
+<a id="__codelineno-16-13" name="__codelineno-16-13" href="#__codelineno-16-13"></a>kubectl<span class="w"> </span>describe<span class="w"> </span>pod<span class="w"> </span>-n<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$EXAM_NS</span><span class="s2">&quot;</span><span class="w"> </span>-l<span class="w"> </span>exam.otu.ca/exam<span class="o">=</span>&lt;name&gt;,exam.otu.ca/exam-namespace<span class="o">=</span>exam-system
+<a id="__codelineno-16-14" name="__codelineno-16-14" href="#__codelineno-16-14"></a>
+<a id="__codelineno-16-15" name="__codelineno-16-15" href="#__codelineno-16-15"></a><span class="c1"># Check controller logs for provisioning errors</span>
+<a id="__codelineno-16-16" name="__codelineno-16-16" href="#__codelineno-16-16"></a>kubectl<span class="w"> </span>logs<span class="w"> </span>-n<span class="w"> </span>exam-controller-system<span class="w"> </span>deployment/exam-controller-controller-manager<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-16-17" name="__codelineno-16-17" href="#__codelineno-16-17"></a><span class="w">  </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-i<span class="w"> </span><span class="s2">&quot;failed to provision&quot;</span>
+</code></pre></div>
+<p><strong>Common causes and resolution:</strong></p>
+<ul>
+<li><strong>Image pull errors:</strong> Verify the <code>spec.template.image</code> is accessible from the cluster. Check imagePullSecrets if using a private registry.</li>
+<li><strong>Resource quota exceeded:</strong> Check if the exam namespace has ResourceQuotas blocking pod creation.</li>
+<li><strong>SecurityContext violations:</strong> The controller sets <code>runAsNonRoot: true</code> and drops all capabilities. The container image must support running as non-root.</li>
+<li><strong>Pod scheduling failures:</strong> Check node resources with <code>kubectl describe nodes</code> and look for <code>Insufficient cpu/memory</code> events.</li>
+</ul>
+<p><strong>Log patterns to search for:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>&quot;Failed to provision student&quot;
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>&quot;Failed to provision spare&quot;
+<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>&quot;SomeInstancesFailed&quot;
+</code></pre></div>
+<h3 id="emails-failing">Emails failing<a class="headerlink" href="#emails-failing" title="Permanent link">&para;</a></h3>
+<p><strong>Symptoms:</strong> <code>status.students[].emailStatus</code> shows <code>Failed</code>. The <code>exam_emails_failed_total</code> metric is incrementing.</p>
+<p><strong>Diagnosis:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="c1"># Check student email statuses</span>
+<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>kubectl<span class="w"> </span>get<span class="w"> </span>exam<span class="w"> </span>&lt;name&gt;<span class="w"> </span>-n<span class="w"> </span>exam-system<span class="w"> </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">&#39;{range .status.students[*]}{.id} {.emailStatus}{&quot;\n&quot;}{end}&#39;</span>
+<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>
+<a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="c1"># Verify SMTP secret exists in the controller&#39;s platform secret namespace</span>
+<a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>kubectl<span class="w"> </span>get<span class="w"> </span>secret<span class="w"> </span>exam-smtp-credentials<span class="w"> </span>-n<span class="w"> </span>exam-controller-system<span class="w"> </span>-o<span class="w"> </span>yaml
+<a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a>
+<a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a><span class="c1"># Check controller logs for SMTP errors</span>
+<a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a>kubectl<span class="w"> </span>logs<span class="w"> </span>-n<span class="w"> </span>exam-controller-system<span class="w"> </span>deployment/exam-controller-controller-manager<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-18-9" name="__codelineno-18-9" href="#__codelineno-18-9"></a><span class="w">  </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-i<span class="w"> </span><span class="s2">&quot;email\|smtp\|send&quot;</span>
+</code></pre></div>
+<p><strong>Common causes and resolution:</strong></p>
+<ul>
+<li><strong>Secret not found:</strong> Verify the controller's <code>--smtp-secret-name</code> and <code>--platform-secret-namespace</code> settings point to an existing Secret.</li>
+<li><strong>Wrong credentials:</strong> If the SMTP server requires authentication, check the <code>username</code> and <code>password</code> keys in the Secret. The controller uses PLAIN auth. For unauthenticated relays, these keys can be omitted.</li>
+<li><strong>Port mismatch:</strong> The Secret <code>port</code> defaults to 587 if omitted. Ensure your SMTP server listens on that port.</li>
+<li><strong>Network connectivity:</strong> The controller pod must be able to reach the SMTP host. Check NetworkPolicies on the controller namespace.</li>
+<li><strong>Retry exhaustion:</strong> The RetrySender retries up to 3 times with exponential backoff (100ms, 200ms, 400ms). Persistent failures point to an infrastructure problem, not a transient issue.</li>
+</ul>
+<p><strong>Log patterns to search for:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>&quot;reading SMTP secret&quot;
+<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>&quot;after 3 retries&quot;
+<a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>&quot;Failed to send&quot;
+</code></pre></div>
+<h3 id="dry-run-showing-failures">Dry run showing failures<a class="headerlink" href="#dry-run-showing-failures" title="Permanent link">&para;</a></h3>
+<p><strong>Symptoms:</strong> <code>status.dryRun.failed &gt; 0</code> or <code>status.conditions</code> contains <code>DryRunFailed=True</code>. The condition <code>NetworkPolicyEnforced</code> may be <code>False</code>.</p>
+<p><strong>Diagnosis:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="nv">EXAM_NS</span><span class="o">=</span><span class="k">$(</span>kubectl<span class="w"> </span>get<span class="w"> </span>ns<span class="w"> </span>-l<span class="w"> </span>exam.otu.ca/exam<span class="o">=</span>&lt;name&gt;,exam.otu.ca/exam-namespace<span class="o">=</span>exam-system<span class="w"> </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">&#39;{.items[0].metadata.name}&#39;</span><span class="k">)</span>
+<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>
+<a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a><span class="c1"># Check dry run results</span>
+<a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a>kubectl<span class="w"> </span>get<span class="w"> </span>exam<span class="w"> </span>&lt;name&gt;<span class="w"> </span>-n<span class="w"> </span>exam-system<span class="w"> </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">&#39;{.status.dryRun}&#39;</span>
+<a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a>
+<a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a><span class="c1"># Check which students failed</span>
+<a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a>kubectl<span class="w"> </span>get<span class="w"> </span>exam<span class="w"> </span>&lt;name&gt;<span class="w"> </span>-n<span class="w"> </span>exam-system<span class="w"> </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">&#39;{range .status.dryRun.failures[*]}{.student}: {.error}{&quot;\n&quot;}{end}&#39;</span>
+<a id="__codelineno-20-8" name="__codelineno-20-8" href="#__codelineno-20-8"></a>
+<a id="__codelineno-20-9" name="__codelineno-20-9" href="#__codelineno-20-9"></a><span class="c1"># Check conditions</span>
+<a id="__codelineno-20-10" name="__codelineno-20-10" href="#__codelineno-20-10"></a>kubectl<span class="w"> </span>get<span class="w"> </span>exam<span class="w"> </span>&lt;name&gt;<span class="w"> </span>-n<span class="w"> </span>exam-system<span class="w"> </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">&#39;{range .status.conditions[*]}{.type}: {.status} ({.reason}) {.message}{&quot;\n&quot;}{end}&#39;</span>
+<a id="__codelineno-20-11" name="__codelineno-20-11" href="#__codelineno-20-11"></a>
+<a id="__codelineno-20-12" name="__codelineno-20-12" href="#__codelineno-20-12"></a><span class="c1"># Verify pods are running and healthy</span>
+<a id="__codelineno-20-13" name="__codelineno-20-13" href="#__codelineno-20-13"></a>kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-n<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$EXAM_NS</span><span class="s2">&quot;</span><span class="w"> </span>-o<span class="w"> </span>wide
+<a id="__codelineno-20-14" name="__codelineno-20-14" href="#__codelineno-20-14"></a>
+<a id="__codelineno-20-15" name="__codelineno-20-15" href="#__codelineno-20-15"></a><span class="c1"># Test connectivity from within the cluster</span>
+<a id="__codelineno-20-16" name="__codelineno-20-16" href="#__codelineno-20-16"></a>kubectl<span class="w"> </span>run<span class="w"> </span>-n<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$EXAM_NS</span><span class="s2">&quot;</span><span class="w"> </span>--rm<span class="w"> </span>-it<span class="w"> </span>debug<span class="w"> </span>--image<span class="o">=</span>curlimages/curl<span class="w"> </span>--<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-20-17" name="__codelineno-20-17" href="#__codelineno-20-17"></a><span class="w">  </span>curl<span class="w"> </span>-s<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-w<span class="w"> </span><span class="s1">&#39;%{http_code}&#39;</span><span class="w"> </span>http://&lt;slug&gt;.<span class="s2">&quot;</span><span class="nv">$EXAM_NS</span><span class="s2">&quot;</span>:&lt;port&gt;
+</code></pre></div>
+<p><strong>Common causes and resolution:</strong></p>
+<ul>
+<li><strong>Pods not ready:</strong> The dry run performs HTTP health checks. If pods are crashlooping or not listening on the expected port, checks will fail.</li>
+<li><strong>NetworkPolicy enforcement broken:</strong> If <code>NetworkPolicyEnforced=False</code>, the negative connectivity test succeeded when it should have been blocked. Verify your CNI supports NetworkPolicy enforcement.</li>
+<li><strong>Wrong port:</strong> The dry run uses the <code>spec.template.port</code> to construct health check URLs. Ensure the container actually listens on that port.</li>
+</ul>
+<p><strong>Log patterns to search for:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>&quot;DryRunFailed&quot;
+<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>&quot;NetworkPolicy not enforced&quot;
+<a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>&quot;policyEnforced=false&quot;
+</code></pre></div>
+<h3 id="students-cannot-access-instance">Students cannot access instance<a class="headerlink" href="#students-cannot-access-instance" title="Permanent link">&para;</a></h3>
+<p><strong>Symptoms:</strong> Students receive their URL but get connection refused, timeout, or TLS errors.</p>
+<p><strong>Diagnosis:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="nv">EXAM_NS</span><span class="o">=</span><span class="k">$(</span>kubectl<span class="w"> </span>get<span class="w"> </span>ns<span class="w"> </span>-l<span class="w"> </span>exam.otu.ca/exam<span class="o">=</span>&lt;name&gt;,exam.otu.ca/exam-namespace<span class="o">=</span>exam-system<span class="w"> </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">&#39;{.items[0].metadata.name}&#39;</span><span class="k">)</span>
+<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>
+<a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a><span class="c1"># Check if Ingress exists (only created during Unlocked phase)</span>
+<a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a>kubectl<span class="w"> </span>get<span class="w"> </span>ingress<span class="w"> </span>-n<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$EXAM_NS</span><span class="s2">&quot;</span>
+<a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a>
+<a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a><span class="c1"># Verify the exam is in Unlocked phase</span>
+<a id="__codelineno-22-7" name="__codelineno-22-7" href="#__codelineno-22-7"></a>kubectl<span class="w"> </span>get<span class="w"> </span>exam<span class="w"> </span>&lt;name&gt;<span class="w"> </span>-n<span class="w"> </span>exam-system<span class="w"> </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">&#39;{.status.phase}&#39;</span>
+<a id="__codelineno-22-8" name="__codelineno-22-8" href="#__codelineno-22-8"></a>
+<a id="__codelineno-22-9" name="__codelineno-22-9" href="#__codelineno-22-9"></a><span class="c1"># Check TLS secret (only applies when --ingress-tls-secret-name is set)</span>
+<a id="__codelineno-22-10" name="__codelineno-22-10" href="#__codelineno-22-10"></a>kubectl<span class="w"> </span>get<span class="w"> </span>secret<span class="w"> </span>&lt;tls-secret-name&gt;<span class="w"> </span>-n<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$EXAM_NS</span><span class="s2">&quot;</span>
+<a id="__codelineno-22-11" name="__codelineno-22-11" href="#__codelineno-22-11"></a>
+<a id="__codelineno-22-12" name="__codelineno-22-12" href="#__codelineno-22-12"></a><span class="c1"># Test DNS resolution</span>
+<a id="__codelineno-22-13" name="__codelineno-22-13" href="#__codelineno-22-13"></a>nslookup<span class="w"> </span>&lt;slug&gt;.science.ontariotechu.ca
+<a id="__codelineno-22-14" name="__codelineno-22-14" href="#__codelineno-22-14"></a>
+<a id="__codelineno-22-15" name="__codelineno-22-15" href="#__codelineno-22-15"></a><span class="c1"># Check ingress controller logs</span>
+<a id="__codelineno-22-16" name="__codelineno-22-16" href="#__codelineno-22-16"></a>kubectl<span class="w"> </span>logs<span class="w"> </span>-n<span class="w"> </span>ingress-nginx<span class="w"> </span>deployment/ingress-nginx-controller<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>&lt;slug&gt;
+<a id="__codelineno-22-17" name="__codelineno-22-17" href="#__codelineno-22-17"></a>
+<a id="__codelineno-22-18" name="__codelineno-22-18" href="#__codelineno-22-18"></a><span class="c1"># Verify the ingress-allow NetworkPolicy exists</span>
+<a id="__codelineno-22-19" name="__codelineno-22-19" href="#__codelineno-22-19"></a>kubectl<span class="w"> </span>get<span class="w"> </span>networkpolicy<span class="w"> </span>-n<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$EXAM_NS</span><span class="s2">&quot;</span><span class="w"> </span>-l<span class="w"> </span>exam.otu.ca/slug<span class="o">=</span>&lt;slug&gt;
+</code></pre></div>
+<p><strong>Common causes and resolution:</strong></p>
+<ul>
+<li><strong>Exam not yet unlocked:</strong> Ingress resources are only created when the exam transitions to the <code>Unlocked</code> phase. Before unlock, pods are isolated by deny-all NetworkPolicies.</li>
+<li><strong>TLS secret missing:</strong> If <code>--ingress-tls-secret-name</code> is set, verify the controller's platform wildcard TLS secret exists in the configured secret namespace and that the controller successfully copied it into <code>$EXAM_NS</code>. If using cert-manager or Cilium for TLS, this does not apply.</li>
+<li><strong>DNS not configured:</strong> A wildcard DNS record (e.g. <code>*.science.ontariotechu.ca</code>) must point to the ingress controller's external IP.</li>
+<li><strong>NetworkPolicy blocking traffic:</strong> The ingress-allow policy permits traffic only from pods in the <code>ingress-nginx</code> namespace with label <code>app.kubernetes.io/name=ingress-nginx</code>. If your ingress controller uses different labels or a different namespace, traffic will be blocked.</li>
+<li><strong>Ingress controller not found:</strong> The IngressAllow NetworkPolicy expects the controller in the <code>ingress-nginx</code> namespace. Adjust if using a different ingress controller.</li>
+</ul>
+<h3 id="exam-not-transitioning-phases">Exam not transitioning phases<a class="headerlink" href="#exam-not-transitioning-phases" title="Permanent link">&para;</a></h3>
+<p><strong>Symptoms:</strong> The exam stays in a phase longer than expected (e.g. stays <code>Ready</code> past unlock time).</p>
+<p><strong>Diagnosis:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="c1"># Check current phase and computed times</span>
+<a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>kubectl<span class="w"> </span>get<span class="w"> </span>exam<span class="w"> </span>&lt;name&gt;<span class="w"> </span>-n<span class="w"> </span>exam-system<span class="w"> </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">&#39;Phase: {.status.phase}</span>
+<a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a><span class="s1">Unlock: {.spec.schedule.unlock}</span>
+<a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a><span class="s1">ComputedLock: {.status.computedLockTime}</span>
+<a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a><span class="s1">ProvisionTime: {.status.provisionTime}</span>
+<a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a><span class="s1">RetentionDeadline: {.status.retentionDeadline}&#39;</span>
+<a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a>
+<a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a><span class="c1"># Verify controller is running</span>
+<a id="__codelineno-23-9" name="__codelineno-23-9" href="#__codelineno-23-9"></a>kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-n<span class="w"> </span>exam-controller-system
+<a id="__codelineno-23-10" name="__codelineno-23-10" href="#__codelineno-23-10"></a>
+<a id="__codelineno-23-11" name="__codelineno-23-11" href="#__codelineno-23-11"></a><span class="c1"># Check leader election (if enabled)</span>
+<a id="__codelineno-23-12" name="__codelineno-23-12" href="#__codelineno-23-12"></a>kubectl<span class="w"> </span>get<span class="w"> </span>lease<span class="w"> </span>-n<span class="w"> </span>exam-controller-system
+<a id="__codelineno-23-13" name="__codelineno-23-13" href="#__codelineno-23-13"></a>
+<a id="__codelineno-23-14" name="__codelineno-23-14" href="#__codelineno-23-14"></a><span class="c1"># Check controller logs for reconcile errors</span>
+<a id="__codelineno-23-15" name="__codelineno-23-15" href="#__codelineno-23-15"></a>kubectl<span class="w"> </span>logs<span class="w"> </span>-n<span class="w"> </span>exam-controller-system<span class="w"> </span>deployment/exam-controller-controller-manager<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-23-16" name="__codelineno-23-16" href="#__codelineno-23-16"></a><span class="w">  </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-i<span class="w"> </span><span class="s2">&quot;error\|failed\|requeue&quot;</span>
+<a id="__codelineno-23-17" name="__codelineno-23-17" href="#__codelineno-23-17"></a>
+<a id="__codelineno-23-18" name="__codelineno-23-18" href="#__codelineno-23-18"></a><span class="c1"># Check if the controller is watching the correct namespace</span>
+<a id="__codelineno-23-19" name="__codelineno-23-19" href="#__codelineno-23-19"></a>kubectl<span class="w"> </span>logs<span class="w"> </span>-n<span class="w"> </span>exam-controller-system<span class="w"> </span>deployment/exam-controller-controller-manager<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-23-20" name="__codelineno-23-20" href="#__codelineno-23-20"></a><span class="w">  </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span><span class="s2">&quot;Phase transition&quot;</span>
+</code></pre></div>
+<p><strong>Common causes and resolution:</strong></p>
+<ul>
+<li><strong>Controller not running:</strong> If the controller pod is down, no reconciliation occurs. Check pod status and events.</li>
+<li><strong>Leader election stuck:</strong> With <code>--leader-elect=true</code>, only the leader reconciles. If the leader pod died without releasing the lease, another pod must wait for the lease to expire (default 15s).</li>
+<li><strong>Clock skew:</strong> Phase transitions depend on comparing <code>time.Now()</code> against scheduled times. Ensure cluster nodes have accurate time (NTP).</li>
+<li><strong>Time zone mismatch:</strong> The <code>spec.schedule.unlock</code> time is parsed as-is. Use explicit time zone offsets (e.g. <code>2026-04-10T14:00:00-04:00</code>) to avoid ambiguity.</li>
+<li><strong>Reconcile error loop:</strong> If a phase handler returns an error, the controller retries with backoff. Check logs for the specific error.</li>
+</ul>
+<h3 id="metrics-not-showing-up">Metrics not showing up<a class="headerlink" href="#metrics-not-showing-up" title="Permanent link">&para;</a></h3>
+<p><strong>Symptoms:</strong> Prometheus is not scraping exam metrics, or metrics are missing from Grafana.</p>
+<p><strong>Diagnosis:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="c1"># Verify the metrics service exists</span>
+<a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>kubectl<span class="w"> </span>get<span class="w"> </span>svc<span class="w"> </span>-n<span class="w"> </span>exam-controller-system<span class="w"> </span>-l<span class="w"> </span>control-plane<span class="o">=</span>controller-manager
+<a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>
+<a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a><span class="c1"># Check if ServiceMonitor exists (Helm)</span>
+<a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a>kubectl<span class="w"> </span>get<span class="w"> </span>servicemonitor<span class="w"> </span>-n<span class="w"> </span>exam-controller-system
+<a id="__codelineno-24-6" name="__codelineno-24-6" href="#__codelineno-24-6"></a>
+<a id="__codelineno-24-7" name="__codelineno-24-7" href="#__codelineno-24-7"></a><span class="c1"># Verify the metrics endpoint is reachable</span>
+<a id="__codelineno-24-8" name="__codelineno-24-8" href="#__codelineno-24-8"></a>kubectl<span class="w"> </span>port-forward<span class="w"> </span>-n<span class="w"> </span>exam-controller-system<span class="w"> </span>svc/exam-controller-controller-manager-metrics-service<span class="w"> </span><span class="m">8443</span>:8443
+<a id="__codelineno-24-9" name="__codelineno-24-9" href="#__codelineno-24-9"></a><span class="c1"># Then: curl -k https://localhost:8443/metrics</span>
+<a id="__codelineno-24-10" name="__codelineno-24-10" href="#__codelineno-24-10"></a>
+<a id="__codelineno-24-11" name="__codelineno-24-11" href="#__codelineno-24-11"></a><span class="c1"># Check Prometheus targets</span>
+<a id="__codelineno-24-12" name="__codelineno-24-12" href="#__codelineno-24-12"></a>kubectl<span class="w"> </span>port-forward<span class="w"> </span>-n<span class="w"> </span>monitoring<span class="w"> </span>svc/prometheus-kube-prometheus-prometheus<span class="w"> </span><span class="m">9090</span>:9090
+<a id="__codelineno-24-13" name="__codelineno-24-13" href="#__codelineno-24-13"></a><span class="c1"># Then browse to http://localhost:9090/targets</span>
+<a id="__codelineno-24-14" name="__codelineno-24-14" href="#__codelineno-24-14"></a>
+<a id="__codelineno-24-15" name="__codelineno-24-15" href="#__codelineno-24-15"></a><span class="c1"># Verify RBAC for metrics scraping</span>
+<a id="__codelineno-24-16" name="__codelineno-24-16" href="#__codelineno-24-16"></a>kubectl<span class="w"> </span>get<span class="w"> </span>clusterrolebinding<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>metrics
+</code></pre></div>
+<p><strong>Common causes and resolution:</strong></p>
+<ul>
+<li><strong>Metrics disabled:</strong> Ensure <code>--metrics-bind-address</code> is set (not <code>0</code>). The Kustomize default patches this to <code>:8443</code>.</li>
+<li><strong>ServiceMonitor not created:</strong> With Helm, set <code>metrics.serviceMonitor.enabled=true</code>. With Kustomize, uncomment the PROMETHEUS section in <code>config/default/kustomization.yaml</code>.</li>
+<li><strong>RBAC missing:</strong> Prometheus needs a ClusterRole allowing access to the <code>/metrics</code> endpoint. The <code>metrics-reader</code> ClusterRole is included but must be bound to the Prometheus service account.</li>
+<li><strong>TLS mismatch:</strong> When <code>--metrics-secure=true</code>, Prometheus must be configured to scrape HTTPS with proper TLS settings. The ServiceMonitor should include TLS configuration.</li>
+<li><strong>No exams exist:</strong> Per-exam metrics only appear after an Exam CR is created and reconciled. The <code>exam_reconcile_duration_seconds</code> and <code>exam_reconcile_errors_total</code> metrics appear after the first reconcile.</li>
+</ul>
+<hr />
+<h2 id="4-operational-procedures">4. Operational procedures<a class="headerlink" href="#4-operational-procedures" title="Permanent link">&para;</a></h2>
+<h3 id="supported-manual-changes">Supported manual changes<a class="headerlink" href="#supported-manual-changes" title="Permanent link">&para;</a></h3>
+<p>The operator intentionally exposes a narrow control surface. Supported interventions are:</p>
+<ul>
+<li>Updating student email addresses before provisioning starts</li>
+<li>Extending an active exam by adjusting <code>spec.schedule.duration</code> or <code>spec.schedule.timeMultiplier</code></li>
+<li>Extending retention by increasing <code>spec.schedule.retention</code></li>
+<li>Canceling an exam by deleting the <code>Exam</code> resource</li>
+</ul>
+<p>Avoid patching <code>.status.phase</code> or other status fields directly. The controller treats status as its own reconciliation output, not as an operator-facing control API.</p>
+<h3 id="extend-an-active-exam">Extend an active exam<a class="headerlink" href="#extend-an-active-exam" title="Permanent link">&para;</a></h3>
+<p>While an exam is in <code>Unlocked</code>, you can extend the lock time by increasing <code>duration</code> or <code>timeMultiplier</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>kubectl<span class="w"> </span>patch<span class="w"> </span>exam<span class="w"> </span>&lt;name&gt;<span class="w"> </span>-n<span class="w"> </span>exam-system<span class="w"> </span>--type<span class="o">=</span>merge<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a><span class="w">  </span>-p<span class="w"> </span><span class="s1">&#39;{&quot;spec&quot;:{&quot;schedule&quot;:{&quot;duration&quot;:&quot;3h&quot;,&quot;timeMultiplier&quot;:1.5}}}&#39;</span>
+</code></pre></div>
+<p>The validating webhook allows this only while the resulting computed lock time remains in the future.</p>
+<h3 id="extend-retention-for-an-investigation">Extend retention for an investigation<a class="headerlink" href="#extend-retention-for-an-investigation" title="Permanent link">&para;</a></h3>
+<p>If course staff report an academic issue and the environment must be preserved longer:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>kubectl<span class="w"> </span>patch<span class="w"> </span>exam<span class="w"> </span>&lt;name&gt;<span class="w"> </span>-n<span class="w"> </span>exam-system<span class="w"> </span>--type<span class="o">=</span>merge<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a><span class="w">  </span>-p<span class="w"> </span><span class="s1">&#39;{&quot;spec&quot;:{&quot;schedule&quot;:{&quot;retention&quot;:&quot;72h&quot;}}}&#39;</span>
+</code></pre></div>
+<p>On the next reconcile, the controller recomputes <code>status.retentionDeadline</code> from the new retention value.</p>
+<h3 id="manual-teardown">Manual teardown<a class="headerlink" href="#manual-teardown" title="Permanent link">&para;</a></h3>
+<p>If the controller is not running or teardown is stuck, manually delete the exam namespace:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="nv">EXAM_NS</span><span class="o">=</span><span class="k">$(</span>kubectl<span class="w"> </span>get<span class="w"> </span>ns<span class="w"> </span>-l<span class="w"> </span>exam.otu.ca/exam<span class="o">=</span>&lt;name&gt;,exam.otu.ca/exam-namespace<span class="o">=</span>exam-system<span class="w"> </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">&#39;{.items[0].metadata.name}&#39;</span><span class="k">)</span>
+<a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>
+<a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a><span class="c1"># Delete the exam namespace (destroys all student resources)</span>
+<a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a>kubectl<span class="w"> </span>delete<span class="w"> </span>namespace<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$EXAM_NS</span><span class="s2">&quot;</span>
+<a id="__codelineno-27-5" name="__codelineno-27-5" href="#__codelineno-27-5"></a>
+<a id="__codelineno-27-6" name="__codelineno-27-6" href="#__codelineno-27-6"></a><span class="c1"># Remove the finalizer so the Exam CR can be deleted</span>
+<a id="__codelineno-27-7" name="__codelineno-27-7" href="#__codelineno-27-7"></a>kubectl<span class="w"> </span>patch<span class="w"> </span>exam<span class="w"> </span>&lt;name&gt;<span class="w"> </span>-n<span class="w"> </span>exam-system<span class="w"> </span>--type<span class="o">=</span>json<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-27-8" name="__codelineno-27-8" href="#__codelineno-27-8"></a><span class="w">  </span>-p<span class="w"> </span><span class="s1">&#39;[{&quot;op&quot;:&quot;remove&quot;,&quot;path&quot;:&quot;/metadata/finalizers&quot;}]&#39;</span>
+<a id="__codelineno-27-9" name="__codelineno-27-9" href="#__codelineno-27-9"></a>
+<a id="__codelineno-27-10" name="__codelineno-27-10" href="#__codelineno-27-10"></a><span class="c1"># Delete the Exam CR</span>
+<a id="__codelineno-27-11" name="__codelineno-27-11" href="#__codelineno-27-11"></a>kubectl<span class="w"> </span>delete<span class="w"> </span>exam<span class="w"> </span>&lt;name&gt;<span class="w"> </span>-n<span class="w"> </span>exam-system
+</code></pre></div>
+<h3 id="cancel-an-exam-before-teardown">Cancel an exam before teardown<a class="headerlink" href="#cancel-an-exam-before-teardown" title="Permanent link">&para;</a></h3>
+<p>To stop managing an exam and remove its resources:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>kubectl<span class="w"> </span>delete<span class="w"> </span>exam<span class="w"> </span>&lt;name&gt;<span class="w"> </span>-n<span class="w"> </span>exam-system
+</code></pre></div>
+<p>The finalizer deletes the per-exam namespace before the <code>Exam</code> resource disappears.</p>
+<h3 id="recover-from-controller-crash">Recover from controller crash<a class="headerlink" href="#recover-from-controller-crash" title="Permanent link">&para;</a></h3>
+<p>If the controller pod crashes or is deleted:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="c1"># Check pod status</span>
+<a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-n<span class="w"> </span>exam-controller-system
+<a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a>
+<a id="__codelineno-29-4" name="__codelineno-29-4" href="#__codelineno-29-4"></a><span class="c1"># Check events</span>
+<a id="__codelineno-29-5" name="__codelineno-29-5" href="#__codelineno-29-5"></a>kubectl<span class="w"> </span>get<span class="w"> </span>events<span class="w"> </span>-n<span class="w"> </span>exam-controller-system<span class="w"> </span>--sort-by<span class="o">=</span>.metadata.creationTimestamp
+<a id="__codelineno-29-6" name="__codelineno-29-6" href="#__codelineno-29-6"></a>
+<a id="__codelineno-29-7" name="__codelineno-29-7" href="#__codelineno-29-7"></a><span class="c1"># If the pod is in CrashLoopBackOff, check logs</span>
+<a id="__codelineno-29-8" name="__codelineno-29-8" href="#__codelineno-29-8"></a>kubectl<span class="w"> </span>logs<span class="w"> </span>-n<span class="w"> </span>exam-controller-system<span class="w"> </span>deployment/exam-controller-controller-manager<span class="w"> </span>--previous
+<a id="__codelineno-29-9" name="__codelineno-29-9" href="#__codelineno-29-9"></a>
+<a id="__codelineno-29-10" name="__codelineno-29-10" href="#__codelineno-29-10"></a><span class="c1"># If leader election is stuck, delete the lease to force re-election</span>
+<a id="__codelineno-29-11" name="__codelineno-29-11" href="#__codelineno-29-11"></a>kubectl<span class="w"> </span>delete<span class="w"> </span>lease<span class="w"> </span>70624ff0.otu.ca<span class="w"> </span>-n<span class="w"> </span>exam-controller-system
+</code></pre></div>
+<p>The controller is designed to be crash-safe. On restart it will:</p>
+<ol>
+<li>Re-read all Exam CRs and recompute their expected phase.</li>
+<li>Resume from the current phase -- it will not re-send emails already marked as <code>Sent</code>.</li>
+<li>Re-apply any missing NetworkPolicies (drift correction runs every reconcile in Ready, Unlocked, and Locked phases).</li>
+<li>Continue countdown timers based on the original schedule times, not elapsed time.</li>
+</ol>
+<h3 id="reassign-a-failed-instance">Reassign a failed instance<a class="headerlink" href="#reassign-a-failed-instance" title="Permanent link">&para;</a></h3>
+<p>If a student's instance fails and you need to give them a spare:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="c1"># Identify available spare URLs</span>
+<a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>kubectl<span class="w"> </span>get<span class="w"> </span>exam<span class="w"> </span>&lt;name&gt;<span class="w"> </span>-n<span class="w"> </span>exam-system<span class="w"> </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">&#39;{range .status.spares[*]}{.slug} {.url} {.phase}{&quot;\n&quot;}{end}&#39;</span>
+<a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a>
+<a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a><span class="c1"># Manually share the spare URL with the student</span>
+<a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a><span class="c1"># The configured course contact is also emailed spare URLs when provisioning completes</span>
+</code></pre></div>
+<hr />
+<h2 id="5-scaling">5. Scaling<a class="headerlink" href="#5-scaling" title="Permanent link">&para;</a></h2>
+<h3 id="controller-resource-limits">Controller resource limits<a class="headerlink" href="#controller-resource-limits" title="Permanent link">&para;</a></h3>
+<p>The default Helm values set minimal resources suitable for small deployments:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="nt">resources</span><span class="p">:</span>
+<a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a><span class="w">  </span><span class="nt">requests</span><span class="p">:</span>
+<a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a><span class="w">    </span><span class="nt">cpu</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10m</span>
+<a id="__codelineno-31-4" name="__codelineno-31-4" href="#__codelineno-31-4"></a><span class="w">    </span><span class="nt">memory</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">64Mi</span>
+<a id="__codelineno-31-5" name="__codelineno-31-5" href="#__codelineno-31-5"></a><span class="w">  </span><span class="nt">limits</span><span class="p">:</span>
+<a id="__codelineno-31-6" name="__codelineno-31-6" href="#__codelineno-31-6"></a><span class="w">    </span><span class="nt">cpu</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">500m</span>
+<a id="__codelineno-31-7" name="__codelineno-31-7" href="#__codelineno-31-7"></a><span class="w">    </span><span class="nt">memory</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">128Mi</span>
+</code></pre></div>
+<p><strong>Scaling guidance:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Concurrent exams</th>
+<th>Students total</th>
+<th>Recommended CPU (limit)</th>
+<th>Recommended memory (limit)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1--3</td>
+<td>&lt; 100</td>
+<td>500m</td>
+<td>128Mi</td>
+</tr>
+<tr>
+<td>3--10</td>
+<td>100--500</td>
+<td>1000m</td>
+<td>256Mi</td>
+</tr>
+<tr>
+<td>10+</td>
+<td>500+</td>
+<td>2000m</td>
+<td>512Mi</td>
+</tr>
+</tbody>
+</table>
+<p>The controller is single-threaded per reconcile (one Exam at a time) but processes many Exams concurrently through the controller-runtime work queue.</p>
+<h3 id="handling-many-concurrent-exams">Handling many concurrent exams<a class="headerlink" href="#handling-many-concurrent-exams" title="Permanent link">&para;</a></h3>
+<p>Each exam creates:</p>
+<ul>
+<li>1 namespace</li>
+<li>N+S Deployments (students + spares)</li>
+<li>N+S Services</li>
+<li>N+S Ingresses (only during Unlocked phase)</li>
+<li>2<em>(N+S) to 3</em>(N+S) NetworkPolicies (deny-all + egress-allow, plus ingress-allow when unlocked)</li>
+</ul>
+<p>For a 50-student exam with 5 spares, that is 55 Deployments, 55 Services, and 110--165 NetworkPolicies.</p>
+<p><strong>Recommendations:</strong></p>
+<ul>
+<li>Enable leader election (<code>--leader-elect=true</code>) and run 2 replicas for HA. Only the leader reconciles, but a standby takes over immediately on failure.</li>
+<li>Watch <code>exam_reconcile_duration_seconds</code> -- if p99 exceeds a few seconds, the controller is under load.</li>
+<li>Ensure the Kubernetes API server can handle the object count. Each reconcile loop can list Deployments across exam namespaces.</li>
+<li>Consider staggering exam start times to avoid provisioning storms.</li>
+</ul>
+<h3 id="email-send-interval">Email send interval<a class="headerlink" href="#email-send-interval" title="Permanent link">&para;</a></h3>
+<p>The controller sends emails one at a time, controlled by <code>spec.email.sendInterval</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="nt">email</span><span class="p">:</span>
+<a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a><span class="w">  </span><span class="nt">sendInterval</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;1s&quot;</span><span class="w">  </span><span class="c1"># 1 second between emails</span>
+</code></pre></div>
+<p>With <code>sendInterval: "1s"</code> and 100 students, email delivery takes approximately 100 seconds. The controller requeues after each send with the configured delay.</p>
+<p><strong>Considerations:</strong></p>
+<ul>
+<li>Most SMTP providers have rate limits (e.g. 10--30 messages/second for institutional relays). Set <code>sendInterval</code> above the inverse of your provider's limit (e.g. <code>"100ms"</code> for 10/s).</li>
+<li>Failed emails are retried 3 times with exponential backoff (100ms, 200ms, 400ms) before being marked as <code>Failed</code>. They are not retried again automatically.</li>
+<li>Students with <code>Failed</code> email status must be notified manually. The configured course contact receives a list of failed deliveries in the unlock notification email.</li>
+<li>For large classes (200+ students), consider setting <code>email.before</code> to <code>1h</code> or more to allow time for all emails to be sent before unlock.</li>
+</ul>
+<h3 id="node-capacity-planning">Node capacity planning<a class="headerlink" href="#node-capacity-planning" title="Permanent link">&para;</a></h3>
+<p>Each student instance runs as a single-replica Deployment. Plan node capacity based on the container resource requests specified in <code>spec.template.resources</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="c1"># Example: 50 students, each requesting 250m CPU and 256Mi memory</span>
+<a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a><span class="c1"># Total: 12.5 CPU, 12.5 GiB memory (plus spares)</span>
+</code></pre></div>
+<p>Use Kubernetes pod topology spread constraints or node affinity at the cluster level to distribute exam pods across nodes for resilience.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.sections", "navigation.top", "search.suggest", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

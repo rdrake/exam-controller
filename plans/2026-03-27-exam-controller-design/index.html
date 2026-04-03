@@ -1,0 +1,1126 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://rdrake.github.io/exam-controller/plans/2026-03-27-exam-controller-design/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Exam Controller Design - Exam Controller</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#exam-controller-design" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Exam Controller" class="md-header__button md-logo" aria-label="Exam Controller" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Exam Controller
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Exam Controller Design
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/rdrake/exam-controller" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    rdrake/exam-controller
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Exam Controller" class="md-nav__button md-logo" aria-label="Exam Controller" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Exam Controller
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/rdrake/exam-controller" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    rdrake/exam-controller
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operational Runbook
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../crd-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CRD Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../platform-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Platform Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#problem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Problem
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#approach" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Approach
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#crd-exam" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CRD: Exam
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="CRD: Exam">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#spec-immutability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Spec Immutability
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#controller-state-machine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Controller State Machine
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Controller State Machine">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#states" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        States
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#degraded-states" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Degraded States
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#time-driven-transitions-and-requeueafter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Time-Driven Transitions and RequeueAfter
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#drift-correction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Drift Correction
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#namespace-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Namespace Strategy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#network-policies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Network Policies
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Network Policies">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#three-policy-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Three-Policy Model
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lock-enforcement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lock Enforcement
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#per-student-locking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-Student Locking
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dry-run-smoke-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dry Run / Smoke Tests
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#capacity-preflight" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Capacity Preflight
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#urls-email" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        URLs &amp; Email
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="URLs &amp; Email">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#url-scheme" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        URL Scheme
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#email-timing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Email Timing
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#per-student-resources" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-Student Resources
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Per-Student Resources">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pod-security" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pod Security
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#status-schema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status Schema
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#post-exam-retention" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Post-Exam Retention
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#project-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Project Structure
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Project Structure">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#tech-stack" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tech Stack
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decisions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decisions
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="exam-controller-design">Exam Controller Design<a class="headerlink" href="#exam-controller-design" title="Permanent link">&para;</a></h1>
+<h2 id="problem">Problem<a class="headerlink" href="#problem" title="Permanent link">&para;</a></h2>
+<p>A software security course runs pen-testing exams where each student gets an isolated instance of a vulnerable web app on Kubernetes. The instructor needs to control when students can access their instances, verify access works before the exam, and deliver unique URLs to students.</p>
+<h2 id="approach">Approach<a class="headerlink" href="#approach" title="Permanent link">&para;</a></h2>
+<p>A Kubernetes-native CRD controller. One <code>Exam</code> custom resource defines the entire exam event: what app to deploy, when to unlock/lock, and the student roster. The controller reconciles desired state automatically.</p>
+<h2 id="prerequisites">Prerequisites<a class="headerlink" href="#prerequisites" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>CNI with NetworkPolicy enforcement</strong> (e.g., Calico, Cilium). Default Flannel does not enforce NetworkPolicy — locking will silently not work.</li>
+<li><strong>Wildcard DNS</strong>: <code>*.exam.otu.ca</code> pointing to the ingress controller's external IP.</li>
+<li><strong>Wildcard TLS certificate</strong>: A cert for <code>*.exam.otu.ca</code> stored as a Secret (e.g., via cert-manager or manual provisioning). Referenced by all student Ingress resources.</li>
+<li><strong>NTP-synced nodes</strong>: Time-driven transitions depend on accurate clocks.</li>
+</ul>
+<h2 id="crd-exam">CRD: <code>Exam</code><a class="headerlink" href="#crd-exam" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">exam.otu.ca/v1alpha1</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Exam</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="nt">metadata</span><span class="p">:</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sofe4790u-midterm</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="nt">spec</span><span class="p">:</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span><span class="c1"># What to deploy per student</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">  </span><span class="nt">template</span><span class="p">:</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">registry.example.com/vuln-app:v2.1</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">    </span><span class="nt">resources</span><span class="p">:</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">      </span><span class="nt">requests</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> cpu</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;250m&quot;</span><span class="p p-Indicator">,</span><span class="nt"> memory</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;256Mi&quot;</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">      </span><span class="nt">limits</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> cpu</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;500m&quot;</span><span class="p p-Indicator">,</span><span class="nt"> memory</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;512Mi&quot;</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">    </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8080</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">  </span><span class="c1"># When</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">  </span><span class="nt">schedule</span><span class="p">:</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="w">    </span><span class="nt">unlock</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;2026-04-10T14:00:00-04:00&quot;</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="w">    </span><span class="nt">lock</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;2026-04-10T16:00:00-04:00&quot;</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="w">    </span><span class="nt">dryRun</span><span class="p">:</span>
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="w">      </span><span class="nt">before</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;15m&quot;</span><span class="w">    </span><span class="c1"># 5-min test window starting 15min before unlock</span>
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="w">      </span><span class="nt">duration</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;5m&quot;</span>
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="w">  </span><span class="c1"># Who — lockOverride supports accommodated students without identifying them</span>
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="w">  </span><span class="nt">students</span><span class="p">:</span>
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">john.smith</span>
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="w">      </span><span class="nt">email</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">john.smith@ontariotechu.net</span>
+<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">jane.doe</span>
+<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="w">      </span><span class="nt">email</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">jane.doe@ontariotechu.net</span>
+<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a><span class="w">      </span><span class="nt">lockOverride</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;2026-04-10T17:00:00-04:00&quot;</span>
+<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>
+<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a><span class="w">  </span><span class="c1"># Infrastructure</span>
+<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a><span class="w">  </span><span class="nt">ingressTLS</span><span class="p">:</span>
+<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a><span class="w">    </span><span class="nt">secretName</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">exam-wildcard-tls</span>
+<a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a><span class="w">  </span><span class="nt">domain</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">exam.otu.ca</span>
+<a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a>
+<a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a><span class="w">  </span><span class="nt">smtp</span><span class="p">:</span>
+<a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a><span class="w">    </span><span class="nt">secretRef</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">exam-smtp-credentials</span>
+<a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a><span class="w">    </span><span class="nt">from</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;noreply@otu.ca&quot;</span>
+<a id="__codelineno-0-38" name="__codelineno-0-38" href="#__codelineno-0-38"></a><span class="w">    </span><span class="nt">subject</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;SOFE4790U</span><span class="nv"> </span><span class="s">-</span><span class="nv"> </span><span class="s">Your</span><span class="nv"> </span><span class="s">Exam</span><span class="nv"> </span><span class="s">Instance&quot;</span>
+</code></pre></div>
+<p>Provisioning is always PreProvisioned — instances are created when the Exam resource is applied (days before the exam) and locked via NetworkPolicy until exam time. OnDemand provisioning was considered and rejected: image pulls, scheduling, ingress programming, DNS propagation, and email delivery all landing on the critical path at exam start creates too much risk.</p>
+<h3 id="spec-immutability">Spec Immutability<a class="headerlink" href="#spec-immutability" title="Permanent link">&para;</a></h3>
+<p>Once the controller transitions past <code>Pending</code>, the following fields become immutable:
+- <code>spec.template</code> (would require recreating all Deployments)
+- <code>spec.students[].id</code> (would orphan resources)
+- <code>spec.schedule.unlock</code> (would disrupt the state machine)</p>
+<p>The controller rejects edits to these fields via a validating webhook. Fields that remain mutable: <code>spec.schedule.lock</code>, <code>spec.students[].lockOverride</code> (to adjust accommodations), and <code>spec.students[].email</code> (to fix typos before email is sent).</p>
+<h2 id="controller-state-machine">Controller State Machine<a class="headerlink" href="#controller-state-machine" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>Pending -&gt; Provisioning -&gt; Ready -&gt; DryRun -&gt; Verified -&gt; Unlocked -&gt; Locking -&gt; Locked -&gt; TearingDown
+</code></pre></div>
+<h3 id="states">States<a class="headerlink" href="#states" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>State</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pending</td>
+<td>Exam resource exists, nothing provisioned</td>
+</tr>
+<tr>
+<td>Provisioning</td>
+<td>Creating namespace, Deployments, Services, Ingress per student</td>
+</tr>
+<tr>
+<td>Ready</td>
+<td>All instances healthy, NetworkPolicies blocking traffic, capacity validated</td>
+</tr>
+<tr>
+<td>DryRun</td>
+<td>Smoke tests running (internal only — policies stay in place, see below)</td>
+</tr>
+<tr>
+<td>Verified</td>
+<td>Dry run passed, waiting for unlock time. Distinct from Ready to prevent re-running dry run on controller restart</td>
+</tr>
+<tr>
+<td>Unlocked</td>
+<td>Exam in progress, students have access</td>
+</tr>
+<tr>
+<td>Locking</td>
+<td>Mixed state: some students locked (past their lock time), others still writing (accommodation overrides)</td>
+</tr>
+<tr>
+<td>Locked</td>
+<td>All students locked, exam over</td>
+</tr>
+<tr>
+<td>TearingDown</td>
+<td>Cleanup triggered manually, resources being deleted</td>
+</tr>
+</tbody>
+</table>
+<h3 id="degraded-states">Degraded States<a class="headerlink" href="#degraded-states" title="Permanent link">&para;</a></h3>
+<p>If provisioning or dry run encounters failures, the controller enters a sub-state visible in <code>status.conditions</code>:</p>
+<ul>
+<li><strong>ProvisioningDegraded</strong>: Some student instances failed to start. The controller continues provisioning healthy students but sets a condition with the failure list.</li>
+<li><strong>DryRunFailed</strong>: Smoke tests failed for some instances. The controller transitions to <code>Verified</code> regardless (the schedule must be honored), but sets a condition so the instructor can investigate via <code>kubectl describe exam</code>.</li>
+</ul>
+<p>The unlock proceeds on schedule regardless of degraded conditions — the instructor can manually intervene if needed, but the controller does not block the exam for other students.</p>
+<h3 id="time-driven-transitions-and-requeueafter">Time-Driven Transitions and RequeueAfter<a class="headerlink" href="#time-driven-transitions-and-requeueafter" title="Permanent link">&para;</a></h3>
+<p>Each reconcile checks current time against the schedule. The controller uses explicit <code>RequeueAfter</code> durations to wake at the next transition boundary:</p>
+<table>
+<thead>
+<tr>
+<th>Current State</th>
+<th>RequeueAfter</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ready</td>
+<td><code>dryRunStart - now</code></td>
+</tr>
+<tr>
+<td>DryRun</td>
+<td><code>dryRunDuration</code> remaining</td>
+</tr>
+<tr>
+<td>Verified</td>
+<td><code>unlock - now</code></td>
+</tr>
+<tr>
+<td>Unlocked</td>
+<td><code>earliestStudentLock - now</code></td>
+</tr>
+<tr>
+<td>Locking</td>
+<td><code>nextStudentLock - now</code></td>
+</tr>
+</tbody>
+</table>
+<p>This ensures transitions happen promptly without relying on external events to trigger reconciliation.</p>
+<h3 id="drift-correction">Drift Correction<a class="headerlink" href="#drift-correction" title="Permanent link">&para;</a></h3>
+<p>If a NetworkPolicy is accidentally deleted during the locked phase, the controller recreates it on next reconcile. If a NetworkPolicy is accidentally created during the unlocked phase, the controller removes it.</p>
+<h2 id="namespace-strategy">Namespace Strategy<a class="headerlink" href="#namespace-strategy" title="Permanent link">&para;</a></h2>
+<p>The controller creates one namespace per Exam (e.g., <code>exam-sofe4790u-midterm</code>). All student resources live in this namespace. Benefits:</p>
+<ul>
+<li>NetworkPolicy scope is clean</li>
+<li>ResourceQuota can cap the whole exam</li>
+<li><code>kubectl delete namespace</code> is the nuclear cleanup option</li>
+<li>Owner references work (all resources in the same namespace as the Exam CR)</li>
+</ul>
+<p>The controller itself runs in a separate <code>exam-system</code> namespace.</p>
+<h2 id="network-policies">Network Policies<a class="headerlink" href="#network-policies" title="Permanent link">&para;</a></h2>
+<h3 id="three-policy-model">Three-Policy Model<a class="headerlink" href="#three-policy-model" title="Permanent link">&para;</a></h3>
+<p>Rather than toggling between "deny-all" and "no policy," the controller maintains explicit policies:</p>
+<p><strong>Always present (exam lifetime):</strong></p>
+<ol>
+<li><strong>Default deny-all ingress + egress</strong>: Baseline isolation. No traffic in or out unless explicitly allowed.</li>
+<li><strong>Egress allowlist</strong>: Permits DNS resolution (kube-dns) and any explicit egress targets the vuln app needs. Blocks access to the Kubernetes API server, other student pods, and the internet (unless the exam requires it).</li>
+</ol>
+<p><strong>Toggled by lock/unlock:</strong></p>
+<ol>
+<li><strong>Ingress allow from ingress controller</strong>: Added at unlock, removed at lock. Uses a <code>namespaceSelector</code> + <code>podSelector</code> matching the ingress controller pods. This means "unlocked" = reachable via ingress only, not by arbitrary cluster traffic.</li>
+</ol>
+<h3 id="lock-enforcement">Lock Enforcement<a class="headerlink" href="#lock-enforcement" title="Permanent link">&para;</a></h3>
+<p>At lock time, the controller:
+1. Removes the ingress-allow policy (new connections blocked)
+2. Deletes the student's Ingress resource (terminates the route — kills established connections that would otherwise survive the NetworkPolicy change)
+3. Recreates the Ingress resource only if the student is unlocked again (not expected, but supports manual override)</p>
+<p>This handles the "long-lived TCP connection past deadline" problem that NetworkPolicy alone does not solve.</p>
+<h3 id="per-student-locking">Per-Student Locking<a class="headerlink" href="#per-student-locking" title="Permanent link">&para;</a></h3>
+<p>Students with <code>lockOverride</code> get locked at their override time instead of the global <code>schedule.lock</code>. The controller checks each student's effective lock time individually, producing the <code>Locking</code> intermediate state where some students are locked and others are still writing.</p>
+<h2 id="dry-run-smoke-tests">Dry Run / Smoke Tests<a class="headerlink" href="#dry-run-smoke-tests" title="Permanent link">&para;</a></h2>
+<p>Starting <code>spec.schedule.dryRun.before</code> before unlock time, lasting <code>spec.schedule.dryRun.duration</code>.</p>
+<p><strong>The dry run does NOT remove NetworkPolicies.</strong> Instead, the controller runs smoke tests from inside the cluster (bypassing the deny-all policy by testing pod-to-pod connectivity directly):</p>
+<ol>
+<li>HTTP health check against each student's Service ClusterIP (validates pod is responding)</li>
+<li>DNS resolution check for each student's hostname (validates wildcard DNS)</li>
+<li>TLS validation against the Ingress (validates certificate is in place)</li>
+<li>Results written to <code>status.dryRun</code></li>
+</ol>
+<p>This avoids the early-access hole where a student polling their URL could catch a dry-run window. Students never have access before the scheduled unlock.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nt">status</span><span class="p">:</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">phase</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Verified</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="nt">dryRun</span><span class="p">:</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span><span class="nt">completedAt</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;2026-04-10T13:50:00-04:00&quot;</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span><span class="nt">passed</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">47</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">    </span><span class="nt">failed</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">    </span><span class="nt">failures</span><span class="p">:</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">student</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">jane.doe</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">        </span><span class="nt">error</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;HTTP</span><span class="nv"> </span><span class="s">503</span><span class="nv"> </span><span class="s">-</span><span class="nv"> </span><span class="s">container</span><span class="nv"> </span><span class="s">CrashLoopBackOff&quot;</span>
+</code></pre></div>
+<h2 id="capacity-preflight">Capacity Preflight<a class="headerlink" href="#capacity-preflight" title="Permanent link">&para;</a></h2>
+<p>During the <code>Provisioning</code> → <code>Ready</code> transition, the controller validates:</p>
+<ul>
+<li>All student pods are Running and passing readiness probes</li>
+<li>Aggregate resource usage is within namespace ResourceQuota</li>
+<li>The container image is present on all nodes (or pullable — the controller creates a DaemonSet-based image pre-pull job during provisioning)</li>
+</ul>
+<p>Failures are reported in <code>status.conditions</code> so the instructor has time to fix issues before exam day.</p>
+<h2 id="urls-email">URLs &amp; Email<a class="headerlink" href="#urls-email" title="Permanent link">&para;</a></h2>
+<h3 id="url-scheme">URL Scheme<a class="headerlink" href="#url-scheme" title="Permanent link">&para;</a></h3>
+<p>Each student gets a non-guessable URL:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>https://&lt;random-slug&gt;.exam.otu.ca
+</code></pre></div>
+<p><strong>Slug generation</strong>: 8-character lowercase alphanumeric string generated using <code>crypto/rand</code>. DNS-safe (no hyphens needed at this length, collision probability negligible for class sizes). Stored in <code>status.students[].slug</code>.</p>
+<p>No student IDs appear in URLs. Student ID labels on Kubernetes resources are only visible to the instructor via kubectl.</p>
+<h3 id="email-timing">Email Timing<a class="headerlink" href="#email-timing" title="Permanent link">&para;</a></h3>
+<p>Emails are sent <strong>30 minutes before unlock</strong>, regardless of when provisioning happened. This limits the window where students have the URL before the exam starts, reducing the chance of probing or social engineering.</p>
+<p>If email delivery fails, the controller retries with exponential backoff (max 3 retries). Failures are recorded in <code>status.students[].emailStatus</code>. Fallback:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>kubectl<span class="w"> </span>get<span class="w"> </span>exam<span class="w"> </span>sofe4790u-midterm<span class="w"> </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">&#39;{.status.students[?(@.id==&quot;jane.doe&quot;)].url}&#39;</span>
+</code></pre></div>
+<h2 id="per-student-resources">Per-Student Resources<a class="headerlink" href="#per-student-resources" title="Permanent link">&para;</a></h2>
+<p>For each student, the controller creates within the exam namespace:</p>
+<ul>
+<li><strong>Deployment</strong>: Single-replica pod running the vulnerable app</li>
+<li><strong>Service</strong>: ClusterIP pointing to the pod</li>
+<li><strong>Ingress</strong>: Maps <code>&lt;slug&gt;.exam.otu.ca</code> to the Service, references wildcard TLS Secret</li>
+<li><strong>NetworkPolicy</strong>: Three-policy model described above</li>
+</ul>
+<p>All resources have <code>ownerReferences</code> pointing to the Exam CR for garbage collection.</p>
+<h3 id="pod-security">Pod Security<a class="headerlink" href="#pod-security" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nt">securityContext</span><span class="p">:</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="nt">runAsNonRoot</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span><span class="nt">readOnlyRootFilesystem</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">  </span><span class="c1"># if the vuln app supports it</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">  </span><span class="nt">allowPrivilegeEscalation</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">  </span><span class="nt">capabilities</span><span class="p">:</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">    </span><span class="nt">drop</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;ALL&quot;</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">  </span><span class="nt">seccompProfile</span><span class="p">:</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">RuntimeDefault</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="nt">automountServiceAccountToken</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+</code></pre></div>
+<p>The namespace is labeled for Pod Security Standards enforcement (<code>pod-security.kubernetes.io/enforce: restricted</code> or <code>baseline</code> depending on what the vuln app requires).</p>
+<h2 id="status-schema">Status Schema<a class="headerlink" href="#status-schema" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nt">status</span><span class="p">:</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span><span class="nt">phase</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Unlocked</span><span class="w">                    </span><span class="c1"># Current state machine state</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span><span class="nt">message</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Exam</span><span class="nv"> </span><span class="s">in</span><span class="nv"> </span><span class="s">progress,</span><span class="nv"> </span><span class="s">2</span><span class="nv"> </span><span class="s">students</span><span class="nv"> </span><span class="s">with</span><span class="nv"> </span><span class="s">extended</span><span class="nv"> </span><span class="s">time&quot;</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">  </span><span class="nt">conditions</span><span class="p">:</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Provisioned</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">      </span><span class="nt">status</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;True&quot;</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="w">      </span><span class="nt">lastTransitionTime</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;2026-04-08T10:00:00-04:00&quot;</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">DryRunPassed</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="w">      </span><span class="nt">status</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;True&quot;</span>
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="w">      </span><span class="nt">lastTransitionTime</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;2026-04-10T13:50:00-04:00&quot;</span>
+<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">AllEmailsSent</span>
+<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="w">      </span><span class="nt">status</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;True&quot;</span>
+<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a><span class="w">      </span><span class="nt">lastTransitionTime</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;2026-04-10T13:30:00-04:00&quot;</span>
+<a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>
+<a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a><span class="w">  </span><span class="nt">dryRun</span><span class="p">:</span>
+<a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a><span class="w">    </span><span class="nt">completedAt</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;2026-04-10T13:50:00-04:00&quot;</span>
+<a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a><span class="w">    </span><span class="nt">passed</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">48</span>
+<a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a><span class="w">    </span><span class="nt">failed</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
+<a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a><span class="w">    </span><span class="nt">failures</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span>
+<a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a>
+<a id="__codelineno-6-22" name="__codelineno-6-22" href="#__codelineno-6-22"></a><span class="w">  </span><span class="nt">students</span><span class="p">:</span>
+<a id="__codelineno-6-23" name="__codelineno-6-23" href="#__codelineno-6-23"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">john.smith</span>
+<a id="__codelineno-6-24" name="__codelineno-6-24" href="#__codelineno-6-24"></a><span class="w">      </span><span class="nt">slug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">a3f9b2c1</span>
+<a id="__codelineno-6-25" name="__codelineno-6-25" href="#__codelineno-6-25"></a><span class="w">      </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://a3f9b2c1.exam.otu.ca</span>
+<a id="__codelineno-6-26" name="__codelineno-6-26" href="#__codelineno-6-26"></a><span class="w">      </span><span class="nt">phase</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Unlocked</span><span class="w">         </span><span class="c1"># Provisioned | Healthy | Unlocked | Locked | Failed</span>
+<a id="__codelineno-6-27" name="__codelineno-6-27" href="#__codelineno-6-27"></a><span class="w">      </span><span class="nt">emailStatus</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Sent</span><span class="w">       </span><span class="c1"># Pending | Sent | Failed</span>
+<a id="__codelineno-6-28" name="__codelineno-6-28" href="#__codelineno-6-28"></a><span class="w">      </span><span class="nt">emailSentAt</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;2026-04-10T13:30:00-04:00&quot;</span>
+<a id="__codelineno-6-29" name="__codelineno-6-29" href="#__codelineno-6-29"></a><span class="w">      </span><span class="nt">lockedAt</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<a id="__codelineno-6-30" name="__codelineno-6-30" href="#__codelineno-6-30"></a><span class="w">      </span><span class="nt">effectiveLockTime</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;2026-04-10T16:00:00-04:00&quot;</span>
+<a id="__codelineno-6-31" name="__codelineno-6-31" href="#__codelineno-6-31"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">jane.doe</span>
+<a id="__codelineno-6-32" name="__codelineno-6-32" href="#__codelineno-6-32"></a><span class="w">      </span><span class="nt">slug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">b7e2d4f8</span>
+<a id="__codelineno-6-33" name="__codelineno-6-33" href="#__codelineno-6-33"></a><span class="w">      </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://b7e2d4f8.exam.otu.ca</span>
+<a id="__codelineno-6-34" name="__codelineno-6-34" href="#__codelineno-6-34"></a><span class="w">      </span><span class="nt">phase</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Unlocked</span>
+<a id="__codelineno-6-35" name="__codelineno-6-35" href="#__codelineno-6-35"></a><span class="w">      </span><span class="nt">emailStatus</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Sent</span>
+<a id="__codelineno-6-36" name="__codelineno-6-36" href="#__codelineno-6-36"></a><span class="w">      </span><span class="nt">emailSentAt</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;2026-04-10T13:30:00-04:00&quot;</span>
+<a id="__codelineno-6-37" name="__codelineno-6-37" href="#__codelineno-6-37"></a><span class="w">      </span><span class="nt">lockedAt</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<a id="__codelineno-6-38" name="__codelineno-6-38" href="#__codelineno-6-38"></a><span class="w">      </span><span class="nt">effectiveLockTime</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;2026-04-10T17:00:00-04:00&quot;</span><span class="w">   </span><span class="c1"># accommodation</span>
+</code></pre></div>
+<h2 id="post-exam-retention">Post-Exam Retention<a class="headerlink" href="#post-exam-retention" title="Permanent link">&para;</a></h2>
+<p>After locking, instances remain for grading but are fully network-isolated (deny-all policies in place). The controller sets a <code>status.retentionDeadline</code> to 7 days after lock time. After the deadline, <code>kubectl describe exam</code> shows a warning. The instructor triggers teardown manually:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>kubectl<span class="w"> </span>annotate<span class="w"> </span>exam<span class="w"> </span>sofe4790u-midterm<span class="w"> </span>exam.otu.ca/teardown<span class="o">=</span>confirmed
+</code></pre></div>
+<p>This avoids leaving intentionally vulnerable workloads running indefinitely.</p>
+<h2 id="project-structure">Project Structure<a class="headerlink" href="#project-structure" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>exam-controller/
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>├── api/v1alpha1/            # CRD type definitions
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>├── internal/
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>│   ├── controller/          # Reconciliation loop
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>│   ├── network/             # NetworkPolicy create/toggle/delete
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>│   ├── provisioner/         # Per-student Deployment/Service/Ingress
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>│   ├── smoketest/           # Cluster-internal health/DNS/TLS checks
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>│   ├── notifier/            # SMTP email delivery
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>│   └── webhook/             # Validating webhook for spec immutability
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>├── config/
+<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>│   ├── crd/                 # Generated CRD manifests
+<a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>│   ├── rbac/                # Controller RBAC (scoped to exam namespace + specific Secrets)
+<a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a>│   ├── webhook/             # Webhook configuration
+<a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a>│   └── samples/             # Example Exam manifests
+<a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a>├── cmd/main.go              # Entrypoint
+<a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a>├── Dockerfile
+<a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a>├── Makefile
+<a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a>└── go.mod
+</code></pre></div>
+<h3 id="tech-stack">Tech Stack<a class="headerlink" href="#tech-stack" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Go with controller-runtime (Kubebuilder)</li>
+<li><code>net/smtp</code> for email</li>
+<li>No database, no web framework</li>
+</ul>
+<h2 id="decisions">Decisions<a class="headerlink" href="#decisions" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Network-level locking over auth proxy</strong>: Simpler, fewer moving parts, leverages native K8s primitives.</li>
+<li><strong>Single unlock window, per-student lock times</strong>: Accommodated students get a later lock time via <code>lockOverride</code> without being identifiable.</li>
+<li><strong>PreProvisioned only</strong>: OnDemand rejected — too many failure modes on exam day's critical path.</li>
+<li><strong>Random slugs over student IDs in URLs</strong>: Privacy for accommodated students. Generated with <code>crypto/rand</code>.</li>
+<li><strong>Dry run without removing NetworkPolicies</strong>: Tests run cluster-internally to prevent early-access hole.</li>
+<li><strong>Email 30 min before unlock</strong>: Limits URL exposure window vs. sending at provisioning time.</li>
+<li><strong>Delete Ingress at lock time</strong>: Kills established connections that survive NetworkPolicy changes.</li>
+<li><strong>Manual teardown with retention warning</strong>: Prevents indefinite vulnerable workload exposure.</li>
+<li><strong>One namespace per exam</strong>: Clean isolation boundary, working owner references, easy nuclear cleanup.</li>
+<li><strong>Spec immutability after provisioning</strong>: Validating webhook prevents accidental disruption of live exams.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.sections", "navigation.top", "search.suggest", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
