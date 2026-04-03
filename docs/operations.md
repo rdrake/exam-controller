@@ -1,4 +1,4 @@
-# Operational Runbook
+# Operational runbook
 
 This document covers deployment, monitoring, troubleshooting, and supported operational procedures for the exam-controller.
 
@@ -15,11 +15,11 @@ This document covers deployment, monitoring, troubleshooting, and supported oper
 - (Optional) Prometheus + Grafana for monitoring
 - (Optional) Cilium CNI for CiliumNetworkPolicy support (auto-detected at startup)
 
-### Namespace Setup
+### Namespace setup
 
 The controller itself runs in `exam-controller-system` (Kustomize) or whatever namespace you install the Helm release into. Each Exam CR creates a dedicated namespace named `exam-<exam-name>-<hash>` containing all student resources. The hash makes namespaces stable and collision-safe when two Exams share the same name in different Kubernetes namespaces.
 
-### RBAC Overview
+### RBAC overview
 
 The controller requires a ClusterRole with the following permissions:
 
@@ -32,14 +32,14 @@ The controller requires a ClusterRole with the following permissions:
 | `cilium.io`        | ciliumnetworkpolicies                 | get, list, watch, create, update, patch, delete |
 | `exam.otu.ca`      | exams, exams/status, exams/finalizers | full CRUD                                  |
 
-The default install ships only the RBAC required by the controller and its metrics endpoint. Bind any additional read or write access to `Exam` resources explicitly for your own platform team workflows.
+The default install ships only the RBAC required by the controller and its metrics endpoint. Bind any extra read or write access to `Exam` resources explicitly for your own platform team workflows.
 
-### Platform Secrets
+### Platform secrets
 
 The controller reads two platform-managed secrets from its configured secret namespace:
 
 1. **Wildcard certificate** (optional) -- `--ingress-tls-secret-name` points to a TLS secret covering `*.science.ontariotechu.ca` (or your chosen base domain). The controller copies this secret into each exam namespace before creating ingresses. When left empty (the default), TLS secret management is disabled -- use this when cert-manager or Cilium handles TLS automatically.
-2. **SMTP credentials** -- `--smtp-secret-name` points to a secret with `host`, `port`, and optionally `username` and `password` keys. The `port` defaults to 587 if missing. For unauthenticated SMTP relays, the `username` and `password` keys may be omitted.
+2. **SMTP credentials** -- `--smtp-secret-name` points to a secret with `host`, `port`, and optionally `username` and `password` keys. The `port` defaults to 587 if missing. For unauthenticated SMTP relays, the `username` and `password` keys can be omitted.
 
 Example:
 
@@ -67,7 +67,7 @@ kubectl create secret generic exam-smtp-credentials \
 
 Metrics and webhook certificates remain separate. The controller can generate self-signed certs by default; for production, use cert-manager or pass `--metrics-cert-path` / `--webhook-cert-path`.
 
-### Kustomize Deployment
+### Kustomize deployment
 
 ```bash
 # Install CRDs
@@ -94,7 +94,7 @@ Key startup flags (configured in `config/default/manager_metrics_patch.yaml`):
 | `--metrics-secure`           | `true`     | Serve metrics over HTTPS               |
 | `--enable-http2`             | `false`    | Enable HTTP/2 (disabled by default for CVE mitigation) |
 
-### Helm Deployment
+### Helm deployment
 
 ```bash
 helm install exam-controller charts/exam-controller \
@@ -133,11 +133,11 @@ Key Helm values:
 
 ---
 
-## 2. Day-2 Operations -- Prometheus Metrics
+## 2. Day 2 operations -- Prometheus metrics
 
 The controller exposes 12 metrics on its metrics endpoint. All per-exam metrics are labeled with both `exam="<exam-name>"` and `namespace="<exam-cr-namespace>"`.
 
-### Metric Reference
+### Metric reference
 
 | Metric | Type | Labels | Description |
 |--------|------|--------|-------------|
@@ -159,7 +159,7 @@ The controller exposes 12 metrics on its metrics endpoint. All per-exam metrics 
 
 When an exam is torn down, all its label series are cleaned up via `CleanupExam()` to prevent unbounded cardinality growth.
 
-### PromQL Alerting Queries
+### PromQL alerting queries
 
 **Reconcile error rate (>5% over 5 minutes):**
 
@@ -219,7 +219,7 @@ exam_seconds_until_unlock < 900
 exam_seconds_until_lock > 0 and exam_seconds_until_lock < 300
 ```
 
-### Dashboard Panels
+### Dashboard panels
 
 Useful Grafana panel queries:
 
@@ -237,9 +237,9 @@ exam_instances_healthy / exam_instances_total
 rate(exam_reconcile_duration_seconds_bucket[5m])
 ```
 
-### Grafana Dashboard
+### Grafana dashboard
 
-The Helm chart ships a pre-built Grafana dashboard (`exam-overview.json`) that provides a single-pane overview of exam lifecycle, instance health, provisioning latency, and operator health. It is delivered as a ConfigMap discovered by the [Grafana sidecar](https://github.com/grafana/helm-charts/tree/main/charts/grafana#sidecar-for-dashboards).
+The Helm chart ships a pre-built Grafana dashboard (`exam-overview.json`) that provides a single-pane overview of exam lifecycle, instance health, provisioning latency, and operator health. The chart delivers it as a ConfigMap discovered by the [Grafana sidecar](https://github.com/grafana/helm-charts/tree/main/charts/grafana#sidecar-for-dashboards).
 
 **Prerequisites:**
 
@@ -268,13 +268,13 @@ The dashboard expects a Prometheus datasource provisioned as a template variable
 
 **Dashboard layout:**
 
-- **Row 1 — Status at a glance:** current phase, healthy/total instances, failed count, email delivery stats, dry run results, countdowns to unlock/lock.
-- **Row 2 — Provisioning & health:** instance health over time (stacked time series), provisioning latency heatmap, phase timeline.
-- **Row 3 — Operator health** (collapsed): reconcile latency (p50/p99), reconcile error rate, spare swap count.
+- **Row 1, status at a glance:** current phase, healthy/total instances, failed count, email delivery stats, dry run results, countdowns to unlock/lock.
+- **Row 2, provisioning and health:** instance health over time (stacked time series), provisioning latency heatmap, phase timeline.
+- **Row 3, operator health** (collapsed): reconcile latency (p50/p99), reconcile error rate, spare swap count.
 
 **Dashboard source:**
 
-The dashboard is authored in [Grafonnet](https://github.com/grafana/grafonnet) (Jsonnet) at `charts/exam-controller/dashboards/exam-overview.jsonnet` and compiled to JSON. The Grafonnet dependency is pinned by commit hash in `jsonnetfile.json` and locked in `jsonnetfile.lock.json`. To recompile after editing the Jsonnet source:
+The dashboard source lives in [Grafonnet](https://github.com/grafana/grafonnet) (Jsonnet) at `charts/exam-controller/dashboards/exam-overview.jsonnet` and compiled to JSON. The Grafonnet dependency is pinned by commit hash in `jsonnetfile.json` and locked in `jsonnetfile.lock.json`. To recompile after editing the Jsonnet source:
 
 ```bash
 make dashboard          # compile Jsonnet → JSON
@@ -283,7 +283,7 @@ make check-dashboard    # verify JSON is up to date (runs in CI)
 
 `make check-dashboard` is included in `make verify-fast`, so stale JSON will fail CI.
 
-### PrometheusRule Alerts
+### PrometheusRule alerts
 
 The Helm chart includes a `PrometheusRule` resource with six alerts covering the critical exam lifecycle failure modes. Enable it alongside the ServiceMonitor:
 
@@ -308,7 +308,7 @@ The PrometheusRule is labeled `prometheus: kube-prometheus` for automatic discov
 
 ## 3. Troubleshooting
 
-### Exam stuck in Provisioning
+### Exam stuck in provisioning
 
 **Symptoms:** Exam `status.phase` is `Provisioning` and has not transitioned to `Ready` within the expected time.
 
@@ -370,10 +370,10 @@ kubectl logs -n exam-controller-system deployment/exam-controller-controller-man
 **Common causes and resolution:**
 
 - **Secret not found:** Verify the controller's `--smtp-secret-name` and `--platform-secret-namespace` settings point to an existing Secret.
-- **Wrong credentials:** If the SMTP server requires authentication, check the `username` and `password` keys in the Secret. The controller uses PLAIN auth. For unauthenticated relays, these keys may be omitted.
+- **Wrong credentials:** If the SMTP server requires authentication, check the `username` and `password` keys in the Secret. The controller uses PLAIN auth. For unauthenticated relays, these keys can be omitted.
 - **Port mismatch:** The Secret `port` defaults to 587 if omitted. Ensure your SMTP server listens on that port.
 - **Network connectivity:** The controller pod must be able to reach the SMTP host. Check NetworkPolicies on the controller namespace.
-- **Retry exhaustion:** The RetrySender retries up to 3 times with exponential backoff (100ms, 200ms, 400ms). Persistent failures indicate an infrastructure problem, not a transient issue.
+- **Retry exhaustion:** The RetrySender retries up to 3 times with exponential backoff (100ms, 200ms, 400ms). Persistent failures point to an infrastructure problem, not a transient issue.
 
 **Log patterns to search for:**
 
@@ -493,7 +493,7 @@ kubectl logs -n exam-controller-system deployment/exam-controller-controller-man
 - **Controller not running:** If the controller pod is down, no reconciliation occurs. Check pod status and events.
 - **Leader election stuck:** With `--leader-elect=true`, only the leader reconciles. If the leader pod died without releasing the lease, another pod must wait for the lease to expire (default 15s).
 - **Clock skew:** Phase transitions depend on comparing `time.Now()` against scheduled times. Ensure cluster nodes have accurate time (NTP).
-- **Time zone mismatch:** The `spec.schedule.unlock` time is parsed as-is. Use explicit timezone offsets (e.g. `2026-04-10T14:00:00-04:00`) to avoid ambiguity.
+- **Time zone mismatch:** The `spec.schedule.unlock` time is parsed as-is. Use explicit time zone offsets (e.g. `2026-04-10T14:00:00-04:00`) to avoid ambiguity.
 - **Reconcile error loop:** If a phase handler returns an error, the controller retries with backoff. Check logs for the specific error.
 
 ### Metrics not showing up
@@ -531,7 +531,7 @@ kubectl get clusterrolebinding | grep metrics
 
 ---
 
-## 4. Operational Procedures
+## 4. Operational procedures
 
 ### Supported manual changes
 
@@ -540,7 +540,7 @@ The operator intentionally exposes a narrow control surface. Supported intervent
 - Updating student email addresses before provisioning starts
 - Extending an active exam by adjusting `spec.schedule.duration` or `spec.schedule.timeMultiplier`
 - Extending retention by increasing `spec.schedule.retention`
-- Cancelling an exam by deleting the `Exam` resource
+- Canceling an exam by deleting the `Exam` resource
 
 Avoid patching `.status.phase` or other status fields directly. The controller treats status as its own reconciliation output, not as an operator-facing control API.
 
@@ -614,7 +614,7 @@ kubectl delete lease 70624ff0.otu.ca -n exam-controller-system
 
 The controller is designed to be crash-safe. On restart it will:
 
-1. Re-read all Exam CRs and recompute their desired phase.
+1. Re-read all Exam CRs and recompute their expected phase.
 2. Resume from the current phase -- it will not re-send emails already marked as `Sent`.
 3. Re-apply any missing NetworkPolicies (drift correction runs every reconcile in Ready, Unlocked, and Locked phases).
 4. Continue countdown timers based on the original schedule times, not elapsed time.
@@ -637,7 +637,7 @@ kubectl get exam <name> -n exam-system -o jsonpath='{range .status.spares[*]}{.s
 
 ### Controller resource limits
 
-The default Helm values allocate minimal resources suitable for small deployments:
+The default Helm values set minimal resources suitable for small deployments:
 
 ```yaml
 resources:
@@ -657,7 +657,7 @@ resources:
 | 3--10             | 100--500       | 1000m                    | 256Mi                      |
 | 10+               | 500+           | 2000m                    | 512Mi                      |
 
-The controller is single-threaded per reconcile (one Exam at a time) but processes multiple Exams concurrently through the controller-runtime work queue.
+The controller is single-threaded per reconcile (one Exam at a time) but processes many Exams concurrently through the controller-runtime work queue.
 
 ### Handling many concurrent exams
 
@@ -674,8 +674,8 @@ For a 50-student exam with 5 spares, that is 55 Deployments, 55 Services, and 11
 **Recommendations:**
 
 - Enable leader election (`--leader-elect=true`) and run 2 replicas for HA. Only the leader reconciles, but a standby takes over immediately on failure.
-- Monitor `exam_reconcile_duration_seconds` -- if p99 exceeds a few seconds, the controller is under load.
-- Ensure the Kubernetes API server can handle the object count. Each reconcile loop may list Deployments across exam namespaces.
+- Watch `exam_reconcile_duration_seconds` -- if p99 exceeds a few seconds, the controller is under load.
+- Ensure the Kubernetes API server can handle the object count. Each reconcile loop can list Deployments across exam namespaces.
 - Consider staggering exam start times to avoid provisioning storms.
 
 ### Email send interval
