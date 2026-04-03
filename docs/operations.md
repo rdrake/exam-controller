@@ -126,6 +126,9 @@ Key Helm values:
 | `resources.requests.memory`      | `64Mi`                               | Memory request                     |
 | `resources.limits.cpu`           | `500m`                               | CPU limit                          |
 | `resources.limits.memory`        | `128Mi`                              | Memory limit                       |
+| `metrics.prometheusRule.enabled`  | `false`                              | Create PrometheusRule alerts        |
+| `grafana.dashboard.enabled`      | `false`                              | Create Grafana dashboard ConfigMap  |
+| `grafana.dashboard.folder`       | `""`                                 | Grafana folder for the dashboard   |
 | `networkPolicy.enabled`          | `false`                              | Controller pod NetworkPolicy       |
 
 ---
@@ -150,6 +153,9 @@ The controller exposes 12 metrics on its metrics endpoint. All per-exam metrics 
 | `exam_dryrun_failed` | Gauge | `exam`, `namespace` | Dry run checks that failed |
 | `exam_seconds_until_unlock` | Gauge | `exam`, `namespace` | Seconds remaining until unlock (0 after) |
 | `exam_seconds_until_lock` | Gauge | `exam`, `namespace` | Seconds remaining until lock (0 after) |
+| `exam_provision_duration_seconds` | Histogram | `exam`, `namespace`, `student` | Time to provision each student instance (buckets: 5s–300s) |
+| `exam_phase_duration_seconds` | Gauge | `exam`, `namespace`, `phase` | Seconds spent in the current lifecycle phase |
+| `exam_spare_swaps_total` | Counter | `exam`, `namespace` | Spare instances swapped in for failed students |
 
 When an exam is torn down, all its label series are cleaned up via `CleanupExam()` to prevent unbounded cardinality growth.
 
@@ -230,6 +236,73 @@ exam_instances_healthy / exam_instances_total
 # Reconcile latency heatmap
 rate(exam_reconcile_duration_seconds_bucket[5m])
 ```
+
+### Grafana Dashboard
+
+The Helm chart ships a pre-built Grafana dashboard (`exam-overview.json`) that provides a single-pane overview of exam lifecycle, instance health, provisioning latency, and operator health. It is delivered as a ConfigMap discovered by the [Grafana sidecar](https://github.com/grafana/helm-charts/tree/main/charts/grafana#sidecar-for-dashboards).
+
+**Prerequisites:**
+
+- Grafana deployed with the dashboard sidecar enabled (the default in the `grafana/grafana` Helm chart)
+- The sidecar configured to watch ConfigMaps with label `grafana_dashboard: "1"` in the release namespace
+
+**Enable the dashboard:**
+
+```bash
+helm install exam-controller charts/exam-controller \
+  --namespace exam-controller-system --create-namespace \
+  --set metrics.enabled=true \
+  --set metrics.serviceMonitor.enabled=true \
+  --set grafana.dashboard.enabled=true \
+  --set grafana.dashboard.folder="Exam Controller"
+```
+
+| Value                       | Default              | Description                                  |
+|-----------------------------|----------------------|----------------------------------------------|
+| `grafana.dashboard.enabled` | `false`              | Create the dashboard ConfigMap               |
+| `grafana.dashboard.label`   | `grafana_dashboard`  | ConfigMap label key for sidecar discovery    |
+| `grafana.dashboard.labelValue` | `"1"`             | ConfigMap label value for sidecar discovery  |
+| `grafana.dashboard.folder`  | `""`                 | Grafana folder name (empty = General folder) |
+
+The dashboard expects a Prometheus datasource provisioned as a template variable (`${DS_PROMETHEUS}`). On first load, Grafana will prompt you to select the correct datasource if more than one is configured.
+
+**Dashboard layout:**
+
+- **Row 1 — Status at a glance:** current phase, healthy/total instances, failed count, email delivery stats, dry run results, countdowns to unlock/lock.
+- **Row 2 — Provisioning & health:** instance health over time (stacked time series), provisioning latency heatmap, phase timeline.
+- **Row 3 — Operator health** (collapsed): reconcile latency (p50/p99), reconcile error rate, spare swap count.
+
+**Dashboard source:**
+
+The dashboard is authored in [Grafonnet](https://github.com/grafana/grafonnet) (Jsonnet) at `charts/exam-controller/dashboards/exam-overview.jsonnet` and compiled to JSON. The Grafonnet dependency is pinned by commit hash in `jsonnetfile.json` and locked in `jsonnetfile.lock.json`. To recompile after editing the Jsonnet source:
+
+```bash
+make dashboard          # compile Jsonnet → JSON
+make check-dashboard    # verify JSON is up to date (runs in CI)
+```
+
+`make check-dashboard` is included in `make verify-fast`, so stale JSON will fail CI.
+
+### PrometheusRule Alerts
+
+The Helm chart includes a `PrometheusRule` resource with six alerts covering the critical exam lifecycle failure modes. Enable it alongside the ServiceMonitor:
+
+```bash
+helm upgrade exam-controller charts/exam-controller \
+  --set metrics.enabled=true \
+  --set metrics.prometheusRule.enabled=true
+```
+
+| Alert | Severity | Fires when | For |
+|-------|----------|------------|-----|
+| `ExamInstancesFailed` | critical | `exam_instances_failed > 0` | 2m |
+| `ExamDryRunFailed` | critical | `exam_dryrun_failed > 0` | 1m |
+| `ExamProvisioningStuck` | critical | Provisioning phase exceeds 10 minutes | 5m |
+| `ExamEmailDeliveryFailed` | warning | `exam_emails_failed_total > 0` | 2m |
+| `ExamReconcileErrors` | warning | Reconcile error rate > 0 for 5 minutes | 5m |
+| `ExamInstancesDegraded` | warning | `exam_instances_healthy < exam_instances_total` | 5m |
+
+The PrometheusRule is labeled `prometheus: kube-prometheus` for automatic discovery by the kube-prometheus-stack operator. Adjust the label if your Prometheus uses a different selector.
 
 ---
 

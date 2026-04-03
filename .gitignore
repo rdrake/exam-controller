@@ -30,5 +30,8 @@ go.work
 # Kubeconfig might contain secrets
 *.kubeconfig
 
+# MkDocs build output
+site/
+
 # Jsonnet vendored dependencies (managed by jsonnet-bundler)
 charts/exam-controller/dashboards/vendor/

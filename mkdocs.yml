@@ -1,0 +1,43 @@
+site_name: Exam Controller
+site_url: https://me.rdrake.org/exam-controller/
+repo_url: https://github.com/rdrake/exam-controller
+repo_name: rdrake/exam-controller
+
+theme:
+  name: material
+  features:
+    - navigation.instant
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - content.code.copy
+  palette:
+    - scheme: default
+      primary: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - toc:
+      permalink: true
+  - tables
+
+nav:
+  - Home: index.md
+  - Operational Runbook: operations.md
+  - CRD Reference: crd-reference.md
+  - Platform Guide: platform-guide.md
